@@ -56,7 +56,6 @@ setup_standalone_project_tests(
     TARGET ariadne-integration
     TEST_DIRECTORY tests
     TEST_TARGET tests
-    MODULE_REPORTS integration
     SOURCES
         "${PROJECT_SOURCE_DIR}/include"
         "${PROJECT_SOURCE_DIR}/src"
