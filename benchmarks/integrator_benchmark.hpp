@@ -11,7 +11,7 @@
 #include <utility>
 #include <vector>
 
-#include "ariadne-kernel.hpp"
+#include "ariadne-integration.hpp"
 
 namespace IntegratorBenchmark {
 
