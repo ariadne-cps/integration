@@ -1,0 +1,138 @@
+name: Unix
+
+on:
+  push:
+    branches:
+      - main
+      - python-decoupling
+      - decoupled-interval
+  pull_request:
+
+env:
+  BUILD_TYPE: Release
+  SCCACHE_GHA_ENABLED: "true"
+
+jobs:
+  build:
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - { name: "macOS 26 AppleClang 21 [Release]", os: macos-26, cxx: "/usr/bin/clang++" }
+          - { name: "Ubuntu 24.04 Clang 16 [Release]", os: ubuntu-24.04, cxx: "clang++-16", pkg: "clang-16" }
+          - { name: "Ubuntu 24.04 GCC 13 [Release]", os: ubuntu-24.04, cxx: "g++-13", pkg: "g++-13" }
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up sccache
+      uses: mozilla-actions/sccache-action@v0.0.11
+      with:
+        version: "v0.18.0"
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.13"
+
+    - name: Install Python Test Dependencies
+      run: python -m pip install pytest
+
+    - name: Get macOS Concurrency
+      if: runner.os == 'macOS'
+      run: echo NPROC="sysctl -n hw.ncpu" >> $GITHUB_ENV
+
+    - name: Get Linux Concurrency
+      if: runner.os == 'Linux'
+      run: echo NPROC="nproc" >> $GITHUB_ENV
+
+    - name: Set Up macOS Dependencies
+      if: runner.os == 'macOS'
+      run: brew install ninja gmp mpfr cairo pkg-config
+
+    - name: Set Up Linux Dependencies
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake ninja-build pkg-config ${{ matrix.config.pkg }} libgmp-dev libmpfr-dev libcairo2-dev
+
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{ runner.workspace }}/build
+
+    - name: Configure CMake
+      working-directory: ${{ runner.workspace }}/build
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_CXX_COMPILER=${{ matrix.config.cxx }} -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -G Ninja -DWARNINGS_AS_ERRORS=ON -DPYTHON_ENFORCE_TESTS=ON
+
+    - name: Build
+      working-directory: ${{ runner.workspace }}/build
+      run: cmake --build . --parallel $($NPROC) --target everything
+
+    - name: Test C++
+      working-directory: ${{ runner.workspace }}/build
+      run: ctest -j $($NPROC) -LE python --output-on-failure
+
+    - name: Test Python
+      working-directory: ${{ runner.workspace }}/build
+      run: ctest -L python -V --output-on-failure
+
+    - name: Install Ariadne Integration
+      working-directory: ${{ runner.workspace }}/build
+      run: cmake --install . --prefix ${{ runner.workspace }}/install
+
+    - name: Prepare C++ Integration Tutorial
+      run: cmake -E copy_directory $GITHUB_WORKSPACE/tutorials/tutorial_integration ${{ runner.workspace }}/tutorial_integration
+
+    - name: Check C++ Integration Tutorial
+      working-directory: ${{ runner.workspace }}/tutorial_integration
+      run: |
+        cmake -S . -B build -DCMAKE_PREFIX_PATH=${{ runner.workspace }}/install -DCMAKE_CXX_COMPILER=${{ matrix.config.cxx }} -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -G Ninja
+        cmake --build build --parallel $($NPROC)
+        export LD_LIBRARY_PATH=${{ runner.workspace }}/install/lib:${LD_LIBRARY_PATH:-}
+        export DYLD_LIBRARY_PATH=${{ runner.workspace }}/install/lib:${DYLD_LIBRARY_PATH:-}
+        ./build/tutorial_integration
+
+    - name: Check Python Integration Tutorial
+      working-directory: ${{ github.workspace }}/python/tutorials
+      env:
+        PYTHONPATH: ${{ runner.workspace }}/build/python
+      run: python tutorial_integration.py
+
+    - name: Verify Uninstallation
+      working-directory: ${{ runner.workspace }}/build
+      run: cmake --build . --target uninstall
+
+
+  thread-sanitizer:
+    name: Ubuntu 24.04 Clang 16 [ThreadSanitizer]
+    runs-on: ubuntu-24.04
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up sccache
+      uses: mozilla-actions/sccache-action@v0.0.11
+      with:
+        version: "v0.18.0"
+
+    - name: Set Up Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake ninja-build pkg-config clang-16 libgmp-dev libmpfr-dev
+
+    - name: Create Build Environment
+      run: cmake -E make_directory ${{runner.workspace}}/build-tsan
+
+    - name: Configure CMake
+      working-directory: ${{runner.workspace}}/build-tsan
+      run: cmake ${{github.workspace}} -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++-16 -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DTHREAD_SANITIZER=ON -DBUILD_PYTHON_BINDINGS=OFF -G Ninja -DWARNINGS_AS_ERRORS=ON
+
+    - name: Build
+      working-directory: ${{runner.workspace}}/build-tsan
+      run: cmake --build . --parallel 2
+
+    - name: Test
+      working-directory: ${{runner.workspace}}/build-tsan
+      env:
+        TSAN_OPTIONS: halt_on_error=1
+      run: ctest --output-on-failure

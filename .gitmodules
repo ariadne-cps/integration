@@ -1,0 +1,6 @@
+[submodule "ss/configuration"]
+	path = ss/configuration
+	url = https://github.com/ariadne-cps/configuration
+[submodule "ss/kernel"]
+	path = ss/kernel
+	url = https://github.com/ariadne-cps/kernel

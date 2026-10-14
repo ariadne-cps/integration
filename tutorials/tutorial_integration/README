@@ -1,0 +1,5 @@
+This tutorial demonstrates the standalone Ariadne Integration API.
+
+Build Ariadne Integration and install it to a prefix, then configure this directory
+with that prefix in CMAKE_PREFIX_PATH. The tutorial includes ariadne-integration.hpp
+and links against the installed ariadne-integration library.
