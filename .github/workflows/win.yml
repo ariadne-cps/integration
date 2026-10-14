@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-      - python-decoupling
-      - decoupled-interval
   pull_request:
 
 jobs:
@@ -18,6 +16,10 @@ jobs:
       SCCACHE_GHA_ENABLED: "true"
 
     steps:
+    - name: Enable long paths in Git
+      shell: pwsh
+      run: git config --system core.longpaths true
+
     - uses: actions/checkout@v3
 
     - name: Set up MSVC environment
@@ -69,7 +71,7 @@ jobs:
 
     - name: Configure CMake
       working-directory: ${{ runner.workspace }}/build
-      run: cmake $env:GITHUB_WORKSPACE -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-release -DVCPKG_HOST_TRIPLET=x64-windows-release -DX_VCPKG_APPLOCAL_DEPS_SERIALIZED=ON -DWARNINGS_AS_ERRORS=ON -DPYTHON_ENFORCE_TESTS=ON
+      run: cmake $env:GITHUB_WORKSPACE -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-release -DVCPKG_HOST_TRIPLET=x64-windows-release -DX_VCPKG_APPLOCAL_DEPS_SERIALIZED=ON -DVCPKG_USE_LEGACY_APPLOCAL=ON -DWARNINGS_AS_ERRORS=ON -DPYTHON_ENFORCE_TESTS=ON
 
     - name: Build
       working-directory: ${{ runner.workspace }}/build

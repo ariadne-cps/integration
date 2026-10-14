@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-      - python-decoupling
-      - decoupled-interval
   pull_request:
 
 env:
@@ -118,7 +116,7 @@ jobs:
     - name: Set Up Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y cmake ninja-build pkg-config clang-16 libgmp-dev libmpfr-dev
+        sudo apt-get install -y cmake ninja-build pkg-config clang-16 libgmp-dev libmpfr-dev libcairo2-dev
 
     - name: Create Build Environment
       run: cmake -E make_directory ${{runner.workspace}}/build-tsan
