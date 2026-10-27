@@ -37,7 +37,6 @@
 #include "function/function_model.hpp"
 #include "function/formula.hpp"
 #include "function/symbolic_function.hpp"
-#include "symbolic/expression_set.hpp"
 #include "logging/logging.hpp"
 #include "integration/integrator_interface.hpp"
 
