@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#include "drawing/command_line_interface.hpp"
+#include "logging/logging_command_line_interface.hpp"
 #include "logging/logging.hpp"
 #include "integrator_benchmark.hpp"
 
@@ -291,7 +291,7 @@ Int main(Int argc, const char* argv[]) {
     const auto benchmark_parsers=
         make_benchmark_argument_parsers(selection);
 
-    auto command_line=make_kernel_command_line_interface();
+    LoggingCommandLineInterface command_line;
     command_line.add(CommandLineContribution(
         "integrator-benchmark",
         benchmark_parsers));
