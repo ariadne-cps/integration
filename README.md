@@ -3,6 +3,7 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Unix Status](https://github.com/ariadne-cps/integration/actions/workflows/unix.yml/badge.svg)](https://github.com/ariadne-cps/integration/actions/workflows/unix.yml)
 [![Windows Status](https://github.com/ariadne-cps/integration/actions/workflows/win.yml/badge.svg)](https://github.com/ariadne-cps/integration/actions/workflows/win.yml)
+[![Sanitizers Status](https://github.com/ariadne-cps/integration/actions/workflows/sanitizers.yml/badge.svg)](https://github.com/ariadne-cps/integration/actions/workflows/sanitizers.yml)
 [![Coverage Status](https://github.com/ariadne-cps/integration/actions/workflows/coverage.yml/badge.svg)](https://github.com/ariadne-cps/integration/actions/workflows/coverage.yml)
 [![codecov](https://codecov.io/gh/ariadne-cps/integration/branch/main/graph/badge.svg)](https://codecov.io/gh/ariadne-cps/integration)
 

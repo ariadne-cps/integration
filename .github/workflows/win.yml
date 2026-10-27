@@ -8,11 +8,14 @@ on:
 
 jobs:
   build:
-    name: Windows 2025 [Release]
+    name: Windows 2025 MSVC [${{ matrix.build_type == 'Release' && 'Release Build' || 'Debug Tests' }}]
     runs-on: windows-2025
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Release, Debug]
 
     env:
-      VCPKG_BINARY_SOURCES: "clear;files,${{ github.workspace }}/.vcpkg-cache,readwrite"
       SCCACHE_GHA_ENABLED: "true"
 
     steps:
@@ -37,78 +40,65 @@ jobs:
         python-version: "3.13"
 
     - name: Install Python Test Dependencies
+      if: matrix.build_type == 'Debug'
       run: python -m pip install pytest
-
-    - name: Get vcpkg revision
-      shell: pwsh
-      run: |
-        $rev = git -C C:/vcpkg rev-parse HEAD
-        "VCPKG_REV=$rev" | Out-File -FilePath $env:GITHUB_ENV -Append
-
-    - name: Restore vcpkg binary cache
-      id: vcpkg-cache
-      uses: actions/cache/restore@v4
-      with:
-        path: ${{ github.workspace }}/.vcpkg-cache
-        key: vcpkg-windows-release-${{ env.VCPKG_REV }}-${{ hashFiles('cmake/triplets/x64-windows-release.cmake') }}
-        restore-keys: |
-          vcpkg-windows-release-${{ env.VCPKG_REV }}-
-
-    - name: Install GMP, MPFR and Cairo with vcpkg
-      shell: pwsh
-      run: |
-        & C:/vcpkg/vcpkg.exe install gmp:x64-windows-release mpfr:x64-windows-release cairo:x64-windows-release --host-triplet=x64-windows-release --overlay-triplets="$env:GITHUB_WORKSPACE/cmake/triplets"
-
-    - name: Save vcpkg binary cache
-      if: steps.vcpkg-cache.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v4
-      with:
-        path: ${{ github.workspace }}/.vcpkg-cache
-        key: vcpkg-windows-release-${{ env.VCPKG_REV }}-${{ hashFiles('cmake/triplets/x64-windows-release.cmake') }}
 
     - name: Create Build Environment
       run: cmake -E make_directory ${{ runner.workspace }}/build
 
     - name: Configure CMake
       working-directory: ${{ runner.workspace }}/build
-      run: cmake $env:GITHUB_WORKSPACE -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-release -DVCPKG_HOST_TRIPLET=x64-windows-release -DX_VCPKG_APPLOCAL_DEPS_SERIALIZED=ON -DVCPKG_USE_LEGACY_APPLOCAL=ON -DWARNINGS_AS_ERRORS=ON -DPYTHON_ENFORCE_TESTS=ON
+      run: cmake $env:GITHUB_WORKSPACE -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -DCMAKE_CXX_FLAGS_DEBUG="/Z7 /Ob0 /Od /RTC1" -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache  -DWARNINGS_AS_ERRORS=ON -DPYTHON_ENFORCE_TESTS=${{ matrix.build_type == 'Debug' && 'ON' || 'OFF' }}
 
     - name: Build
       working-directory: ${{ runner.workspace }}/build
       run: cmake --build . --parallel --target everything
 
     - name: Test C++
+      if: matrix.build_type == 'Debug'
       working-directory: ${{ runner.workspace }}/build
       run: ctest -LE python -V --timeout 30
 
+
     - name: Test Python
+      if: matrix.build_type == 'Debug'
       working-directory: ${{ runner.workspace }}/build
-      run: ctest -L python -V --timeout 30
+      run: ctest -L python -V --timeout 60
 
     - name: Install Ariadne Integration
+      if: matrix.build_type == 'Release'
       working-directory: ${{ runner.workspace }}/build
       run: cmake --install . --prefix "${{ runner.workspace }}/install"
 
+    - name: Check Python Integration Tutorial
+      if: matrix.build_type == 'Release'
+      shell: pwsh
+      working-directory: ${{ github.workspace }}/python/tutorials
+      run: |
+        $env:PYTHONPATH = "${{ runner.workspace }}\install\Lib\site-packages"
+        $env:PATH = "${{ runner.workspace }}\install\bin;$env:PATH"
+        python -c "import pyariadne; print(pyariadne.__file__)"
+        python tutorial_integration.py
+
+
     - name: Prepare C++ Integration Tutorial
+      if: matrix.build_type == 'Release'
       shell: pwsh
       run: cmake -E copy_directory "$env:GITHUB_WORKSPACE/tutorials/tutorial_integration" "${{ runner.workspace }}/tutorial_integration"
 
     - name: Check C++ Integration Tutorial
+      if: matrix.build_type == 'Release'
       shell: pwsh
       working-directory: ${{ runner.workspace }}/tutorial_integration
       run: |
-        cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${{ runner.workspace }}/install" -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows-release -DVCPKG_HOST_TRIPLET=x64-windows-release -DX_VCPKG_APPLOCAL_DEPS_SERIALIZED=ON
+        cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="${{ runner.workspace }}/install" -DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache 
         cmake --build build --parallel
-        $env:PATH = "${{ runner.workspace }}\install\bin;C:\vcpkg\installed\x64-windows-release\bin;$env:PATH"
+        $env:PATH = "${{ runner.workspace }}\install\bin;$env:PATH"
         & ".\build\tutorial_integration.exe"
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-    - name: Check Python Integration Tutorial
-      shell: pwsh
-      working-directory: ${{ github.workspace }}/python/tutorials
-      run: |
-        $env:PYTHONPATH = "${{ runner.workspace }}\build\python"
-        python tutorial_integration.py
 
     - name: Verify Uninstallation
+      if: matrix.build_type == 'Release'
       working-directory: ${{ runner.workspace }}/build
       run: cmake --build . --target uninstall

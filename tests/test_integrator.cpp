@@ -33,7 +33,7 @@
 #include "function/function.hpp"
 #include "function/taylor_function.hpp"
 #include "function/formula.hpp"
-#include "drawing/command_line_interface.hpp"
+#include "logging/logging_command_line_interface.hpp"
 
 #include "macro/testing.hpp"
 
@@ -342,7 +342,7 @@ Void test_taylor_series_step_maximum_error() {
 }
 
 Int main(Int argc, const char* argv[]) {
-    if (not kernel_command_line_interface().acquire(argc,argv)) return -1;
+    if (not LoggingCommandLineInterface().acquire(argc,argv)) return -1;
 
     ThresholdSweeper<FloatDP> sweeper(DoublePrecision(),1e-10);
 

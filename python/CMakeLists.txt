@@ -18,6 +18,17 @@ if(Python3_FOUND)
     if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
         ariadne_finalize_python_module(NAME integration)
 
+        # Install the combined extension rather than the INTERFACE binding target.
+        # Keep the destination relative to respect cmake --install --prefix.
+        if(WIN32)
+            set(_python_install_dir "Lib/site-packages")
+        else()
+            set(_python_install_dir "lib/python${Python3_VERSION_MAJOR}.${Python3_VERSION_MINOR}/site-packages")
+        endif()
+        set(PYTHON_BINDINGS_INSTALL_DIR "${_python_install_dir}"
+            CACHE STRING "Install destination for Python targets relative to the prefix")
+        install(TARGETS pyariadne DESTINATION "${PYTHON_BINDINGS_INSTALL_DIR}")
+
         add_subdirectory(tests)
         add_dependencies(bindings pyariadne)
     endif()
