@@ -70,10 +70,29 @@ jobs:
       run: cmake --build . --parallel $NPROC --target everything
 
     - name: Test C++
+      id: cpp_tests
       if: matrix.build_type == 'Debug'
       working-directory: ${{ runner.workspace }}/build
       run: ctest -j $NPROC -LE python --output-on-failure
 
+    # A libstdc++ checked-iterator abort lacks a C++ call-site in the CTest
+    # output. Only on a failing GCC Debug test, collect a symbolic backtrace.
+    - name: Diagnose GCC Debug iterator abort
+      if: ${{ always() && matrix.build_type == 'Debug' && matrix.config.libstdcxx_debug && steps.cpp_tests.outcome == 'failure' }}
+      working-directory: ${{ runner.workspace }}/build
+      run: |
+        sudo apt-get install -y gdb
+        gdb -q -batch -ex 'set pagination off' -ex run -ex 'bt 40' --args ./tests/test_integrator > iterator-backtrace.txt 2>&1 || true
+        echo '--- GCC Debug iterator backtrace ---'
+        tail -n 125 iterator-backtrace.txt
+
+    - name: Upload GCC Debug backtrace
+      if: ${{ always() && matrix.build_type == 'Debug' && matrix.config.libstdcxx_debug && steps.cpp_tests.outcome == 'failure' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: integration-gcc-debug-backtrace
+        path: ${{ runner.workspace }}/build/iterator-backtrace.txt
+        if-no-files-found: error
 
     - name: Test Python
       if: matrix.build_type == 'Debug'
