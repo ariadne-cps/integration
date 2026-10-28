@@ -19,7 +19,7 @@ The umbrella header is `include/ariadne-integration.hpp`.
 
 Integration depends directly on:
 
-- [ariadne-cps/function](https://github.com/ariadne-cps/function), included as Git submodule `ss/function`.
+- [ariadne-cps/function](https://github.com/ariadne-cps/function), included as Git submodule `ss/fun`.
 - [ariadne-cps/configuration](https://github.com/ariadne-cps/configuration), used for shared build configuration.
 
 Function supplies Geometry, Algebra, and the lower Ariadne layers transitively. The configuration submodule is pinned to the same commit used by Function.
