@@ -1,7 +1,7 @@
 #ifndef ARIADNE_ARIADNE_INTEGRATION_HPP
 #define ARIADNE_ARIADNE_INTEGRATION_HPP
 
-#include "ariadne-kernel.hpp"
+#include "ariadne-function.hpp"
 
 #include "integration/bounder.hpp"
 #include "integration/inclusion_integrator.hpp"

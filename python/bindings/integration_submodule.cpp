@@ -6,7 +6,7 @@
  ****************************************************************************/
 
 #include "pybind11.hpp"
-#include "kernel-utilities.hpp"
+#include "function-utilities.hpp"
 
 #include "function/function.hpp"
 #include "function/taylor_function.hpp"

@@ -7,7 +7,7 @@
 [![Coverage Status](https://github.com/ariadne-cps/integration/actions/workflows/coverage.yml/badge.svg)](https://github.com/ariadne-cps/integration/actions/workflows/coverage.yml)
 [![codecov](https://codecov.io/gh/ariadne-cps/integration/branch/main/graph/badge.svg)](https://codecov.io/gh/ariadne-cps/integration)
 
-Ariadne Integration is the standalone C++20 integration layer used by Ariadne. It provides validated and approximate ODE integrators, flow bounders and inclusion integration on top of Ariadne Kernel.
+Ariadne Integration is the standalone C++20 integration layer used by Ariadne. It provides validated and approximate ODE integrators, flow bounders and inclusion integration on top of Ariadne Function.
 
 ## Layout
 
@@ -19,10 +19,10 @@ The umbrella header is `include/ariadne-integration.hpp`.
 
 Integration depends directly on:
 
-- [ariadne-cps/kernel](https://github.com/ariadne-cps/kernel), included as a Git submodule.
+- [ariadne-cps/function](https://github.com/ariadne-cps/function), included as Git submodule `ss/function`.
 - [ariadne-cps/configuration](https://github.com/ariadne-cps/configuration), used for shared build configuration.
 
-Kernel supplies the lower Ariadne layers and their external dependencies.
+Function supplies Geometry, Algebra, and the lower Ariadne layers transitively. The configuration submodule is pinned to the same commit used by Function.
 
 ## Build
 
@@ -36,7 +36,7 @@ ctest --test-dir build --output-on-failure
 
 ## Python bindings
 
-When a compatible Python development environment is available, the standalone build produces `pyariadne` from the Kernel bindings plus the Integration bindings.
+When a compatible Python development environment is available, the standalone build produces `pyariadne` from the Function bindings (including their transitive dependencies) plus the Integration bindings.
 
 ## Contribution guidelines
 

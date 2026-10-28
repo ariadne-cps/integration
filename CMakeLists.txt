@@ -20,7 +20,7 @@ if(EXISTS "${PROJECT_SOURCE_DIR}/.git")
     require_same_dependency_commit(Configuration
         CHAINS
             "configuration"
-            "kernel|configuration"
+            "function|configuration"
     )
 endif()
 
@@ -35,7 +35,7 @@ target_include_directories(integration INTERFACE
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include/ariadne-integration>
 )
-target_link_libraries(integration INTERFACE kernel)
+target_link_libraries(integration INTERFACE function)
 
 add_subdirectory(src)
 target_link_libraries(INTEGRATION_SRC PRIVATE integration)
