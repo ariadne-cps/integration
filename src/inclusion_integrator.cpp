@@ -83,7 +83,7 @@ ErrorConstants::ErrorConstants(ErrorType const& K_, Vector<ErrorType> const& Kj_
    H(H_), Hj(Hj_), pH(pH_), pHv(pHv_), pHw(pHw_), pHj(pHj_), pHjv(pHjv_), pHjw(pHjw_),
    Lambda(Lambda_), expLambda(expLambda_), expL(expL_) {
     _dimension = Kj.size();
-    assert(Kj.size() == _dimension and pKj.size() == _dimension and pKjv.size() == _dimension and pKjw.size() == _dimension and
+    ARIADNE_PRECONDITION(pKj.size() == _dimension and pKjv.size() == _dimension and pKjw.size() == _dimension and
            Lj.size() == _dimension and pLj.size() == _dimension and pLjv.size() == _dimension and pLjw.size() == _dimension and
            Hj.size() == _dimension and pHj.size() == _dimension and pHjv.size() == _dimension and pHjw.size() == _dimension);
 }
@@ -121,7 +121,8 @@ compute_constants(EffectiveVectorMultivariateFunction const& noise_independent_c
                 if (a[j]==1) { Lambda_j += c.upper(); }
                 else { Lambda_j += mag(c); }
             } else {
-                assert(a.degree()==2);
+                // The differential was requested at order two; after
+                // degrees zero and one, only degree two can remain.
                 H_j += mag(c);
             }
         }
@@ -150,7 +151,8 @@ compute_constants(EffectiveVectorMultivariateFunction const& noise_independent_c
                     Dg_ij += val;
                     pL_ij[i][j] = max(pL_ij[i][j],ErrorType(val));
                 } else {
-                    assert(a.degree()==2);
+                    // The differential was requested at order two; after
+                // degrees zero and one, only degree two can remain.
                     D2g_ij += val;
                     pH_ij[i][j] = max(pH_ij[i][j],ErrorType(val));
                 }
@@ -264,8 +266,9 @@ InclusionIntegratorFactory::create(EffectiveVectorMultivariateFunction const& f,
     if (approximation.handles(ConstantApproximation())) return InclusionIntegrator(new InclusionIntegratorImpl<ConstantApproximation>(f, inputs, _integrator));
     if (approximation.handles(AffineApproximation())) return InclusionIntegrator(new InclusionIntegratorImpl<AffineApproximation>(f, inputs, _integrator));
     if (approximation.handles(SinusoidalApproximation())) return InclusionIntegrator(new InclusionIntegratorImpl<SinusoidalApproximation>(f, inputs, _integrator));
-    if (approximation.handles(PiecewiseApproximation())) return InclusionIntegrator(new InclusionIntegratorImpl<PiecewiseApproximation>(f, inputs, _integrator));
-    ARIADNE_FAIL_MSG("Unhandled input approximation " << approximation);
+    if (not approximation.handles(PiecewiseApproximation()))
+        ARIADNE_FAIL_MSG("Unhandled input approximation " << approximation);
+    return InclusionIntegrator(new InclusionIntegratorImpl<PiecewiseApproximation>(f, inputs, _integrator));
 }
 
 
@@ -382,7 +385,7 @@ template<class A> ValidatedVectorMultivariateFunctionPatch InclusionIntegratorIm
 }
 
 Void add_errors(ValidatedVectorMultivariateFunctionPatch& phi, Vector<ErrorType> const& e) {
-    assert(phi.result_size()==e.size());
+    ARIADNE_PRECONDITION(phi.result_size()==e.size());
     ValidatedVectorMultivariateTaylorFunctionModelDP& tphi = dynamic_cast<ValidatedVectorMultivariateTaylorFunctionModelDP&>(phi.reference());
     for (auto i : range(e.size())) {
         tphi[i].add_error(e[i]);
@@ -524,5 +527,27 @@ InclusionIntegratorImpl<PiecewiseApproximation>::reach(BoxDomainType const& domx
     // The reach set is only the second part, but this is ok since we can't use this reach set except for construction of the evolve set
     return this->build_secondhalf_piecewise_reach_function(intermediate_evolve, phi, intermediate_t, new_t);
 }
+
+
+template class ApproximationErrorProcessor<ZeroApproximation,AffineInputs>;
+template class ApproximationErrorProcessor<ZeroApproximation,SingularInput>;
+template class ApproximationErrorProcessor<ZeroApproximation,DualInputs>;
+template class ApproximationErrorProcessor<ZeroApproximation,AdditiveInputs>;
+template class ApproximationErrorProcessor<ConstantApproximation,AffineInputs>;
+template class ApproximationErrorProcessor<ConstantApproximation,SingularInput>;
+template class ApproximationErrorProcessor<ConstantApproximation,DualInputs>;
+template class ApproximationErrorProcessor<ConstantApproximation,AdditiveInputs>;
+template class ApproximationErrorProcessor<AffineApproximation,AffineInputs>;
+template class ApproximationErrorProcessor<AffineApproximation,SingularInput>;
+template class ApproximationErrorProcessor<AffineApproximation,DualInputs>;
+template class ApproximationErrorProcessor<AffineApproximation,AdditiveInputs>;
+template class ApproximationErrorProcessor<SinusoidalApproximation,AffineInputs>;
+template class ApproximationErrorProcessor<SinusoidalApproximation,SingularInput>;
+template class ApproximationErrorProcessor<SinusoidalApproximation,DualInputs>;
+template class ApproximationErrorProcessor<SinusoidalApproximation,AdditiveInputs>;
+template class ApproximationErrorProcessor<PiecewiseApproximation,AffineInputs>;
+template class ApproximationErrorProcessor<PiecewiseApproximation,SingularInput>;
+template class ApproximationErrorProcessor<PiecewiseApproximation,DualInputs>;
+template class ApproximationErrorProcessor<PiecewiseApproximation,AdditiveInputs>;
 
 } // namespace Ariadne;

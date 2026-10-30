@@ -23,6 +23,7 @@
  */
 
 #include "function/functional.hpp"
+#include <cmath>
 #include <iomanip>
 
 #include "integration/integrator.hpp"
@@ -558,6 +559,9 @@ TaylorSeriesBounderIntegrator::TaylorSeriesBounderIntegrator(StepMaximumError er
 TaylorSeriesBounderIntegrator::TaylorSeriesBounderIntegrator(StepMaximumError err, Order ord)
     : TaylorSeriesIntegrator(err,ord), _step_maximum_error(cast_exact(err.value()))
 { }
+
+GradedTaylorSeriesIntegrator::GradedTaylorSeriesIntegrator(StepMaximumError err, Sweeper<FloatDP> const& sweeper)
+    : GradedTaylorSeriesIntegrator(err,sweeper,DEFAULT_LIPSCHITZ_TOLERANCE) { }
 
 GradedTaylorSeriesIntegrator::GradedTaylorSeriesIntegrator(StepMaximumError err, Sweeper<FloatDP> const& sweeper, LipschitzTolerance lip)
     : GradedTaylorSeriesIntegrator(err,sweeper,lip,MaximumTemporalOrder(12))
@@ -1904,7 +1908,7 @@ PreconditionedGradedTaylorSeriesIntegrator::precondition(
                 norm_square+=sqr(approximate_Q[i][j]);
             }
             FloatDPApproximation const column_norm=sqrt(norm_square);
-            if(column_norm.raw()!=FloatDP(0,dp)) {
+            if(std::isfinite(column_norm.get_d()) && column_norm.get_d()>0.0) {
                 for(SizeType i=0u; i!=n; ++i) {
                     approximate_Q[i][j]/=column_norm;
                 }

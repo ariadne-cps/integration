@@ -220,9 +220,9 @@ class TaylorPicardIntegrator
 
     //! \brief The order of the method in time.
     DegreeType minimum_temporal_order() const { return this->_minimum_temporal_order; }
-    Void set_minimum_temporal_order(Nat m) { ARIADNE_ASSERT(m<=std::numeric_limits<DegreeType>::max()); this->_minimum_temporal_order=static_cast<DegreeType>(m); }
+    Void set_minimum_temporal_order(Nat m) { ARIADNE_PRECONDITION(m<=std::numeric_limits<DegreeType>::max()); this->_minimum_temporal_order=static_cast<DegreeType>(m); }
     DegreeType maximum_temporal_order() const { return this->_maximum_temporal_order; }
-    Void set_maximum_temporal_order(Nat m) { ARIADNE_ASSERT(m<=std::numeric_limits<DegreeType>::max()); this->_maximum_temporal_order=static_cast<DegreeType>(m); }
+    Void set_maximum_temporal_order(Nat m) { ARIADNE_PRECONDITION(m<=std::numeric_limits<DegreeType>::max()); this->_maximum_temporal_order=static_cast<DegreeType>(m); }
     //! \brief  Set the sweep threshold of the Taylor model.
     Sweeper<FloatDP> const& sweeper() const { return this->_sweeper; }
     //! \brief  Set the maximum error of a single step.
@@ -276,7 +276,7 @@ class GradedTaylorPicardIntegrator
     //! \brief The order of the method.
     DegreeType order() const { return this->_order; }
     Void set_order(Nat m) {
-        ARIADNE_ASSERT(m<=std::numeric_limits<DegreeType>::max());
+        ARIADNE_PRECONDITION(m<=std::numeric_limits<DegreeType>::max());
         const DegreeType order=static_cast<DegreeType>(m);
         this->_order=order;
         this->_sweeper = GradedThresholdSweeper<FloatDP>(DoublePrecision(),order,FloatDP(cast_exact(this->_sweep_threshold),DoublePrecision()));
@@ -345,7 +345,7 @@ class TaylorSeriesIntegrator
     Bool has_step_maximum_error() const { return this->_has_step_maximum_error; }
     //! \brief The maximum permissible error of a single step.
     ExactDouble step_maximum_error() const {
-        ARIADNE_ASSERT(this->has_step_maximum_error());
+        ARIADNE_PRECONDITION(this->has_step_maximum_error());
         return this->_step_maximum_error;
     }
     //! \brief Set the maximum permissible error of a single step.

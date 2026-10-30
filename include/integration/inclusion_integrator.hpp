@@ -71,20 +71,24 @@ template<class F1, class F2, class F3, class... FS> decltype(auto) product(F1 co
 template<class F1, class F2, class F3, class... FS> decltype(auto) join(F1 const& f1, F2 const& f2, F3 const& f3, FS const& ... fs) {
     return join(join(f1,f2),f3,fs...); }
 
-//! \brief The function dexp(x)=(exp(x)-1)/x.
+//! \brief The continuous function dexp(x)=(exp(x)-1)/x, with dexp(0)=1.
 //! Note that the function is positive and monotone increasing.
 template<class F> PositiveUpperBound<F> dexp(UpperBound<F> const& x) {
-    if(x.raw()>=0) { return cast_positive(exp(x)-1)/cast_positive(cast_exact(x)); }
-    else { return cast_positive(cast_exact(1-exp(x)))/cast_positive(-x); }
+    if(x.raw()==0) { return PositiveUpperBound<F>(1u,x.precision()); }
+    // Evaluate the exact endpoint with interval arithmetic. Negation reverses
+    // rounding directions, so reusing an upper exp bound at negative x is unsafe.
+    Bounds<F> const point(x.raw());
+    return cast_positive((exp(point)-1)/point).upper();
 }
 
 template<class F> PositiveLowerBound<F> dexp(LowerBound<F> const& x) {
-    if(x.raw()>=0) { return cast_positive(exp(x)-1)/cast_positive(cast_exact(x)); }
-    else { return cast_positive(cast_exact(1-exp(x)))/cast_positive(-x); }
+    if(x.raw()==0) { return PositiveLowerBound<F>(1u,x.precision()); }
+    Bounds<F> const point(x.raw());
+    return cast_positive((exp(point)-1)/point).lower();
 }
 
 template<class F> PositiveBounds<F> dexp(Bounds<F> const& x) {
-    return PositiveBounds<F>(dexp(x.lower_bound()),dexp(x.upper_bound()));
+    return PositiveBounds<F>(dexp(x.lower()),dexp(x.upper()));
 }
 
 // Compute (x*e^x/2-e^x+x/2+1)/x^3, which is a positive monotone function.
@@ -294,6 +298,28 @@ class ApproximationErrorProcessor : public ApproximationErrorProcessorInterface<
 };
 
 
+// These supported implementations are provided by the shared library.
+extern template class ApproximationErrorProcessor<ZeroApproximation,AffineInputs>;
+extern template class ApproximationErrorProcessor<ZeroApproximation,SingularInput>;
+extern template class ApproximationErrorProcessor<ZeroApproximation,DualInputs>;
+extern template class ApproximationErrorProcessor<ZeroApproximation,AdditiveInputs>;
+extern template class ApproximationErrorProcessor<ConstantApproximation,AffineInputs>;
+extern template class ApproximationErrorProcessor<ConstantApproximation,SingularInput>;
+extern template class ApproximationErrorProcessor<ConstantApproximation,DualInputs>;
+extern template class ApproximationErrorProcessor<ConstantApproximation,AdditiveInputs>;
+extern template class ApproximationErrorProcessor<AffineApproximation,AffineInputs>;
+extern template class ApproximationErrorProcessor<AffineApproximation,SingularInput>;
+extern template class ApproximationErrorProcessor<AffineApproximation,DualInputs>;
+extern template class ApproximationErrorProcessor<AffineApproximation,AdditiveInputs>;
+extern template class ApproximationErrorProcessor<SinusoidalApproximation,AffineInputs>;
+extern template class ApproximationErrorProcessor<SinusoidalApproximation,SingularInput>;
+extern template class ApproximationErrorProcessor<SinusoidalApproximation,DualInputs>;
+extern template class ApproximationErrorProcessor<SinusoidalApproximation,AdditiveInputs>;
+extern template class ApproximationErrorProcessor<PiecewiseApproximation,AffineInputs>;
+extern template class ApproximationErrorProcessor<PiecewiseApproximation,SingularInput>;
+extern template class ApproximationErrorProcessor<PiecewiseApproximation,DualInputs>;
+extern template class ApproximationErrorProcessor<PiecewiseApproximation,AdditiveInputs>;
+
 template<class A>
 class ApproximationErrorProcessorFactory {
     typedef ApproximationErrorProcessorInterface<A> Processor;
@@ -301,7 +327,7 @@ public:
     SharedPointer<Processor> create(EffectiveVectorMultivariateFunction const& f, BoxDomainType const& inputs) const {
         SizeType n = f.result_size();
         SizeType m = inputs.size();
-        ARIADNE_ASSERT_MSG(f.argument_size()-n == m, "ApproximationErrorProcessorFactory was given an incompatible f argument space in respect to the inputs box");
+        ARIADNE_PRECONDITION_MSG(f.argument_size() == n+m, "ApproximationErrorProcessorFactory was given an incompatible f argument space in respect to the inputs box");
         Set<Nat> input_idx;
         for (SizeType i : range(n,n+m)) { input_idx.insert(static_cast<Nat>(i)); }
         if (is_additive_in(f,input_idx)) return SharedPointer<Processor>(new ApproximationErrorProcessor<A,AdditiveInputs>(f,inputs));

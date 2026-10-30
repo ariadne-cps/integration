@@ -37,8 +37,6 @@
 
 namespace Ariadne {
 
-inline auto operator*(ApproximateDouble s, FloatDPApproximationVector v) -> FloatDPApproximationVector { return FloatDPApproximation(cast_exact(s),dp)*v; }
-
 RungeKutta4Integrator::RungeKutta4Integrator(ApproximateDouble step_size)
     : _step_size(step_size)
 {
@@ -52,13 +50,13 @@ RungeKutta4Integrator::step(const ApproximateVectorMultivariateFunction& f, cons
     FloatDPApproximationVector k3=f(FloatDPApproximationVector(x+(h/2)*k2));
     FloatDPApproximationVector k4=f(FloatDPApproximationVector(x+h*k3));
     //std::cerr<<"k1,2,3,4="<<k1<<k2<<k3<<k4<<"\n";
-    return x+(h/6)*(k1+2.0*k3+2.0*k4+k2);
+    return x+(h/6)*(k1+2.0*k2+2.0*k3+k4);
 }
 
 List< Pair<FloatDPApproximation,FloatDPApproximationVector> >
 RungeKutta4Integrator::evolve(const ApproximateVectorMultivariateFunction& f, const FloatDPApproximationVector& x0, const FloatDPApproximation& tmax) const
 {
-    static const FloatDPApproximation h(this->_step_size,dp);
+    const FloatDPApproximation h(this->_step_size,dp);
 
     List< Pair<FloatDPApproximation,FloatDPApproximationVector> > res;
     FloatDPApproximation t(0.0,dp);

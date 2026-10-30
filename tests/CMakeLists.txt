@@ -3,6 +3,10 @@ include(CTest)
 set(UNIT_TESTS
     test_bounder
     test_integrator
+    test_runge_kutta_integrator
+    test_inclusion_integrator
+    test_preconditioned_integrator
+    test_integrator_configuration
 )
 
 foreach(TEST ${UNIT_TESTS})
