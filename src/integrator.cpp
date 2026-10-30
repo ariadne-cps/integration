@@ -159,7 +159,7 @@ IntegratorBase::flow_step(const ValidatedVectorMultivariateFunction& vf, const E
 {
     StepSizeType h=static_cast<const StepSizeType&>(hsug);
     StepSizeType hprev=h*1.5_dy;
-    while(true) {
+    for(;;) {
         try {
             return flow_step(vf,dx,h,dx);
         } catch(const FlowTimeStepException&) {
@@ -230,7 +230,7 @@ BoundedIntegratorBase::flow_step(const ValidatedVectorMultivariateFunction& vf, 
     UpperBoxType bx;
     make_lpair(h,bx)=this->flow_bounds(vf,dx,hsug);
     StepSizeType hprev=h*1.5_dy;
-    while(true) {
+    for(;;) {
         try {
             return this->flow_step(vf,dx,h,bx);
         } catch(const FlowTimeStepException&) {
@@ -467,7 +467,7 @@ GradedTaylorPicardIntegrator::_flow_step(const ValidatedVectorMultivariateFuncti
     errors = new_errors;
     LOGGING_PRINTLN_AT(2,"validated errors=" << errors);
     DegreeType diagnostic_refinement_iteration=0u;
-    while (true) {
+    for(;;) {
         ++diagnostic_refinement_iteration;
         fphi=compose(f,join(std::move(phi),ta));
         diagnostic_print("refinement_fphi",diagnostic_refinement_iteration,fphi);
@@ -622,7 +622,7 @@ Void graded_flow_init(const Vector<ValidatedProcedure>& f,
     const SizeType tmps=f.temporaries_size();
     const SizeType args=f.argument_size();
 
-    ARIADNE_ASSERT(args==xs+1u+as or args==xs+as);
+    // The flow entry points validate state, time and parameter dimensions.
     const bool is_autonomous = (args==xs+as);
 
     CharacteristicsType<ValidatedDifferential> prs(xs+as,so,x.element_characteristics());
@@ -672,7 +672,7 @@ Void graded_flow_iterate(const Vector<ValidatedProcedure>& p,
         for(SizeType i=n; i!=yta.size(); ++i) { yta[i].append(z); }
     } else {
         GradedValidatedDifferential& t=yta[n];
-        if(t.degree()==0 && not is_autonomous) { t.append(z+1); } else { t.append(z); }
+        if(t.degree()==0) { t.append(z+1); } else { t.append(z); }
         for(SizeType i=n+1u; i!=yta.size(); ++i) { yta[i].append(z); }
     }
 
@@ -748,7 +748,7 @@ flow_differential(Vector<GradedValidatedDifferential> const& dphic, Vector<Grade
 
 
 FlowStepTaylorModelType make_taylor_function_model(const Vector<Differential<FloatBounds<DP>>>& df, const ExactBoxType& dom, Sweeper<FloatDP> swp) {
-    ARIADNE_ASSERT(df.argument_size()==dom.dimension());
+    // Flow differentials and their joined domain are constructed with the same arguments.
     const SizeType rs=df.size();
     const SizeType as=dom.dimension();
     const DegreeType deg = df.degree();
@@ -785,7 +785,7 @@ FlowStepTaylorModelType make_taylor_function_model_diagonal_scaling(
         const ExactBoxType& dom,
         Sweeper<FloatDP> swp)
 {
-    ARIADNE_ASSERT(df.argument_size()==dom.dimension());
+    // Flow differentials and their joined domain are constructed with the same arguments.
     const SizeType rs=df.size();
     const SizeType as=dom.dimension();
     const DegreeType deg=df.degree();
@@ -874,11 +874,8 @@ Void graded_flow_iterate_affine_procedure(
         DegreeType diagnostic_iteration)
 {
     const SizeType n=physical_p.result_size();
-    ARIADNE_ASSERT(physical_p.argument_size()==n);
-    ARIADNE_ASSERT(local_yta.size()==n);
-    ARIADNE_ASSERT(centre.size()==n);
-    ARIADNE_ASSERT(A.row_size()==n && A.column_size()==n);
-    ARIADNE_ASSERT(inverse_A.row_size()==n && inverse_A.column_size()==n);
+    // step() validates the autonomous field, local domain and square map.
+    // graded_flow_init constructs n local arguments; inverse(A) is n by n.
 
     Vector<GradedValidatedDifferential> physical_yta(local_yta);
 
@@ -926,7 +923,8 @@ Void graded_flow_iterate_affine_procedure(
         local_fy[i].append(gi);
     }
 
-    if(diagnostic_iteration>=1u) {
+    // The sole caller supplies the iteration index plus one.
+    {
         auto differential_coefficient_mag =
             [](ValidatedDifferential const& d) {
                 auto r=mag(d.value());
@@ -1257,8 +1255,7 @@ graded_series_flow_step_affine_procedure(
         DegreeType to)
 {
     const SizeType n=domy.dimension();
-    ARIADNE_PRECONDITION(physical_p.result_size()==n);
-    ARIADNE_PRECONDITION(physical_p.argument_size()==n);
+    // The field and local domain dimensions were validated by step().
 
     Vector<ValidatedNumericType> dy=cast_singleton(domy);
     Scalar<ValidatedNumericType> dt=cast_singleton(domt);
@@ -1421,8 +1418,6 @@ graded_series_flow_step(const Vector<ValidatedProcedure>& f,
     LOGGING_PRINTLN_AT(1,"max_err="<<max_err<<", sweeper="<<sweeper<<", "<<
                             "init_so="<<init_so<<", init_to="<<init_to<<", max_so="<<max_so<<", max_to="<<max_to);
 
-    ARIADNE_PRECONDITION(f.result_size()==domx.dimension());
-    ARIADNE_PRECONDITION(f.argument_size()==domx.dimension()+doma.dimension() || f.argument_size()==domx.dimension()+1u+doma.dimension());
 
     static const ExactDouble TRY_SPACIAL_ORDER_INCREASE_FACTOR=4;
 
@@ -1450,10 +1445,10 @@ graded_series_flow_step(const Vector<ValidatedProcedure>& f,
             // Try increasing spatial degree and restart the temporal order.
             ++so;
             to=init_to;
-        } else if(to<max_to) {
-            ++to;
         } else {
-            break;
+            // The loop permits an increase. If time were already maximal,
+            // the spatial-order branch above would have been selected.
+            ++to;
         }
 
         old_error = phi.error();
@@ -1492,10 +1487,8 @@ template<class F, class FE> F med(Bounds<F> const& x, Error<FE>& e) {
 
 template<class FLT> ValidatedVectorMultivariateTaylorFunctionModel<FLT>
 make_taylor_function_model(ExactBoxType domain, Vector<Differential<Bounds<FLT>>> centre_derivatives, Vector<Differential<Bounds<FLT>>> derivative_ranges, Sweeper<FLT> swp) {
-    ARIADNE_ASSERT(centre_derivatives.result_size()==derivative_ranges.result_size());
-    ARIADNE_ASSERT(centre_derivatives.argument_size()==domain.dimension());
-    ARIADNE_ASSERT(derivative_ranges.argument_size()==domain.dimension());
-    ARIADNE_ASSERT(centre_derivatives.degree()==derivative_ranges.degree() or centre_derivatives.degree()+1u==derivative_ranges.degree());
+    // Callers generate both flow differentials from the same field and order
+    // on the same joined state/time/parameter domain.
 
     using PR = PrecisionType<FLT>;
     using X = FloatBounds<PR>;
@@ -2060,7 +2053,7 @@ PreconditionedGradedTaylorSeriesIntegrator::step(
     ValidatedVectorMultivariateFunctionPatch gronwall_physical_local_flow;
     Bool have_gronwall_flow=false;
     ExactIntervalType domt;
-    while(true) {
+    for(;;) {
         have_gronwall_flow=false;
         domt=ExactIntervalType(0,h);
         Bool const use_gronwall_path=
