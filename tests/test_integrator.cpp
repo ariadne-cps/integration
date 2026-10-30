@@ -371,8 +371,7 @@ Int main(Int argc, const char* argv[]) {
 
     ARIADNE_PRINT_TEST_CASE_TITLE("AffineIntegrator");
     AffineIntegrator affine_integrator(1, 6);
-    //TestIntegrator(affine_integrator).test_affine();
-    ARIADNE_TEST_WARN("AffineIntegrator does not work correctly.");
+    TestIntegrator(affine_integrator).test_affine();
 
     std::cerr<<"INCOMPLETE "<<std::flush;
     return ARIADNE_TEST_FAILURES;

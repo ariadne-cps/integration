@@ -7,6 +7,7 @@ set(UNIT_TESTS
     test_inclusion_integrator
     test_preconditioned_integrator
     test_integrator_configuration
+    test_affine_integrator
 )
 
 foreach(TEST ${UNIT_TESTS})

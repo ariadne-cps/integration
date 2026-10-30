@@ -2591,60 +2591,20 @@ AffineIntegrator::flow_derivative(const ValidatedVectorMultivariateFunction& f, 
 FlowStepModelType
 AffineIntegrator::flow_step(const ValidatedVectorMultivariateFunction& f, const ExactBoxType& dom, const StepSizeType& h, const UpperBoxType& bbox) const
 {
-    Vector<ValidatedNumericType> dmid = Vector<ValidatedNumericType>(midpoint(dom));
-
-    Vector<ValidatedDifferential> mdphi = this->flow_derivative(f,dmid);
-    Vector<ValidatedDifferential> bdphi = this->flow_derivative(f,cast_singleton(bbox));
-
-    const SizeType n=dom.size();
-    DoublePrecision prec;
-    FloatDPError zero_err(prec);
-
-    Vector<FloatDPError> err(n,zero_err);
-
-    Vector<FloatDPError> rad(n+1,zero_err);
-    for(SizeType i=0; i!=n; ++i) {
-        rad[i] = cast_positive(max(dom[i].upper_bound()-dmid[i].lower(),dmid[i].upper()-dom[i].lower_bound()));
-    }
-    rad[n] = abs(h);
-
-    for(SizeType i=0; i!=n; ++i) {
-        for(Expansion<MultiIndex,ValidatedNumericType>::ConstIterator iter=bdphi[i].begin(); iter!=bdphi[i].end(); ++iter) {
-            UniformConstReference<MultiIndex> a=iter->index();
-            if(a[n]==this->_temporal_order && a[n]+this->_spacial_order==a.degree()) {
-                UniformConstReference<ValidatedNumericType> rng = iter->coefficient();
-                UniformConstReference<ValidatedNumericType> mid = mdphi[i][a];
-                ARIADNE_ASSERT(rng.lower().raw()<=mid.lower().raw() && mid.upper().raw()<=rng.upper().raw());
-                FloatDPError mag = FloatDPError(max(rng.upper()-mid.lower(),mid.upper()-rng.lower()));
-                for(SizeType j=0; j!=n+1u; ++j) { mag *= pow(rad[j],static_cast<DegreeType>(a[j])); }
-                err[i] += mag;
-            }
-        }
-    }
-
-    ExactBoxType flow_domain = product(dom,ExactIntervalType(0,h));
-
-    FlowStepModelType id = this->function_factory().create_identity(flow_domain);
-    FlowStepModelType res = this->function_factory().create_zeros(n,flow_domain);
-    for(SizeType i=0; i!=n; ++i) {
-        ValidatedScalarMultivariateFunctionPatch res_model = res[i] + static_cast<ValidatedNumber>(static_cast<ValidatedNumericType>(mdphi[i].expansion()[MultiIndex::zero(n+1)]));
-        for(SizeType j=0; j!=mdphi[i].argument_size()-1; ++j) {
-            // TODO: Remove casts
-            res_model+=static_cast<ValidatedNumber>(static_cast<ValidatedNumericType>(mdphi[i].expansion()[MultiIndex::unit(n+1,j)]))*(id[j]-ValidatedNumericType(midpoint(flow_domain[j])));
-        }
-        SizeType j=mdphi[i].argument_size()-1u;
-        // TODO: Remove casts
-        res_model+=static_cast<ValidatedNumber>(static_cast<ValidatedNumericType>(mdphi[i].expansion()[MultiIndex::unit(n+1,j)]))*id[j];
-        res_model += FloatDPBounds(-err[i],+err[i]);
-        res[i]=res_model;
-    }
-    return res;
+    return this->flow_step(f,dom,Interval<StepSizeType>(0,h),ExactBoxType(),bbox);
 }
 
 FlowStepModelType
-AffineIntegrator::flow_step(const ValidatedVectorMultivariateFunction&, const ExactBoxType&, const Interval<StepSizeType>&, const ExactBoxType&, const UpperBoxType&) const
+AffineIntegrator::flow_step(const ValidatedVectorMultivariateFunction& f, const ExactBoxType& domx,
+                            const Interval<StepSizeType>& domt, const ExactBoxType& doma, const UpperBoxType& bndx) const
 {
-    ARIADNE_NOT_IMPLEMENTED;
+    // The graded expansion retains mixed space/time terms and bounds the
+    // highest spatial and temporal coefficients over the enclosing box.
+    // Assembling only the constant and linear monomials loses both terms
+    // and their remainder, even for x'=x.
+    return Ariadne::graded_series_flow_step(Vector<ValidatedProcedure>(f),
+        domx,ExactIntervalType(domt),doma,bndx,Sweeper<FloatDP>(),
+        this->spacial_order(),this->temporal_order());
 }
 
 Void AffineIntegrator::_write(OutputStream& os) const {
