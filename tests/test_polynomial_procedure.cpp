@@ -39,9 +39,9 @@ Void test_polynomial_operators() {
     auto quarter=ValidatedFormula::binary(Div(),x,ValidatedFormula::constant(ValidatedNumber(4)));
     auto expression=ValidatedFormula::binary(Sub(),ValidatedFormula::binary(Add(),negative,half_square),quarter);
     Vector<ValidatedProcedure> procedure(1u,Vector<ValidatedFormula>({expression}));
-    DegreeType degree=0u;
-    ARIADNE_TEST_ASSERT(polynomial_procedure_degree(procedure,degree))
-    ARIADNE_TEST_EQUALS(degree,2u)
+    DegreeType polynomial_degree=0u;
+    ARIADNE_TEST_ASSERT(polynomial_procedure_degree(procedure,polynomial_degree))
+    ARIADNE_TEST_EQUALS(polynomial_degree,2u)
     using D=Differential<FloatDPBounds>;
     Vector<D> arguments({D::variable(1u,3u,FloatDPBounds(2,dp),0u)});
     Vector<D> evaluated(1u,arguments.zero_element());
@@ -60,8 +60,8 @@ Void test_unsupported_polynomial_diagnostics() {
     Vector<D> evaluated(1u,arguments.zero_element());
     for(auto expression:{variable_denominator,pow(x,3),sin(x)}) {
         Vector<ValidatedProcedure> procedure(1u,Vector<ValidatedFormula>({expression}));
-        DegreeType degree=0u;
-        ARIADNE_TEST_ASSERT(not polynomial_procedure_degree(procedure,degree))
+        DegreeType polynomial_degree=0u;
+        ARIADNE_TEST_ASSERT(not polynomial_procedure_degree(procedure,polynomial_degree))
     }
     Vector<ValidatedProcedure> non_polynomial(1u,Vector<ValidatedFormula>({sin(x)}));
     ARIADNE_TEST_ASSERT(not evaluate_polynomial_procedure(non_polynomial,arguments,evaluated))
