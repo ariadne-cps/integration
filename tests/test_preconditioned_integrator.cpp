@@ -137,11 +137,42 @@ Void test_rotating_flow_and_carried_state() {
       }
     }
 }
+
+Void test_physical_flow_step() {
+    auto x=EffectiveScalarMultivariateFunction::coordinate(1u,0u);
+    ValidatedVectorMultivariateFunction field=EffectiveVectorMultivariateFunction({x});
+    UpperBoxType bound={{0.5_x,2.0_x}};
+    StepSizeType h(0.03125_x);
+    PreconditionedGradedTaylorSeriesIntegrator integrator(step_maximum_error=1e-6);
+    // The point domain exercises the zero-radius fallback; the interval
+    // exercises normalisation and conversion back to physical coordinates.
+    for(auto domain:{ExactBoxType{{0.875_x,1.125_x}},ExactBoxType{{1.0_x,1.0_x}}}) {
+        auto flow=integrator.flow_step(field,domain,h,bound);
+        ARIADNE_TEST_EQUALS(flow.domain(),product(domain,ExactIntervalType(0,h)))
+        for(auto time:{StepSizeType(0),h}) {
+            Vector<FloatDPBounds> point({FloatDPBounds(1,dp),FloatDPBounds(time,dp)});
+            ARIADNE_TEST_ASSERT(refines(exp(FloatDPBounds(time,dp)),flow(point)[0u]))
+        }
+    }
+    ExactBoxType domain={{0.875_x,1.125_x}};
+    integrator.set_minimum_spacial_order(1u);
+    integrator.set_maximum_spacial_order(1u);
+    integrator.set_minimum_temporal_order(1u);
+    integrator.set_maximum_temporal_order(1u);
+    integrator.set_step_maximum_error(1e-16);
+    ARIADNE_TEST_THROWS(integrator.flow_step(field,domain,h,bound),FlowTimeStepException)
+    ValidatedVectorMultivariateFunction wrong_result=EffectiveVectorMultivariateFunction({x,x});
+    ARIADNE_TEST_THROWS(integrator.flow_step(wrong_result,domain,h,bound),std::runtime_error)
+    auto extra=EffectiveScalarMultivariateFunction::coordinate(2u,1u);
+    ValidatedVectorMultivariateFunction wrong_arguments=EffectiveVectorMultivariateFunction({extra});
+    ARIADNE_TEST_THROWS(integrator.flow_step(wrong_arguments,domain,h,bound),std::runtime_error)
+}
 }
 
 int main() {
     ARIADNE_TEST_CALL(test_preconditioning_geometry())
     ARIADNE_TEST_CALL(test_rank_deficient_geometry())
     ARIADNE_TEST_CALL(test_rotating_flow_and_carried_state())
+    ARIADNE_TEST_CALL(test_physical_flow_step())
     return ARIADNE_TEST_FAILURES;
 }
