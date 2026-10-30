@@ -28,6 +28,7 @@
 #include "numeric/numeric.hpp"
 #include "algebra/differential.hpp"
 #include "function/procedure.hpp"
+#include "function/taylor_function.hpp"
 
 namespace Ariadne::IntegrationDetail {
 // Internal polynomial diagnostics, shared by the recurrence and its unit tests.
@@ -37,6 +38,22 @@ Bool polynomial_procedure_degree(Vector<ValidatedProcedure> const& p, DegreeType
 Bool evaluate_polynomial_procedure(Vector<ValidatedProcedure> const& p,
     Vector<Differential<FloatDPBounds>> const& x,
     Vector<Differential<FloatDPBounds>>& result);
+
+// A centre-series candidate and residual diagnostics. The candidate receives
+// a validated remainder only in the caller after separate certification.
+struct CentrePolynomialRecurrenceResult {
+    ValidatedVectorMultivariateTaylorFunctionModelDP polynomial;
+    ValidatedVectorMultivariateTaylorFunctionModelDP defect;
+    Vector<FloatDPBounds> direct_defect_range;
+    Bool exact_polynomial_available;
+    DegreeType exact_polynomial_degree;
+    Vector<FloatDPBounds> exact_polynomial_defect_range;
+};
+CentrePolynomialRecurrenceResult graded_series_centre_polynomial_step(
+    Vector<ValidatedProcedure> const& p, ExactBoxType const& domain,
+    ExactIntervalType const& time, Sweeper<FloatDP> const& sweeper,
+    DegreeType spatial_order, DegreeType temporal_order, Bool exact_diagnostics);
+
 }
 
 #endif

@@ -1078,18 +1078,9 @@ Bool evaluate_polynomial_procedure(
 
 } // namespace IntegrationDetail
 
-namespace {
-using IntegrationDetail::polynomial_procedure_degree;
-using IntegrationDetail::evaluate_polynomial_procedure;
+namespace IntegrationDetail {
 
-struct CentrePolynomialRecurrenceResult {
-    FlowStepTaylorModelType polynomial;
-    FlowStepTaylorModelType defect;
-    Vector<FloatDPBounds> direct_defect_range;
-    Bool exact_polynomial_available;
-    DegreeType exact_polynomial_degree;
-    Vector<FloatDPBounds> exact_polynomial_defect_range;
-};
+
 
 CentrePolynomialRecurrenceResult
 graded_series_centre_polynomial_step(
@@ -1253,6 +1244,12 @@ graded_series_centre_polynomial_step(
         std::move(exact_polynomial_defect_range)};
 }
 
+
+} // namespace IntegrationDetail
+
+namespace {
+using IntegrationDetail::graded_series_centre_polynomial_step;
+using IntegrationDetail::CentrePolynomialRecurrenceResult;
 
 FlowStepTaylorModelType
 graded_series_flow_step_affine_procedure(

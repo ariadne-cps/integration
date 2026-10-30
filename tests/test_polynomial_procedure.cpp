@@ -66,11 +66,28 @@ Void test_unsupported_polynomial_diagnostics() {
     Vector<ValidatedProcedure> non_polynomial(1u,Vector<ValidatedFormula>({sin(x)}));
     ARIADNE_TEST_ASSERT(not evaluate_polynomial_procedure(non_polynomial,arguments,evaluated))
 }
+
+Void test_non_polynomial_recurrence_diagnostics() {
+    auto x=ValidatedFormula::coordinate(0u);
+    Vector<ValidatedProcedure> field(1u,Vector<ValidatedFormula>({sin(x)}));
+    ExactBoxType domain={{-0.125_x,0.125_x}};
+    ExactIntervalType time(0.0_x,0.03125_x);
+    auto recurrence=graded_series_centre_polynomial_step(field,domain,time,Sweeper<FloatDP>(),2u,2u,true);
+    ARIADNE_TEST_ASSERT(not recurrence.exact_polynomial_available)
+    ARIADNE_TEST_EQUALS(recurrence.polynomial.result_size(),1u)
+    ARIADNE_TEST_EQUALS(recurrence.polynomial.argument_size(),2u)
+    Vector<FloatDPBounds> point({FloatDPBounds(0,dp),FloatDPBounds(0.03125_x,dp)});
+    // sin(0)=0: the equilibrium has zero candidate value and zero residual.
+    ARIADNE_TEST_ASSERT(refines(FloatDPBounds(0,dp),recurrence.polynomial(point)[0u]))
+    ARIADNE_TEST_ASSERT(refines(FloatDPBounds(0,dp),recurrence.defect(point)[0u]))
+    ARIADNE_TEST_ASSERT(definitely(is_bounded(recurrence.defect.range())))
+}
 }
 
 int main() {
     ARIADNE_TEST_CALL(test_polynomial_operators())
     ARIADNE_TEST_CALL(test_unsupported_polynomial_diagnostics())
+    ARIADNE_TEST_CALL(test_non_polynomial_recurrence_diagnostics())
     return ARIADNE_TEST_FAILURES;
 }
 
