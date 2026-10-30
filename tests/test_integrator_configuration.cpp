@@ -25,6 +25,7 @@
 #include <memory>
 #include <sstream>
 #include <limits>
+#include <vector>
 #include "integration/integrator.hpp"
 #include "function/taylor_function.hpp"
 #include "macro/testing.hpp"
@@ -186,6 +187,41 @@ Void test_partial_flow_payload_and_flow_tube_printing() {
     two_steps << tube;
     ARIADNE_TEST_ASSERT(two_steps.str().find(",\n")!=std::string::npos)
 }
+
+Void test_flow_dimension_contracts() {
+    auto x=EffectiveScalarMultivariateFunction::coordinate(1u,0u);
+    auto extra=EffectiveScalarMultivariateFunction::coordinate(3u,2u);
+    ValidatedVectorMultivariateFunction field=EffectiveVectorMultivariateFunction({x});
+    ValidatedVectorMultivariateFunction wrong_result=EffectiveVectorMultivariateFunction({x,x});
+    ValidatedVectorMultivariateFunction wrong_arguments=EffectiveVectorMultivariateFunction({extra});
+    ExactBoxType domain={{-0.125_x,0.125_x}};
+    UpperBoxType bound={{-1.0_x,1.0_x}};
+    StepSizeType h(0.03125_x);
+    Interval<StepSizeType> time(0,h);
+    std::vector<std::unique_ptr<IntegratorInterface>> integrators;
+    integrators.push_back(std::make_unique<TaylorPicardIntegrator>(step_maximum_error=1e-6));
+    integrators.push_back(std::make_unique<GradedTaylorPicardIntegrator>(step_maximum_error=1e-6,order=4));
+    integrators.push_back(std::make_unique<TaylorSeriesIntegrator>(step_maximum_error=1e-6,order=4));
+    integrators.push_back(std::make_unique<GradedTaylorSeriesIntegrator>(step_maximum_error=1e-6));
+    integrators.push_back(std::make_unique<AffineIntegrator>(SpacialOrder(1),TemporalOrder(4)));
+    for(auto const& integrator:integrators) {
+        ARIADNE_PRINT_TEST_CASE_TITLE(*integrator << " dimension contracts")
+        ARIADNE_TEST_THROWS(integrator->flow_step(wrong_result,domain,h,bound),std::runtime_error)
+        ARIADNE_TEST_THROWS(integrator->flow_step(wrong_arguments,domain,h,bound),std::runtime_error)
+        ARIADNE_TEST_THROWS(integrator->flow_step(wrong_result,domain,time,ExactBoxType(),bound),std::runtime_error)
+        ARIADNE_TEST_THROWS(integrator->flow_step(wrong_arguments,domain,time,ExactBoxType(),bound),std::runtime_error)
+    }
+    auto t=EffectiveScalarMultivariateFunction::coordinate(2u,1u);
+    ValidatedVectorMultivariateFunction timed=EffectiveVectorMultivariateFunction({t});
+    UpperBoxType wrong_bound(0u);
+    for(SizeType i=0u;i<2u;++i) {
+        ARIADNE_TEST_THROWS(integrators[i]->flow_step(field,domain,h,wrong_bound),std::runtime_error)
+        ARIADNE_TEST_THROWS(integrators[i]->flow_step(timed,domain,time,ExactBoxType(),wrong_bound),std::runtime_error)
+    }
+    TaylorSeriesBounderIntegrator bounder(step_maximum_error=1e-6,order=4);
+    ARIADNE_TEST_THROWS(bounder.flow_step(wrong_result,domain,suggest(h)),std::runtime_error)
+    ARIADNE_TEST_THROWS(bounder.flow_step(wrong_arguments,domain,suggest(h)),std::runtime_error)
+}
 }
 
 int main() {
@@ -195,5 +231,6 @@ int main() {
     ARIADNE_TEST_CALL(test_graded_series_constructors_and_configuration())
     ARIADNE_TEST_CALL(test_common_bounder_and_factory_interfaces())
     ARIADNE_TEST_CALL(test_partial_flow_payload_and_flow_tube_printing())
+    ARIADNE_TEST_CALL(test_flow_dimension_contracts())
     return ARIADNE_TEST_FAILURES;
 }
