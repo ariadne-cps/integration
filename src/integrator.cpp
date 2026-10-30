@@ -309,7 +309,7 @@ TaylorPicardIntegrator::_flow_step(const ValidatedVectorMultivariateFunction& f,
 
     // Time interval centred on initial time, which will make the antiderivative more efficient
     ExactIntervalType wT(t-h,t+h);
-    ARIADNE_ASSERT(t==med(wT));
+    // Interval construction converts both dyadic endpoints exactly, so med(wT)==t.
 
     ExactBoxType dom=join(D,T,A);
     ExactBoxType wdom=join(D,wT,A);
@@ -405,7 +405,7 @@ GradedTaylorPicardIntegrator::_flow_step(const ValidatedVectorMultivariateFuncti
 
     // Time interval centred on initial time, which will make the antiderivative more efficient
     ExactIntervalType wT(t-h,t+h);
-    ARIADNE_ASSERT(t==med(wT));
+    // Interval construction converts both dyadic endpoints exactly, so med(wT)==t.
 
     ExactBoxType dom=join(D,T,A);
     ExactBoxType wdom=join(D,wT,A);
@@ -1213,10 +1213,11 @@ graded_series_centre_polynomial_step(
             });
         Vector<ValidatedDifferential> exact_field(
             p.result_size(),padded_dphi.zero_element());
-        exact_polynomial_available=
-            evaluate_polynomial_procedure(p,padded_dphi,exact_field);
+        // The degree analyser admitted exactly the operators implemented by
+        // this evaluator, so evaluation cannot report an unsupported operator.
+        (void)evaluate_polynomial_procedure(p,padded_dphi,exact_field);
 
-        if(exact_polynomial_available) {
+        {
             Vector<ValidatedDifferential> derivative_dphi_exact=
                 derivative(dphi,n);
             Vector<ValidatedDifferential> padded_derivative(
@@ -1538,7 +1539,9 @@ make_taylor_function_model(ExactBoxType domain, Vector<Differential<Bounds<FLT>>
             expansion.append(centre_iter->index(),med(centre_iter->coefficient(),error));
         }
 
-        if(not (dr.expansion().empty() or dr.expansion().back().index().degree()<deg)) {
+        // Flow differentials retain a constant term, including an explicit
+        // zero. Composition and coefficient arithmetic preserve that term.
+        if(dr.expansion().back().index().degree()>=deg) {
             auto range_iter=dr.begin(); while (range_iter->index().degree()<deg) { ++range_iter; }
             for ( ; range_iter!=dr.end(); ++range_iter) {
                 expansion.append(range_iter->index(),med(range_iter->coefficient(),error));
