@@ -25,6 +25,7 @@
 #include <string>
 #include "integration/integrator.hpp"
 #include "function/taylor_function.hpp"
+#include "logging/logging.hpp"
 #include "macro/testing.hpp"
 
 using namespace Ariadne;
@@ -78,12 +79,50 @@ Void test_suggested_base_step_reduction() {
     Vector<FloatDPBounds> point({FloatDPBounds(1,dp),FloatDPBounds(time)});
     ARIADNE_TEST_ASSERT(refines(exp(-FloatDPBounds(time)),flow(point)[0u]))
 }
+
+Void test_picard_rejections_and_refinement_limit() {
+    auto x=EffectiveScalarMultivariateFunction::coordinate(1u,0u);
+    ValidatedVectorMultivariateFunction field=EffectiveVectorMultivariateFunction({x});
+    ExactBoxType domain={{-0.125_x,0.125_x}};
+    UpperBoxType bound={{-1.0_x,1.0_x}};
+    StepSizeType h(0.125_x);
+    TaylorPicardIntegrator no_iterations(step_maximum_error=1e-6,
+        Sweeper<FloatDP>(),lipschitz_tolerance=0.5_x,
+        minimum_temporal_order=0,maximum_temporal_order=0);
+    ARIADNE_TEST_THROWS(no_iterations.flow_step(field,domain,h,bound),FlowTimeStepException)
+
+    GradedTaylorPicardIntegrator strict(step_maximum_error=1e-16,order=1);
+    // Picard iteration is not a contraction at this step size.
+    ARIADNE_TEST_THROWS(strict.flow_step(field,domain,StepSizeType(2),bound),FlowTimeStepException)
+    strict.set_maximum_error_refinement_iterations(1u);
+    ARIADNE_TEST_THROWS(strict.flow_step(field,domain,h,bound),FlowTimeStepException)
+
+    GradedTaylorPicardIntegrator loose(step_maximum_error=0.03125,order=1);
+    loose.set_maximum_error_refinement_iterations(1u);
+    auto flow=loose.flow_step(field,domain,h,bound);
+    FloatDPBounds initial(0.0625_x,dp);
+    Vector<FloatDPBounds> point({initial,FloatDPBounds(h,dp)});
+    ARIADNE_TEST_ASSERT(refines(initial*exp(FloatDPBounds(h,dp)),flow(point)[0u]))
+
+    // The initial domain avoids the singularity, but this candidate bound
+    // crosses it. Both methods must report failure to evaluate the field.
+    ValidatedVectorMultivariateFunction reciprocal=EffectiveVectorMultivariateFunction({1/x});
+    ExactBoxType positive_domain={{1.0_x,1.125_x}};
+    UpperBoxType crossing_bound={{-1.0_x,2.0_x}};
+    TaylorPicardIntegrator picard(step_maximum_error=1e-6);
+    ARIADNE_TEST_THROWS(picard.flow_step(reciprocal,positive_domain,h,crossing_bound),FlowTimeStepException)
+    ARIADNE_TEST_THROWS(loose.flow_step(reciprocal,positive_domain,h,crossing_bound),FlowTimeStepException)
+}
 }
 
 int main() {
-    ARIADNE_TEST_CALL(test_fixed_step_partial_flow())
-    ARIADNE_TEST_CALL(test_fixed_step_reduction_limit())
-    ARIADNE_TEST_CALL(test_suggested_base_step_reduction())
+    for(unsigned verbosity:{0u,3u}) {
+        Logger::instance().configuration().set_verbosity(verbosity);
+        ARIADNE_TEST_CALL(test_fixed_step_partial_flow())
+        ARIADNE_TEST_CALL(test_fixed_step_reduction_limit())
+        ARIADNE_TEST_CALL(test_suggested_base_step_reduction())
+        ARIADNE_TEST_CALL(test_picard_rejections_and_refinement_limit())
+    }
     return ARIADNE_TEST_FAILURES;
 }
 
