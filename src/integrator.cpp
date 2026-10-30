@@ -1706,51 +1706,27 @@ TaylorSeriesBounderIntegrator::flow_step(const ValidatedVectorMultivariateFuncti
     Vector<Differential<X>> cdf = is_autonomous ? f.differential(join(cx,ca),deg) : f.differential(join(cx,ct,ca),deg);
     Vector<Differential<X>> cdphi = is_autonomous ? differential_flow(cdf, cx,ca) : differential_flow(cdf, cx,ct,ca);
 
-    // Widen domain by doubling size
+    // Use the centre series only to propose a bounding box. Recompute that
+    // proposal at every smaller step: an unvalidated range must not be reused
+    // as though it already certified a larger flow.
     ExactBoxType wdomx=cast_exact_box(domx+(cast_singleton(domx)-domx.midpoint()));
-    // Widen time-step to h*3/2
-    StepSizeType wh=h+hlf(h);
-    ExactIntervalType wdomt(0,wh);
-
-    // Below is not needed, just useful to see minimum possible range
-    //   ExactBoxType domxta=join(domx,domt,doma);
-    //   FlowStepModelType phi=make_taylor_function_model(domxta,cdphi,cdphi,swp);
-
-    ExactBoxType domxta=join(domx,domt,doma);
-    ExactBoxType wdomxta=join(wdomx,wdomt,doma);
-    FlowStepModelType phi=make_taylor_function_model(wdomxta,cdphi,cdphi,swp);
-    UpperBoxType bndbx=phi.range();
-
-    Bool refined = false;
-    Bool accurate = false;
-    phi=series_flow_step(f,domx,domt,doma,bndbx,cdphi, deg,swp);
-    UpperBoxType xrng=phi.range();
-
-    if (refines(xrng,bndbx)) {
-        refined=true;
-    } else {
-        bndbx=cast_exact_box(xrng+(cast_singleton(domx)-domx.midpoint()));
-        // bndbx=hull(bndbx,rphi.range());
-    }
-
-    while (not refined or not accurate) {
-        phi=series_flow_step(f,domx,domt,doma,bndbx,cdphi, deg,swp);
-        if (refines(xrng,bndbx)) {
-            refined=true;
-            bndbx=xrng;
-            if (definitely(phi.error()<max_err)) { accurate=true; return phi; }
-        } else {
-            bndbx=cast_exact_box(xrng+(cast_singleton(domx)-domx.midpoint()));
-            //bndbx=hull(bndbx,xrng);
+    StepSizeType hprev=h*1.5_dy;
+    for(;;) {
+        domt=ExactIntervalType(0,h);
+        ExactIntervalType wdomt(0,h+hlf(h));
+        ExactBoxType wdomxta=join(wdomx,wdomt,doma);
+        FlowStepModelType proposal=make_taylor_function_model(wdomxta,cdphi,cdphi,swp);
+        UpperBoxType bndbx=proposal.range();
+        FlowStepModelType phi=series_flow_step(f,domx,domt,doma,bndbx,cdphi,deg,swp);
+        // Certify the range of this model, not a range saved before the
+        // latest recomputation. Accuracy alone cannot certify existence.
+        if(refines(phi.range(),bndbx) && definitely(phi.error()<max_err)) {
+            return phi;
         }
-
-        StepSizeType nh=hlf(wh);
-        wh=h;
-        h=nh;
-        domt=IntervalDomainType(0,h);
+        StepSizeType hnew=hlf(hprev);
+        hprev=h;
+        h=hnew;
     }
-
-    return phi;
 }
 
 Void TaylorSeriesBounderIntegrator::_write(OutputStream& os) const {

@@ -113,6 +113,21 @@ Void test_picard_rejections_and_refinement_limit() {
     ARIADNE_TEST_THROWS(picard.flow_step(reciprocal,positive_domain,h,crossing_bound),FlowTimeStepException)
     ARIADNE_TEST_THROWS(loose.flow_step(reciprocal,positive_domain,h,crossing_bound),FlowTimeStepException)
 }
+
+Void test_bounder_rejects_a_step_through_blowup() {
+    auto x=EffectiveScalarMultivariateFunction::coordinate(1u,0u);
+    ValidatedVectorMultivariateFunction field=EffectiveVectorMultivariateFunction({sqr(x)});
+    ExactBoxType domain={{1.0_x,1.0_x}};
+    TaylorSeriesBounderIntegrator integrator(step_maximum_error=1e8,order=2);
+    auto flow=integrator.flow_step(field,domain,suggest(StepSizeType(1)));
+    auto time=flow.domain()[1u].upper_bound();
+    // x'=x^2, x(0)=1 has a pole at t=1. A finite certified flow must stop
+    // before that pole even if the requested error tolerance is very loose.
+    ARIADNE_TEST_COMPARE(time,<,FloatDP(1,dp))
+    ARIADNE_TEST_COMPARE(time,>,FloatDP(0,dp))
+    Vector<FloatDPBounds> point({FloatDPBounds(1,dp),FloatDPBounds(time)});
+    ARIADNE_TEST_ASSERT(refines(1/(1-FloatDPBounds(time)),flow(point)[0u]))
+}
 }
 
 int main() {
@@ -122,6 +137,7 @@ int main() {
         ARIADNE_TEST_CALL(test_fixed_step_reduction_limit())
         ARIADNE_TEST_CALL(test_suggested_base_step_reduction())
         ARIADNE_TEST_CALL(test_picard_rejections_and_refinement_limit())
+        ARIADNE_TEST_CALL(test_bounder_rejects_a_step_through_blowup())
     }
     return ARIADNE_TEST_FAILURES;
 }
