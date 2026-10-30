@@ -1354,6 +1354,7 @@ graded_series_flow_step(const Vector<ValidatedProcedure>& f,
 
     ARIADNE_PRECONDITION(f.result_size()==domx.dimension());
     ARIADNE_PRECONDITION(f.argument_size()==domx.dimension()+doma.dimension() || f.argument_size()==domx.dimension()+1u+doma.dimension());
+    ARIADNE_PRECONDITION(bndx.dimension()==domx.dimension());
 
     SizeType nx=domx.dimension();
 
@@ -1602,6 +1603,7 @@ series_flow_step(const ValidatedVectorMultivariateFunction& f,
     ARIADNE_PRECONDITION(f.result_size()==domx.dimension());
     ARIADNE_PRECONDITION(f.argument_size()==domx.dimension()+doma.dimension()
                             || f.argument_size()==domx.dimension()+domt.dimension()+doma.dimension());
+    ARIADNE_PRECONDITION(bndbx.dimension()==domx.dimension());
     const bool is_autonomous = f.argument_size()==domx.dimension()+doma.dimension();
 
     typedef DoublePrecision PR;
@@ -1954,6 +1956,9 @@ PreconditionedGradedTaylorSeriesIntegrator::step(
     ARIADNE_PRECONDITION(f.argument_size()==n);
     ARIADNE_PRECONDITION(state.linear_map().row_size()==n);
     ARIADNE_PRECONDITION(state.linear_map().column_size()==n);
+
+    ARIADNE_PRECONDITION(state.local_domain().dimension()==n);
+    ARIADNE_PRECONDITION(state.normalised_mapping().result_size()==n);
 
     auto const& factory=this->function_factory();
     ExactBoxType const& domy=state.local_domain();
@@ -2464,6 +2469,8 @@ PreconditionedGradedTaylorSeriesIntegrator::flow_step(
     ARIADNE_PRECONDITION(f.result_size()==n);
     ARIADNE_PRECONDITION(f.argument_size()==n);
 
+    ARIADNE_PRECONDITION(bndx.dimension()==n);
+
     Vector<FloatDP> centre(n,FloatDP(dp));
     Vector<FloatDP> radius(n,FloatDP(dp));
     for(SizeType i=0u; i!=n; ++i) {
@@ -2566,11 +2573,15 @@ template<class X> Void truncate(Vector< Differential<X> >& x, DegreeType spacial
 }
 
 AffineIntegrator::AffineIntegrator(SpacialOrder spacial_order_, TemporalOrder temporal_order_)
-    : BoundedIntegratorBase(Sweeper<FloatDP>(), lipschitz_tolerance=DEFAULT_LIPSCHITZ_TOLERANCE), _spacial_order(spacial_order_), _temporal_order(temporal_order_) { }
+    : BoundedIntegratorBase(Sweeper<FloatDP>(), lipschitz_tolerance=DEFAULT_LIPSCHITZ_TOLERANCE), _spacial_order(spacial_order_), _temporal_order(temporal_order_) {
+    ARIADNE_PRECONDITION(static_cast<SizeType>(_spacial_order)+_temporal_order<=std::numeric_limits<DegreeType>::max());
+}
 
 Vector<ValidatedDifferential>
 AffineIntegrator::flow_derivative(const ValidatedVectorMultivariateFunction& f, const Vector<ValidatedNumericType>& dom) const
 {
+    ARIADNE_PRECONDITION(f.result_size()==dom.size());
+    ARIADNE_PRECONDITION(f.argument_size()==dom.size());
     DegreeType const deg = this->_spacial_order+this->_temporal_order;
     Vector<ValidatedDifferential> dx(f.result_size(),ValidatedDifferential(f.result_size()+1,deg,zero));
     for (SizeType i=0; i<f.result_size(); ++i) {

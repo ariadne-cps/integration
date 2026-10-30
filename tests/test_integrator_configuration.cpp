@@ -214,7 +214,7 @@ Void test_flow_dimension_contracts() {
     auto t=EffectiveScalarMultivariateFunction::coordinate(2u,1u);
     ValidatedVectorMultivariateFunction timed=EffectiveVectorMultivariateFunction({t});
     UpperBoxType wrong_bound(0u);
-    for(SizeType i=0u;i<2u;++i) {
+    for(SizeType i=0u;i<integrators.size();++i) {
         ARIADNE_TEST_THROWS(integrators[i]->flow_step(field,domain,h,wrong_bound),std::runtime_error)
         ARIADNE_TEST_THROWS(integrators[i]->flow_step(timed,domain,time,ExactBoxType(),wrong_bound),std::runtime_error)
     }

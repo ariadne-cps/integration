@@ -166,6 +166,32 @@ Void test_physical_flow_step() {
     auto extra=EffectiveScalarMultivariateFunction::coordinate(2u,1u);
     ValidatedVectorMultivariateFunction wrong_arguments=EffectiveVectorMultivariateFunction({extra});
     ARIADNE_TEST_THROWS(integrator.flow_step(wrong_arguments,domain,h,bound),std::runtime_error)
+    ARIADNE_TEST_THROWS(integrator.flow_step(field,domain,h,UpperBoxType(0u)),std::runtime_error)
+}
+
+Void test_step_dimension_contracts() {
+    PreconditionedGradedTaylorSeriesIntegrator integrator(step_maximum_error=1e-6);
+    ExactBoxType domain={{-1.0_x,1.0_x}};
+    auto mapping=integrator.function_factory().create_identity(domain);
+    auto x=EffectiveScalarMultivariateFunction::coordinate(1u,0u);
+    ValidatedVectorMultivariateFunction field=EffectiveVectorMultivariateFunction({x});
+    ValidatedVectorMultivariateFunction wrong_result=EffectiveVectorMultivariateFunction({x,x});
+    auto y=EffectiveScalarMultivariateFunction::coordinate(2u,1u);
+    ValidatedVectorMultivariateFunction wrong_arguments=EffectiveVectorMultivariateFunction({y});
+    auto state=integrator.precondition(mapping);
+    auto h=suggest(StepSizeType(0.03125_x));
+    ARIADNE_TEST_THROWS(integrator.step(wrong_result,state,h),std::runtime_error)
+    ARIADNE_TEST_THROWS(integrator.step(wrong_arguments,state,h),std::runtime_error)
+    Vector<FloatDP> centre({FloatDP(0,dp)});
+    PreconditionedTaylorSeriesState wrong_rows(centre,Matrix<FloatDP>(0u,1u,dp),domain,mapping);
+    ARIADNE_TEST_THROWS(integrator.step(field,wrong_rows,h),std::runtime_error)
+    PreconditionedTaylorSeriesState wrong_columns(centre,Matrix<FloatDP>(1u,0u,dp),domain,mapping);
+    ARIADNE_TEST_THROWS(integrator.step(field,wrong_columns,h),std::runtime_error)
+    PreconditionedTaylorSeriesState wrong_domain(centre,Matrix<FloatDP>::identity(1u,dp),ExactBoxType(),mapping);
+    ARIADNE_TEST_THROWS(integrator.step(field,wrong_domain,h),std::runtime_error)
+    auto wrong_mapping=integrator.function_factory().create_zeros(2u,domain);
+    PreconditionedTaylorSeriesState wrong_image(centre,Matrix<FloatDP>::identity(1u,dp),domain,wrong_mapping);
+    ARIADNE_TEST_THROWS(integrator.step(field,wrong_image,h),std::runtime_error)
 }
 }
 
@@ -174,5 +200,6 @@ int main() {
     ARIADNE_TEST_CALL(test_rank_deficient_geometry())
     ARIADNE_TEST_CALL(test_rotating_flow_and_carried_state())
     ARIADNE_TEST_CALL(test_physical_flow_step())
+    ARIADNE_TEST_CALL(test_step_dimension_contracts())
     return ARIADNE_TEST_FAILURES;
 }

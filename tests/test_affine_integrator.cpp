@@ -103,6 +103,13 @@ Void test_flow_derivatives() {
     AffineIntegrator stationary(SpacialOrder(0u),TemporalOrder(0u));
     auto zero_order=stationary.flow_derivative(field,Vector<FloatDPBounds>({FloatDPBounds(0.25_x,dp)}));
     ARIADNE_TEST_ASSERT(refines(FloatDPBounds(0.25_x,dp),zero_order[0u].value()))
+    Vector<FloatDPBounds> point({FloatDPBounds(0.25_x,dp)});
+    ValidatedVectorMultivariateFunction wrong_result=EffectiveVectorMultivariateFunction({x,x});
+    ARIADNE_TEST_THROWS(integrator.flow_derivative(wrong_result,point),std::runtime_error)
+    auto y=EffectiveScalarMultivariateFunction::coordinate(2u,1u);
+    ValidatedVectorMultivariateFunction wrong_arguments=EffectiveVectorMultivariateFunction({y});
+    ARIADNE_TEST_THROWS(integrator.flow_derivative(wrong_arguments,point),std::runtime_error)
+    ARIADNE_TEST_THROWS(AffineIntegrator(SpacialOrder(std::numeric_limits<DegreeType>::max()),TemporalOrder(1)),std::runtime_error)
 }
 }
 
