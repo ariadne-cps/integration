@@ -193,6 +193,27 @@ Void test_step_dimension_contracts() {
     PreconditionedTaylorSeriesState wrong_image(centre,Matrix<FloatDP>::identity(1u,dp),domain,wrong_mapping);
     ARIADNE_TEST_THROWS(integrator.step(field,wrong_image,h),std::runtime_error)
 }
+
+Void test_stationary_zero_order_step() {
+    auto zero=EffectiveScalarMultivariateFunction::constant(1u,0);
+    ValidatedVectorMultivariateFunction field=EffectiveVectorMultivariateFunction({zero});
+    for(Bool diagnostics:{false,true}) {
+        PreconditionedGradedTaylorSeriesIntegrator integrator(step_maximum_error=1e-6);
+        integrator.set_minimum_spacial_order(0u);
+        integrator.set_maximum_spacial_order(0u);
+        integrator.set_minimum_temporal_order(0u);
+        integrator.set_maximum_temporal_order(0u);
+        integrator.set_diagnostics(diagnostics);
+        ExactBoxType domain={{-1.0_x,1.0_x}};
+        auto initial=integrator.function_factory().create_constants(domain,Vector<FloatDPBounds>({FloatDPBounds(1,dp)}));
+        auto h=StepSizeType(0.03125_x);
+        auto step=integrator.step(field,integrator.precondition(initial),suggest(h));
+        ARIADNE_TEST_EQUALS(step.time_step(),h)
+        auto value=step.evolved_mapping()(Vector<FloatDPBounds>({FloatDPBounds(0,dp)}));
+        ARIADNE_TEST_ASSERT(refines(FloatDPBounds(1,dp),value[0u]))
+        ARIADNE_TEST_COMPARE(step.evolved_mapping().error(),<=,1e-6_pr)
+    }
+}
 }
 
 int main() {
@@ -201,5 +222,6 @@ int main() {
     ARIADNE_TEST_CALL(test_rotating_flow_and_carried_state())
     ARIADNE_TEST_CALL(test_physical_flow_step())
     ARIADNE_TEST_CALL(test_step_dimension_contracts())
+    ARIADNE_TEST_CALL(test_stationary_zero_order_step())
     return ARIADNE_TEST_FAILURES;
 }

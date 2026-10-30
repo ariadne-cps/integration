@@ -756,7 +756,9 @@ FlowStepTaylorModelType make_taylor_function_model(const Vector<Differential<Flo
 
     Vector<Differential<FloatBounds<DP>>> ds=scale(Differential<FloatBounds<DP>>::variables(deg,Vector<FloatBounds<DP>>(as,dp)),dom);
     LOGGING_PRINTLN_AT(1,"ds="<<ds<<"\rs");
-    Vector<Differential<FloatBounds<DP>>> dfs = compose(df,ds);
+    // Degree-zero differentials are constant under scaling. Differential
+    // composition requires positive degree, so keep those constants directly.
+    Vector<Differential<FloatBounds<DP>>> dfs = deg==0u ? df : compose(df,ds);
 
     for(SizeType i=0; i!=rs; ++i) {
         ValidatedTaylorModelDP& model=tf.model(i);
