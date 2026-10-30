@@ -27,6 +27,7 @@
 #include <sstream>
 #include "integration/integrator.hpp"
 #include "function/taylor_function.hpp"
+#include "logging/logging.hpp"
 #include "macro/testing.hpp"
 
 using namespace Ariadne;
@@ -214,6 +215,33 @@ Void test_stationary_zero_order_step() {
         ARIADNE_TEST_COMPARE(step.evolved_mapping().error(),<=,1e-6_pr)
     }
 }
+
+Void test_adaptive_orders_and_step_rejection() {
+    auto x=EffectiveScalarMultivariateFunction::coordinate(1u,0u);
+    ValidatedVectorMultivariateFunction field=EffectiveVectorMultivariateFunction({x});
+    ExactBoxType domain={{-1.0_x,1.0_x}};
+    StepSizeType h(0.125_x);
+    for(unsigned verbosity:{0u,12u}) {
+      Logger::instance().configuration().set_verbosity(verbosity);
+      for(unsigned configuration:{0u,1u,2u}) {
+       for(Bool diagnostics:{false,true}) {
+        PreconditionedGradedTaylorSeriesIntegrator integrator(step_maximum_error=1e-6);
+        integrator.set_diagnostics(diagnostics);
+        integrator.set_minimum_spacial_order(1u);
+        integrator.set_maximum_spacial_order(configuration==1u ? 2u : 1u);
+        integrator.set_minimum_temporal_order(1u);
+        integrator.set_maximum_temporal_order(configuration==2u ? 2u : 1u);
+        auto initial=integrator.function_factory().create_identity(domain);
+        auto step=integrator.step(field,integrator.precondition(initial),suggest(h));
+        ARIADNE_TEST_COMPARE(step.time_step(),>,StepSizeType(0))
+        ARIADNE_TEST_COMPARE(step.time_step(),<,h)
+        ARIADNE_TEST_COMPARE(step.evolved_mapping().error(),<=,1e-6_pr)
+        auto value=step.evolved_mapping()(Vector<FloatDPBounds>({FloatDPBounds(0.5_x,dp)}));
+        ARIADNE_TEST_ASSERT(refines(FloatDPBounds(0.5_x,dp)*exp(FloatDPBounds(step.time_step(),dp)),value[0u]))
+       }
+      }
+    }
+}
 }
 
 int main() {
@@ -223,5 +251,6 @@ int main() {
     ARIADNE_TEST_CALL(test_physical_flow_step())
     ARIADNE_TEST_CALL(test_step_dimension_contracts())
     ARIADNE_TEST_CALL(test_stationary_zero_order_step())
+    ARIADNE_TEST_CALL(test_adaptive_orders_and_step_rejection())
     return ARIADNE_TEST_FAILURES;
 }
