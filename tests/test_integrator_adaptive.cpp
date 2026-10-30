@@ -116,7 +116,7 @@ Void test_picard_rejections_and_refinement_limit() {
 }
 
 int main() {
-    for(unsigned verbosity:{0u,3u}) {
+    for(unsigned verbosity:{0u,12u}) {
         Logger::instance().configuration().set_verbosity(verbosity);
         ARIADNE_TEST_CALL(test_fixed_step_partial_flow())
         ARIADNE_TEST_CALL(test_fixed_step_reduction_limit())

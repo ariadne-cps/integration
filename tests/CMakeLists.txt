@@ -18,7 +18,7 @@ foreach(TEST ${UNIT_TESTS})
     set_property(TEST ${TEST} PROPERTY LABELS "integration")
 endforeach()
 
-add_test(NAME test_integrator_verbose COMMAND $<TARGET_FILE:test_integrator> --verbosity 3)
+add_test(NAME test_integrator_verbose COMMAND $<TARGET_FILE:test_integrator> --verbosity 12)
 set_property(TEST test_integrator_verbose PROPERTY LABELS "integration")
 
 add_custom_target(tests)
