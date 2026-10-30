@@ -124,11 +124,12 @@ class TestBounder
     }
 
     Void test_overflowing_vector_field() {
-        // The Jacobian is finite (order 1e300), but the cubic vector field
-        // overflows double-precision bounds (order 1e450). No enclosure can
-        // be found above the bounder's minimum admissible step.
+        // The binary endpoints 2^500 are exactly representable on every
+        // supported platform. The Jacobian (3*2^1000) is finite, while the
+        // cubic field (2^1500) overflows double-precision bounds. No enclosure
+        // can be found above the bounder's minimum admissible step.
         EffectiveVectorMultivariateFunction f={pow(x,3),-y};
-        ExactBoxType dom={{-1e150_x,1e150_x},{-1.0_x,1.0_x}};
+        ExactBoxType dom={{-0x1p500_x,0x1p500_x},{-1.0_x,1.0_x}};
         StepSizeType step(0.125_x);
         ARIADNE_TEST_THROWS(bounder_ptr->compute(f,dom,suggest(step)),BoundingNotFoundException);
     }
