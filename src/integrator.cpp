@@ -1776,8 +1776,7 @@ GradedTaylorSeriesIntegrator::flow_step(const ValidatedVectorMultivariateFunctio
     DegreeType max_so=this->maximum_spacial_order();
     DegreeType max_to=this->maximum_temporal_order();
 
-    Vector<ValidatedProcedure> p(f);
-    FlowStepModelType tphi=Ariadne::graded_series_flow_step(p,domx,domt,doma,bndx,
+    FlowStepModelType tphi=Ariadne::graded_series_flow_step(f,domx,rngt,doma,bndx,
         max_err,this->sweeper(), init_so,init_to,max_so,max_to);
 
     if (possibly(tphi.error()>this->step_maximum_error())) {
