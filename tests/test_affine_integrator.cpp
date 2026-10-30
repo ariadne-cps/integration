@@ -111,6 +111,25 @@ Void test_flow_derivatives() {
     ARIADNE_TEST_THROWS(integrator.flow_derivative(wrong_arguments,point),std::runtime_error)
     ARIADNE_TEST_THROWS(AffineIntegrator(SpacialOrder(std::numeric_limits<DegreeType>::max()),TemporalOrder(1)),std::runtime_error)
 }
+
+Void test_autonomous_parameter_flow() {
+    auto a=EffectiveScalarMultivariateFunction::coordinate(2u,1u);
+    ValidatedVectorMultivariateFunction field=EffectiveVectorMultivariateFunction({a});
+    ExactBoxType domain={{-0.125_x,0.125_x}};
+    ExactBoxType parameters={{-0.25_x,0.25_x}};
+    Interval<StepSizeType> time(StepSizeType(1),StepSizeType(1.125_x));
+    UpperBoxType bound={{-1.0_x,1.0_x}};
+    AffineIntegrator affine(SpacialOrder(1),TemporalOrder(4));
+    GradedTaylorSeriesIntegrator graded(step_maximum_error=1e-6);
+    for(IntegratorInterface const* integrator:{static_cast<IntegratorInterface const*>(&affine),static_cast<IntegratorInterface const*>(&graded)}) {
+        auto flow=integrator->flow_step(field,domain,time,parameters,bound);
+        for(ExactDouble t:{1.0_x,1.125_x}) {
+            FloatDPBounds elapsed=FloatDPBounds(t,dp)-1;
+            Vector<FloatDPBounds> point({FloatDPBounds(0.0625_x,dp),FloatDPBounds(t,dp),FloatDPBounds(0.25_x,dp)});
+            ARIADNE_TEST_ASSERT(refines(FloatDPBounds(0.0625_x,dp)+FloatDPBounds(0.25_x,dp)*elapsed,flow(point)[0u]))
+        }
+    }
+}
 }
 
 int main() {
@@ -118,5 +137,6 @@ int main() {
     ARIADNE_TEST_CALL(test_nonlinear_flow_enclosure())
     ARIADNE_TEST_CALL(test_time_and_parameter_flow())
     ARIADNE_TEST_CALL(test_flow_derivatives())
+    ARIADNE_TEST_CALL(test_autonomous_parameter_flow())
     return ARIADNE_TEST_FAILURES;
 }
