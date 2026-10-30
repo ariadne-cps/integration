@@ -9,6 +9,7 @@ set(UNIT_TESTS
     test_integrator_configuration
     test_affine_integrator
     test_integrator_adaptive
+    test_polynomial_procedure
 )
 
 foreach(TEST ${UNIT_TESTS})
@@ -17,6 +18,8 @@ foreach(TEST ${UNIT_TESTS})
     add_test(NAME ${TEST} COMMAND $<TARGET_FILE:${TEST}>)
     set_property(TEST ${TEST} PROPERTY LABELS "integration")
 endforeach()
+
+target_include_directories(test_polynomial_procedure PRIVATE "${PROJECT_SOURCE_DIR}/src")
 
 add_test(NAME test_integrator_verbose COMMAND $<TARGET_FILE:test_integrator> --verbosity 12)
 set_property(TEST test_integrator_verbose PROPERTY LABELS "integration")

@@ -23,6 +23,7 @@
  */
 
 #include "function/functional.hpp"
+#include "polynomial_procedure.hpp"
 #include <cmath>
 #include <iomanip>
 
@@ -966,6 +967,10 @@ Void graded_flow_iterate_affine_procedure(
 
 
 
+} // namespace
+
+namespace IntegrationDetail {
+
 Bool polynomial_procedure_degree(
         const Vector<ValidatedProcedure>& p,
         DegreeType& result_degree)
@@ -1070,6 +1075,12 @@ Bool evaluate_polynomial_procedure(
     return true;
 }
 
+
+} // namespace IntegrationDetail
+
+namespace {
+using IntegrationDetail::polynomial_procedure_degree;
+using IntegrationDetail::evaluate_polynomial_procedure;
 
 struct CentrePolynomialRecurrenceResult {
     FlowStepTaylorModelType polynomial;
