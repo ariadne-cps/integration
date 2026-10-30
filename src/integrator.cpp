@@ -329,7 +329,7 @@ TaylorPicardIntegrator::_flow_step(const ValidatedVectorMultivariateFunction& f,
             fphi=compose(f,join(std::move(phi),ta));
             LOGGING_PRINTLN_AT(2,"fphi="<<fphi);
         } catch(...) {
-            ARIADNE_THROW(FlowTimeStepException,"TaylorPicardIntegrator::flow_step","Could not evaluate f="<<f<<" over model join(phi,t,a) with phi="<<phi);
+            ARIADNE_THROW(FlowTimeStepException,"TaylorPicardIntegrator::flow_step","Could not evaluate f="<<f<<" over model join(phi,t,a) with phi="<<phi)
         }
         // NOTE: In principle safer to use antiderivative(fphi,nx,t) here,
         // but since t is the midpoint of wdom, the (standard) antiderivative works
@@ -339,7 +339,7 @@ TaylorPicardIntegrator::_flow_step(const ValidatedVectorMultivariateFunction& f,
         if(below_maximum_error && k>=this->_minimum_temporal_order) { break; }
     }
     if (possibly(phi.error()>this->step_maximum_error())) {
-        ARIADNE_THROW(FlowTimeStepException,"TaylorPicardIntegrator::flow_step","Integration of "<<f<<" starting in "<<D<<" over time interval "<<T<<" of length "<<h<<" has error "<<phi.error()<<" after "<<this->_maximum_temporal_order<<" iterations, which exceeds step maximum error "<<this->step_maximum_error());
+        ARIADNE_THROW(FlowTimeStepException,"TaylorPicardIntegrator::flow_step","Integration of "<<f<<" starting in "<<D<<" over time interval "<<T<<" of length "<<h<<" has error "<<phi.error()<<" after "<<this->_maximum_temporal_order<<" iterations, which exceeds step maximum error "<<this->step_maximum_error())
     }
 
     return restriction(phi,dom);
@@ -447,7 +447,7 @@ GradedTaylorPicardIntegrator::_flow_step(const ValidatedVectorMultivariateFuncti
             fphi=compose(f,join(std::move(phi),ta));
             LOGGING_PRINTLN_AT(2,"fphi="<<fphi);
         } catch (...) {
-            ARIADNE_THROW(FlowTimeStepException,"GradedTaylorPicardIntegrator::flow_step","Could not evaluate f="<<f<<" over model join(phi,t,a) with phi="<<phi);
+            ARIADNE_THROW(FlowTimeStepException,"GradedTaylorPicardIntegrator::flow_step","Could not evaluate f="<<f<<" over model join(phi,t,a) with phi="<<phi)
         }
         phi=antiderivative(fphi,nx)+phi0;
         LOGGING_PRINTLN_AT(2,"phi="<<phi);
@@ -462,7 +462,7 @@ GradedTaylorPicardIntegrator::_flow_step(const ValidatedVectorMultivariateFuncti
     auto new_errors = phi.errors();
     for (SizeType i=0; i<errors.size(); ++i) {
         if (not refines(new_errors[i],errors[i])) {
-            ARIADNE_THROW(FlowTimeStepException,"GradedTaylorPicardIntegrator::flow_step","Integration of "<<f<<" starting in "<<D<<" over time interval "<<T<<" of length "<<h<<" has errors "<<new_errors<<", which are not smaller than previous errors " << errors);
+            ARIADNE_THROW(FlowTimeStepException,"GradedTaylorPicardIntegrator::flow_step","Integration of "<<f<<" starting in "<<D<<" over time interval "<<T<<" of length "<<h<<" has errors "<<new_errors<<", which are not smaller than previous errors " << errors)
         }
     }
     errors = new_errors;
@@ -497,7 +497,7 @@ GradedTaylorPicardIntegrator::_flow_step(const ValidatedVectorMultivariateFuncti
 
     diagnostic_print("final",diagnostic_refinement_iteration,phi);
     if (possibly(phi.error()>this->step_maximum_error())) {
-        ARIADNE_THROW(FlowTimeStepException,"GradedTaylorPicardIntegrator::flow_step","Integration of "<<f<<" starting in "<<D<<" over time interval "<<T<<" of length "<<h<<" has error "<<phi.error()<<", which exceeds step maximum error "<<this->step_maximum_error());
+        ARIADNE_THROW(FlowTimeStepException,"GradedTaylorPicardIntegrator::flow_step","Integration of "<<f<<" starting in "<<D<<" over time interval "<<T<<" of length "<<h<<" has error "<<phi.error()<<", which exceeds step maximum error "<<this->step_maximum_error())
     }
 
     return restriction(phi,dom);
@@ -1659,7 +1659,7 @@ TaylorSeriesIntegrator::flow_step(const ValidatedVectorMultivariateFunction& f, 
         ARIADNE_THROW(FlowTimeStepException,"TaylorSeriesIntegrator::flow_step",
                       "Integration of "<<f<<" over "<<domx<<" for time interval "<<domt
                       <<" has error "<<tphi.error()
-                      <<", which exceeds maximum single-step error "<<this->step_maximum_error());
+                      <<", which exceeds maximum single-step error "<<this->step_maximum_error())
     }
     return tphi;
 }
@@ -1765,7 +1765,7 @@ GradedTaylorSeriesIntegrator::flow_step(const ValidatedVectorMultivariateFunctio
         ARIADNE_THROW(FlowTimeStepException,"GradedTaylorSeriesIntegrator::flow_step",
                       "Integration of "<<f<<" over "<<domx<<" for time interval "<<domt<<" has error "<<tphi.errors()<<
                       " using spacial order "<<max_so<<" and temporal order "<<max_to<<
-                      ", which exceeds maximum single-step error "<<max_err);
+                      ", which exceeds maximum single-step error "<<max_err)
     }
 
     return tphi;
@@ -2507,7 +2507,7 @@ PreconditionedGradedTaylorSeriesIntegrator::flow_step(
                       <<" for time interval "<<domt
                       <<" has normalised-flow error "<<yflow.errors()
                       <<", which exceeds maximum single-step error "
-                      <<this->step_maximum_error());
+                      <<this->step_maximum_error())
     }
 
     // Convert y(t) back to x(t)=c+Ry while the flow is still expressed over
