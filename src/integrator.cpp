@@ -89,8 +89,6 @@ inline UpperBoxType operator+(Vector<ExactIntervalType> bx, Vector<FloatDPBounds
     return Vector<UpperIntervalType>(bx) + Vector<UpperIntervalType>(v);
 }
 
-inline ExactDouble cast_exact_double(Attribute<ApproximateDouble> a) { return cast_exact(static_cast<ApproximateDouble>(a)); }
-
 IncompleteFlowException::IncompleteFlowException(const StringType& what, FlowStepModelType const& model)
     : std::runtime_error(what), _computed_model(new FlowStepModelType(model)) {
 }
