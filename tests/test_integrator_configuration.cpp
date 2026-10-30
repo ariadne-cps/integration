@@ -222,6 +222,19 @@ Void test_flow_dimension_contracts() {
     ARIADNE_TEST_THROWS(bounder.flow_step(wrong_result,domain,suggest(h)),std::runtime_error)
     ARIADNE_TEST_THROWS(bounder.flow_step(wrong_arguments,domain,suggest(h)),std::runtime_error)
 }
+
+Void test_stationary_point_flow() {
+    auto zero=EffectiveScalarMultivariateFunction::constant(1u,0);
+    ValidatedVectorMultivariateFunction field=EffectiveVectorMultivariateFunction({zero});
+    TaylorSeriesIntegrator integrator(step_maximum_error=1e-6,order=2);
+    ExactBoxType domain={{0.0_x,0.0_x}};
+    UpperBoxType bound={{0.0_x,0.0_x}};
+    StepSizeType h(0.125_x);
+    auto flow=integrator.flow_step(field,domain,h,bound);
+    auto value=flow(Vector<FloatDPBounds>({FloatDPBounds(0,dp),FloatDPBounds(h,dp)}));
+    ARIADNE_TEST_ASSERT(refines(FloatDPBounds(0,dp),value[0u]))
+    ARIADNE_TEST_COMPARE(flow.error(),<=,1e-6_pr)
+}
 }
 
 int main() {
@@ -232,5 +245,6 @@ int main() {
     ARIADNE_TEST_CALL(test_common_bounder_and_factory_interfaces())
     ARIADNE_TEST_CALL(test_partial_flow_payload_and_flow_tube_printing())
     ARIADNE_TEST_CALL(test_flow_dimension_contracts())
+    ARIADNE_TEST_CALL(test_stationary_point_flow())
     return ARIADNE_TEST_FAILURES;
 }
