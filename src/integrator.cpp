@@ -1889,7 +1889,10 @@ PreconditionedGradedTaylorSeriesIntegrator::precondition(
                 norm_square+=sqr(approximate_Q[i][j]);
             }
             FloatDPApproximation const column_norm=sqrt(norm_square);
-            if(std::isfinite(column_norm.get_d()) && column_norm.get_d()>0.0) {
+            // A positive finite sqrt of a double is normal: even the square
+            // root of the least subnormal exceeds the least normal double.
+            // Thus this rejects precisely zero and nonfinite column norms.
+            if(std::isnormal(column_norm.get_d())) {
                 for(SizeType i=0u; i!=n; ++i) {
                     approximate_Q[i][j]/=column_norm;
                 }

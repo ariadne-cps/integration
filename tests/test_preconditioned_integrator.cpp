@@ -98,6 +98,14 @@ Void test_rank_deficient_geometry() {
     check_factorisation(state,constant,Vector<FloatDPBounds>({0,0},dp));
     ARIADNE_TEST_EQUALS(state.linear_map()[0u][0u],FloatDP(1,dp))
     ARIADNE_TEST_EQUALS(state.linear_map()[1u][1u],FloatDP(1,dp))
+    // The coefficients are finite, but forming a squared norm can overflow.
+    // The preconditioner must retain a usable identity orientation.
+    ExactBoxType large_domain={{-1.0_x,1.0_x}};
+    auto large=factory.create_identity(large_domain);
+    large[0u]=large[0u]*FloatDPBounds(0x1p1020_x,dp);
+    auto large_state=integrator.precondition(large);
+    ARIADNE_TEST_EQUALS(large_state.linear_map()[0u][0u],FloatDP(1,dp))
+    check_factorisation(large_state,large,Vector<FloatDPBounds>({FloatDPBounds(1,dp)}));
 }
 
 Void check_rotation_endpoint(PreconditionedTaylorSeriesStep const& step,StepSizeType const& elapsed) {
