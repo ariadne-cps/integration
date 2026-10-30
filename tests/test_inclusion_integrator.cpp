@@ -255,6 +255,12 @@ Void test_numeric_helpers() {
     ARIADNE_TEST_EQUALS(raw.size(),2u)
     ARIADNE_TEST_EQUALS(raw[0u],FloatDP(1,dp))
     ARIADNE_TEST_EQUALS(raw[1u],FloatDP(2,dp))
+    errors[0u]=ErrorType(4u,dp);
+    ARIADNE_TEST_EQUALS(raw[0u],FloatDP(1,dp))
+    Vector<ErrorType> empty_errors(0u,dp);
+    ARIADNE_TEST_EQUALS(cast_exact(empty_errors).size(),0u)
+    auto const& from_temporary=cast_exact(Vector<ErrorType>({ErrorType(3u,dp)}));
+    ARIADNE_TEST_EQUALS(from_temporary[0u],FloatDP(3,dp))
     for(Int value:{-1,1}) {
         FloatDPBounds point(value,dp);
         auto expected=(exp(point)-1)/point;

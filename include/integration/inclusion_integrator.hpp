@@ -32,6 +32,7 @@
 #include "utility/typedefs.hpp"
 #include "algebra/sweeper.hpp"
 #include "algebra/algebra.hpp"
+#include "algebra/vector.hpp"
 #include "function/domain.hpp"
 #include "function/function_patch.hpp"
 #include "function/function_model.hpp"
@@ -58,8 +59,13 @@ inline TimeStepType lower_bound(TimeStepType const& t) {
 inline TimeStepType lower_bound(Real const& t) {
     return TimeStepType(FloatDPLowerBound(t,DoublePrecision()).raw()); }
 
-inline Vector<FloatDP> const& cast_exact(Vector<ErrorType> const& v) {
-    return reinterpret_cast<Vector<FloatDP>const&>(v); }
+inline Vector<FloatDP> cast_exact(Vector<ErrorType> const& v) {
+    // Vector specializations need not share a layout. Extract the exact values
+    // into independent storage instead of aliasing the error vector.
+    Vector<FloatDP> result(v.size(),v.zero_element().raw());
+    for(SizeType i=0u; i<v.size(); ++i) { result[i]=v[i].raw(); }
+    return result;
+}
 
 Void add_errors(ValidatedVectorMultivariateFunctionPatch& phi, Vector<ErrorType> const& e);
 
