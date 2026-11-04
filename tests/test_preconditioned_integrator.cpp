@@ -133,7 +133,7 @@ Void test_rotating_flow_and_carried_state() {
     StepSizeType h(0.03125_x);
     for(auto mode:{TaylorSeriesPreconditioning::IDENTITY,TaylorSeriesPreconditioning::QR}) {
       for(Bool diagnostics:{false,true}) {
-        ARIADNE_PRINT_TEST_CASE_TITLE("Two rotation steps, mode " << (mode==TaylorSeriesPreconditioning::QR ? "QR" : "IDENTITY") << ", diagnostics " << diagnostics)
+        ARIADNE_TESTING_NOTE("Two rotation steps, mode " << (mode==TaylorSeriesPreconditioning::QR ? "QR" : "IDENTITY") << ", diagnostics " << diagnostics);
         PreconditionedGradedTaylorSeriesIntegrator integrator(step_maximum_error=1e-6);
         integrator.set_preconditioning(mode);
         integrator.set_diagnostics(diagnostics);

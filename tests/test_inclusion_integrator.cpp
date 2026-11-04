@@ -118,7 +118,7 @@ Void test_error_processor_relations() {
     // Each relation selects a different mathematical error bound. Nonlinear
     // state dependence exercises first and second state derivatives.
     for(SizeType m:{1u,2u,3u}) {
-        ARIADNE_PRINT_TEST_CASE_TITLE("State-dependent noise with " << m << " inputs")
+        ARIADNE_TESTING_NOTE("State-dependent noise with " << m << " inputs");
         auto x=EffectiveFormula::coordinate(0u);
         auto y=EffectiveFormula::coordinate(1u);
         auto f0=x+x*x+x*y;
@@ -166,7 +166,7 @@ Void test_nominal_solution_in_reach_and_evolve() {
     for(ExactDouble amplitude:{0.125_x,0.0_x}) {
       BoxDomainType current_inputs={{-amplitude,amplitude}};
       for(auto const& approximation:approximations()) {
-        ARIADNE_PRINT_TEST_CASE_TITLE("Nominal trajectory under " << approximation << ", amplitude " << amplitude)
+        ARIADNE_TESTING_NOTE("Nominal trajectory under " << approximation << ", amplitude " << amplitude);
         auto integrator=factory.create(field,current_inputs,approximation);
         auto reaches=integrator.reach(domain,initial,bound,TimeStepType(0),h);
         ARIADNE_TESTING_PROVE(not reaches.empty());

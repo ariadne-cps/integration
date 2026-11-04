@@ -209,7 +209,7 @@ Void test_flow_dimension_contracts() {
     integrators.push_back(std::make_unique<GradedTaylorSeriesIntegrator>(step_maximum_error=1e-6));
     integrators.push_back(std::make_unique<AffineIntegrator>(SpacialOrder(1),TemporalOrder(4)));
     for(auto const& integrator:integrators) {
-        ARIADNE_PRINT_TEST_CASE_TITLE(*integrator << " dimension contracts")
+        ARIADNE_TESTING_NOTE(*integrator << " dimension contracts");
         ARIADNE_TESTING_EXPECT_THROWS(std::runtime_error, integrator->flow_step(wrong_result,domain,h,bound));
         ARIADNE_TESTING_EXPECT_THROWS(std::runtime_error, integrator->flow_step(wrong_arguments,domain,h,bound));
         ARIADNE_TESTING_EXPECT_THROWS(std::runtime_error, integrator->flow_step(wrong_result,domain,time,ExactBoxType(),bound));
