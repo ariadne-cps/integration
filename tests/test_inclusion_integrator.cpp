@@ -30,11 +30,25 @@
 #include "integration/integrator.hpp"
 #include "function/taylor_function.hpp"
 #include "function/formula.tpl.hpp"
-#include "macro/testing.hpp"
+#include "ariadne-testing.hpp"
 
 using namespace Ariadne;
 
 namespace {
+class TestInclusionIntegrator : public Ariadne::Testing::ContextFixture {
+  private:
+    unsigned _saved_verbosity;
+  public:
+    explicit TestInclusionIntegrator(Ariadne::Testing::Context& context)
+        : ContextFixture(context),
+          _saved_verbosity(Logger::instance().configuration().verbosity()) { }
+  public:
+    explicit TestInclusionIntegrator(Ariadne::Testing::Context& context, unsigned verbosity)
+        : ContextFixture(context), _saved_verbosity(Logger::instance().configuration().verbosity()) {
+        Logger::instance().configuration().set_verbosity(verbosity);
+    }
+    ~TestInclusionIntegrator() { Logger::instance().configuration().set_verbosity(_saved_verbosity); }
+
 List<InputApproximation> approximations() {
     return {InputApproximation(ZeroApproximation()),InputApproximation(ConstantApproximation()),
             InputApproximation(AffineApproximation()),InputApproximation(SinusoidalApproximation()),
@@ -53,37 +67,37 @@ Void test_approximation_metadata() {
     Nat index=0u;
     for(auto const& approximation:approximations()) {
         std::unique_ptr<InputApproximationInterface> owned_approximation(approximation.reference().clone());
-        ARIADNE_TEST_EQUALS(owned_approximation->index(),index)
-        ARIADNE_TEST_EQUALS(owned_approximation->is_reach_rigorous(),index<2u)
+        ARIADNE_TESTING_EXPECT_EQUAL(owned_approximation->index(),index);
+        ARIADNE_TESTING_EXPECT_EQUAL(owned_approximation->is_reach_rigorous(),index<2u);
         auto integrator=cloned_factory->create(field,inputs,approximation);
-        ARIADNE_TEST_EQUALS(integrator.index(),index)
-        ARIADNE_TEST_EQUALS(integrator.num_params_per_input(),index==0u ? 0u : (index==1u ? 1u : 2u))
-        ARIADNE_TEST_EQUALS(integrator.is_reach_rigorous(),index<2u)
-        ARIADNE_TEST_EQUALS(approximation.is_reach_rigorous(),index<2u)
+        ARIADNE_TESTING_EXPECT_EQUAL(integrator.index(),index);
+        ARIADNE_TESTING_EXPECT_EQUAL(integrator.num_params_per_input(),index==0u ? 0u : (index==1u ? 1u : 2u));
+        ARIADNE_TESTING_EXPECT_EQUAL(integrator.is_reach_rigorous(),index<2u);
+        ARIADNE_TESTING_EXPECT_EQUAL(approximation.is_reach_rigorous(),index<2u);
         std::ostringstream expected,actual;
         expected << approximation;
         actual << integrator;
-        ARIADNE_TEST_EQUALS(actual.str(),expected.str())
+        ARIADNE_TESTING_EXPECT_EQUAL(actual.str(),expected.str());
         std::unique_ptr<InclusionIntegrator> cloned(integrator.clone());
-        ARIADNE_TEST_ASSERT(*cloned==integrator)
+        ARIADNE_TESTING_PROVE(*cloned==integrator);
         InclusionIntegratorInterface const& interface=*cloned;
-        ARIADNE_TEST_EQUALS(interface.index(),index)
+        ARIADNE_TESTING_EXPECT_EQUAL(interface.index(),index);
         integrators.append(integrator);
         ++index;
     }
     for(SizeType i=0u;i<integrators.size();++i) {
         for(SizeType j=0u;j<integrators.size();++j) {
-            ARIADNE_TEST_EQUALS(integrators[i]==integrators[j],i==j)
-            ARIADNE_TEST_EQUALS(integrators[i]<integrators[j],i<j)
+            ARIADNE_TESTING_EXPECT_EQUAL(integrators[i]==integrators[j],i==j);
+            ARIADNE_TESTING_EXPECT_EQUAL(integrators[i]<integrators[j],i<j);
         }
     }
     for(auto relation:{InputsRelationKind::AFFINE,InputsRelationKind::SINGULAR,
                        InputsRelationKind::DUAL,InputsRelationKind::ADDITIVE}) {
         std::ostringstream text;
         text << relation;
-        ARIADNE_TEST_ASSERT(not text.str().empty())
+        ARIADNE_TESTING_PROVE(not text.str().empty());
     }
-    ARIADNE_TEST_THROWS((std::ostringstream{} << static_cast<InputsRelationKind>(99)),std::runtime_error)
+    ARIADNE_TESTING_EXPECT_THROWS(std::runtime_error, (std::ostringstream{} << static_cast<InputsRelationKind>(99)));
 }
 
 template<class A> Void check_error_processor(EffectiveVectorMultivariateFunction const& f, BoxDomainType const& inputs) {
@@ -92,11 +106,11 @@ template<class A> Void check_error_processor(EffectiveVectorMultivariateFunction
     UpperBoxType bound={{0.25_x,0.5_x},{0.25_x,0.5_x}};
     auto errors=processor->process(PositiveFloatDP(0.0078125_x,dp),bound);
     auto smaller=processor->process(PositiveFloatDP(0.00390625_x,dp),bound);
-    ARIADNE_TEST_EQUALS(errors.size(),2u)
+    ARIADNE_TESTING_EXPECT_EQUAL(errors.size(),2u);
     for(SizeType j=0u;j<errors.size();++j) {
-        ARIADNE_TEST_ASSERT(std::isfinite(errors[j].raw().get_d()))
-        ARIADNE_TEST_ASSERT(errors[j].raw()>=FloatDP(0,dp))
-        ARIADNE_TEST_ASSERT(smaller[j].raw()<=errors[j].raw())
+        ARIADNE_TESTING_PROVE(std::isfinite(errors[j].raw().get_d()));
+        ARIADNE_TESTING_PROVE(errors[j].raw()>=FloatDP(0,dp));
+        ARIADNE_TESTING_PROVE(smaller[j].raw()<=errors[j].raw());
     }
 }
 
@@ -155,13 +169,13 @@ Void test_nominal_solution_in_reach_and_evolve() {
         ARIADNE_PRINT_TEST_CASE_TITLE("Nominal trajectory under " << approximation << ", amplitude " << amplitude)
         auto integrator=factory.create(field,current_inputs,approximation);
         auto reaches=integrator.reach(domain,initial,bound,TimeStepType(0),h);
-        ARIADNE_TEST_ASSERT(not reaches.empty())
+        ARIADNE_TESTING_PROVE(not reaches.empty());
         for(auto const& reach:reaches) {
-            ARIADNE_TEST_EQUALS(reach.result_size(),1u)
-            ARIADNE_TEST_ASSERT(definitely(is_bounded(reach.range())))
+            ARIADNE_TESTING_EXPECT_EQUAL(reach.result_size(),1u);
+            ARIADNE_TESTING_PROVE(definitely(is_bounded(reach.range())));
             auto evolved=integrator.evolve(reach,h);
-            ARIADNE_TEST_EQUALS(evolved.result_size(),1u)
-            ARIADNE_TEST_ASSERT(refines(expected_interval,evolved.range()[0u]))
+            ARIADNE_TESTING_EXPECT_EQUAL(evolved.result_size(),1u);
+            ARIADNE_TESTING_PROVE(refines(expected_interval,evolved.range()[0u]));
         }
       }
     }
@@ -181,7 +195,7 @@ Void test_unsupported_approximation() {
     BoxDomainType inputs={{-0.125_x,0.125_x}};
     TaylorSeriesIntegrator base(step_maximum_error=1e-6,order=8);
     InclusionIntegratorFactory factory(base);
-    ARIADNE_TEST_THROWS(factory.create(field,inputs,InputApproximation(UnsupportedApproximation())),std::runtime_error)
+    ARIADNE_TESTING_EXPECT_THROWS(std::runtime_error, factory.create(field,inputs,InputApproximation(UnsupportedApproximation())));
 }
 
 ErrorConstants make_constants(std::array<Vector<ErrorType>,12u> const& v) {
@@ -196,20 +210,20 @@ Void test_error_constant_dimensions_and_values() {
     std::array<Vector<ErrorType>,12u> vectors;
     for(auto& v:vectors) { v=Vector<ErrorType>(2u,ErrorType(0u,dp)); }
     auto constants=make_constants(vectors);
-    ARIADNE_TEST_EQUALS(constants.dimension(),2u)
+    ARIADNE_TESTING_EXPECT_EQUAL(constants.dimension(),2u);
     auto values=constants.values();
-    ARIADNE_TEST_EQUALS(std::get<1u>(values).size(),2u)
-    ARIADNE_TEST_EQUALS(std::get<25u>(values).raw(),FloatDP(2,dp))
-    ARIADNE_TEST_EQUALS(std::get<26u>(values).raw(),FloatDP(3,dp))
+    ARIADNE_TESTING_EXPECT_EQUAL(std::get<1u>(values).size(),2u);
+    ARIADNE_TESTING_EXPECT_EQUAL(std::get<25u>(values).raw(),FloatDP(2,dp));
+    ARIADNE_TESTING_EXPECT_EQUAL(std::get<26u>(values).raw(),FloatDP(3,dp));
     std::ostringstream text;
     text << constants;
-    ARIADNE_TEST_ASSERT(text.str().find("Lambda=")!=std::string::npos)
+    ARIADNE_TESTING_PROVE(text.str().find("Lambda=")!=std::string::npos);
     // Kj establishes the dimension; each of the remaining eleven vectors
     // must agree, and a caller can supply each mismatch independently.
     for(SizeType j=1u;j<vectors.size();++j) {
         auto invalid=vectors;
         invalid[j]=Vector<ErrorType>(1u,ErrorType(0u,dp));
-        ARIADNE_TEST_THROWS(make_constants(invalid),std::runtime_error)
+        ARIADNE_TESTING_EXPECT_THROWS(std::runtime_error, make_constants(invalid));
     }
 }
 
@@ -217,17 +231,17 @@ Void test_error_dimension_contracts() {
     auto x=EffectiveFormula::coordinate(0u),u=EffectiveFormula::coordinate(1u);
     EffectiveVectorMultivariateFunction field=EffectiveVectorMultivariateFormulaFunction(2u,Vector<EffectiveFormula>{x+u});
     BoxDomainType wrong_inputs(0u);
-    ARIADNE_TEST_THROWS(ApproximationErrorProcessorFactory<ZeroApproximation>().create(field,wrong_inputs),std::runtime_error)
-    ARIADNE_TEST_THROWS(ApproximationErrorProcessorFactory<ConstantApproximation>().create(field,wrong_inputs),std::runtime_error)
-    ARIADNE_TEST_THROWS(ApproximationErrorProcessorFactory<AffineApproximation>().create(field,wrong_inputs),std::runtime_error)
-    ARIADNE_TEST_THROWS(ApproximationErrorProcessorFactory<SinusoidalApproximation>().create(field,wrong_inputs),std::runtime_error)
-    ARIADNE_TEST_THROWS(ApproximationErrorProcessorFactory<PiecewiseApproximation>().create(field,wrong_inputs),std::runtime_error)
+    ARIADNE_TESTING_EXPECT_THROWS(std::runtime_error, ApproximationErrorProcessorFactory<ZeroApproximation>().create(field,wrong_inputs));
+    ARIADNE_TESTING_EXPECT_THROWS(std::runtime_error, ApproximationErrorProcessorFactory<ConstantApproximation>().create(field,wrong_inputs));
+    ARIADNE_TESTING_EXPECT_THROWS(std::runtime_error, ApproximationErrorProcessorFactory<AffineApproximation>().create(field,wrong_inputs));
+    ARIADNE_TESTING_EXPECT_THROWS(std::runtime_error, ApproximationErrorProcessorFactory<SinusoidalApproximation>().create(field,wrong_inputs));
+    ARIADNE_TESTING_EXPECT_THROWS(std::runtime_error, ApproximationErrorProcessorFactory<PiecewiseApproximation>().create(field,wrong_inputs));
     TaylorSeriesIntegrator base(step_maximum_error=1e-6,order=8);
     BoxDomainType domain={{0.0_x,0.125_x}};
     auto patch=base.function_factory().create_identity(domain);
     Vector<ErrorType> wrong_errors(2u,ErrorType(0u,dp));
-    ARIADNE_TEST_THROWS(add_errors(patch,wrong_errors),std::runtime_error)
-    ARIADNE_TEST_EQUALS(patch.result_size(),1u)
+    ARIADNE_TESTING_EXPECT_THROWS(std::runtime_error, add_errors(patch,wrong_errors));
+    ARIADNE_TESTING_EXPECT_EQUAL(patch.result_size(),1u);
 }
 
 Void test_contracting_drift_zero_approximation() {
@@ -242,50 +256,55 @@ Void test_contracting_drift_zero_approximation() {
     PositiveFloatDP h(0.03125_x,dp);
     auto errors=processor->process(h,bound);
     auto general_errors=general.process(h,bound);
-    ARIADNE_TEST_EQUALS(general_errors[0u].raw(),errors[0u].raw())
+    ARIADNE_TESTING_EXPECT_EQUAL(general_errors[0u].raw(),errors[0u].raw());
     auto exact_error=FloatDPBounds(0.125_x,dp)*(1-exp(-FloatDPBounds(h)));
-    ARIADNE_TEST_EQUALS(errors.size(),1u)
-    ARIADNE_TEST_ASSERT(errors[0u].raw()>=exact_error.upper().raw())
+    ARIADNE_TESTING_EXPECT_EQUAL(errors.size(),1u);
+    ARIADNE_TESTING_PROVE(errors[0u].raw()>=exact_error.upper().raw());
 }
 
 Void test_numeric_helpers() {
-    ARIADNE_TEST_EQUALS(lower_bound(Real(0.125_x)),TimeStepType(0.125_x))
+    ARIADNE_TESTING_EXPECT_EQUAL(lower_bound(Real(0.125_x)),TimeStepType(0.125_x));
     Vector<ErrorType> errors({ErrorType(1u,dp),ErrorType(2u,dp)});
     auto const& raw=cast_exact(errors);
-    ARIADNE_TEST_EQUALS(raw.size(),2u)
-    ARIADNE_TEST_EQUALS(raw[0u],FloatDP(1,dp))
-    ARIADNE_TEST_EQUALS(raw[1u],FloatDP(2,dp))
+    ARIADNE_TESTING_EXPECT_EQUAL(raw.size(),2u);
+    ARIADNE_TESTING_EXPECT_EQUAL(raw[0u],FloatDP(1,dp));
+    ARIADNE_TESTING_EXPECT_EQUAL(raw[1u],FloatDP(2,dp));
     errors[0u]=ErrorType(4u,dp);
-    ARIADNE_TEST_EQUALS(raw[0u],FloatDP(1,dp))
+    ARIADNE_TESTING_EXPECT_EQUAL(raw[0u],FloatDP(1,dp));
     Vector<ErrorType> empty_errors(0u,dp);
-    ARIADNE_TEST_EQUALS(cast_exact(empty_errors).size(),0u)
+    ARIADNE_TESTING_EXPECT_EQUAL(cast_exact(empty_errors).size(),0u);
     auto const& from_temporary=cast_exact(Vector<ErrorType>({ErrorType(3u,dp)}));
-    ARIADNE_TEST_EQUALS(from_temporary[0u],FloatDP(3,dp))
+    ARIADNE_TESTING_EXPECT_EQUAL(from_temporary[0u],FloatDP(3,dp));
     for(Int value:{-1,1}) {
         FloatDPBounds point(value,dp);
         auto expected=(exp(point)-1)/point;
         auto computed=dexp(point);
-        ARIADNE_TEST_ASSERT(refines(expected,computed))
+        ARIADNE_TESTING_PROVE(refines(expected,computed));
     }
-    ARIADNE_TEST_ASSERT(refines(FloatDPBounds(1,dp),dexp(FloatDPBounds(0,dp))))
+    ARIADNE_TESTING_PROVE(refines(FloatDPBounds(1,dp),dexp(FloatDPBounds(0,dp))));
     FloatDPBounds crossing(FloatDP(-1,dp),FloatDP(1,dp));
     auto range=dexp(crossing);
-    ARIADNE_TEST_ASSERT(refines(dexp(FloatDPBounds(-1,dp)),range))
-    ARIADNE_TEST_ASSERT(refines(dexp(FloatDPBounds(1,dp)),range))
+    ARIADNE_TESTING_PROVE(refines(dexp(FloatDPBounds(-1,dp)),range));
+    ARIADNE_TESTING_PROVE(refines(dexp(FloatDPBounds(1,dp)),range));
 }
+};
+
 }
 
-int main() {
-    ARIADNE_TEST_CALL(test_approximation_metadata())
-    ARIADNE_TEST_CALL(test_numeric_helpers())
-    ARIADNE_TEST_CALL(test_error_constant_dimensions_and_values())
-    ARIADNE_TEST_CALL(test_error_dimension_contracts())
-    ARIADNE_TEST_CALL(test_contracting_drift_zero_approximation())
-    ARIADNE_TEST_CALL(test_unsupported_approximation())
-    for(unsigned verbosity:{0u,3u}) {
-        Logger::instance().configuration().set_verbosity(verbosity);
-        ARIADNE_TEST_CALL(test_error_processor_relations())
-        ARIADNE_TEST_CALL(test_nominal_solution_in_reach_and_evolve())
-    }
-    return ARIADNE_TEST_FAILURES;
+
+int main(int argc, char** argv) {
+    ARIADNE_TESTING_SUITE("test_inclusion_integrator");
+    ARIADNE_TESTING_ADD_TEST(TestInclusionIntegrator, test_approximation_metadata);
+    ARIADNE_TESTING_ADD_TEST(TestInclusionIntegrator, test_numeric_helpers);
+    ARIADNE_TESTING_ADD_TEST(TestInclusionIntegrator, test_error_constant_dimensions_and_values);
+    ARIADNE_TESTING_ADD_TEST(TestInclusionIntegrator, test_error_dimension_contracts);
+    ARIADNE_TESTING_ADD_TEST(TestInclusionIntegrator, test_contracting_drift_zero_approximation);
+    ARIADNE_TESTING_ADD_TEST(TestInclusionIntegrator, test_unsupported_approximation);
+    auto verbosity_0 = Ariadne::Testing::fixture_variant<TestInclusionIntegrator>(ariadne_test_suite, "verbosity=0", [](Ariadne::Testing::Context& ctx) { return TestInclusionIntegrator(ctx, 0u); });
+    ARIADNE_TESTING_ADD_VARIANT_TEST(verbosity_0, test_error_processor_relations);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(verbosity_0, test_nominal_solution_in_reach_and_evolve);
+    auto verbosity_3 = Ariadne::Testing::fixture_variant<TestInclusionIntegrator>(ariadne_test_suite, "verbosity=3", [](Ariadne::Testing::Context& ctx) { return TestInclusionIntegrator(ctx, 3u); });
+    ARIADNE_TESTING_ADD_VARIANT_TEST(verbosity_3, test_error_processor_relations);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(verbosity_3, test_nominal_solution_in_reach_and_evolve);
+    return ARIADNE_TESTING_RUN_TESTS_WITH_ARGS(argc, argv);
 }

@@ -25,12 +25,16 @@
 #include "polynomial_procedure.hpp"
 #include "function/formula.hpp"
 #include "numeric/numeric.hpp"
-#include "macro/testing.hpp"
+#include "ariadne-testing.hpp"
 
 using namespace Ariadne;
 using namespace Ariadne::IntegrationDetail;
 
 namespace {
+class TestPolynomialProcedure : public Ariadne::Testing::ContextFixture {
+  public:
+    using ContextFixture::ContextFixture;
+
 Void test_polynomial_operators() {
     auto x=ValidatedFormula::coordinate(0u);
     auto positive=ValidatedFormula::unary(Pos(),x);
@@ -40,16 +44,16 @@ Void test_polynomial_operators() {
     auto expression=ValidatedFormula::binary(Sub(),ValidatedFormula::binary(Add(),negative,half_square),quarter);
     Vector<ValidatedProcedure> procedure(1u,Vector<ValidatedFormula>({expression}));
     DegreeType polynomial_degree=0u;
-    ARIADNE_TEST_ASSERT(polynomial_procedure_degree(procedure,polynomial_degree))
-    ARIADNE_TEST_EQUALS(polynomial_degree,2u)
+    ARIADNE_TESTING_PROVE(polynomial_procedure_degree(procedure,polynomial_degree));
+    ARIADNE_TESTING_EXPECT_EQUAL(polynomial_degree,2u);
     using D=Differential<FloatDPBounds>;
     Vector<D> arguments({D::variable(1u,3u,FloatDPBounds(2,dp),0u)});
     Vector<D> evaluated(1u,arguments.zero_element());
-    ARIADNE_TEST_ASSERT(evaluate_polynomial_procedure(procedure,arguments,evaluated))
-    ARIADNE_TEST_ASSERT(refines(FloatDPBounds(-0.5_x,dp),evaluated[0u].value()))
-    ARIADNE_TEST_ASSERT(refines(FloatDPBounds(0.75_x,dp),evaluated[0u][MultiIndex::unit(1u,0u)]))
+    ARIADNE_TESTING_PROVE(evaluate_polynomial_procedure(procedure,arguments,evaluated));
+    ARIADNE_TESTING_PROVE(refines(FloatDPBounds(-0.5_x,dp),evaluated[0u].value()));
+    ARIADNE_TESTING_PROVE(refines(FloatDPBounds(0.75_x,dp),evaluated[0u][MultiIndex::unit(1u,0u)]));
     MultiIndex second(1u);second[0u]=2u;
-    ARIADNE_TEST_ASSERT(refines(FloatDPBounds(0.5_x,dp),evaluated[0u][second]))
+    ARIADNE_TESTING_PROVE(refines(FloatDPBounds(0.5_x,dp),evaluated[0u][second]));
 }
 
 Void test_unsupported_polynomial_diagnostics() {
@@ -61,10 +65,10 @@ Void test_unsupported_polynomial_diagnostics() {
     for(auto expression:{variable_denominator,pow(x,3),sin(x)}) {
         Vector<ValidatedProcedure> procedure(1u,Vector<ValidatedFormula>({expression}));
         DegreeType polynomial_degree=0u;
-        ARIADNE_TEST_ASSERT(not polynomial_procedure_degree(procedure,polynomial_degree))
+        ARIADNE_TESTING_PROVE(not polynomial_procedure_degree(procedure,polynomial_degree));
     }
     Vector<ValidatedProcedure> non_polynomial(1u,Vector<ValidatedFormula>({sin(x)}));
-    ARIADNE_TEST_ASSERT(not evaluate_polynomial_procedure(non_polynomial,arguments,evaluated))
+    ARIADNE_TESTING_PROVE(not evaluate_polynomial_procedure(non_polynomial,arguments,evaluated));
 }
 
 Void test_non_polynomial_recurrence_diagnostics() {
@@ -73,21 +77,24 @@ Void test_non_polynomial_recurrence_diagnostics() {
     ExactBoxType domain={{-0.125_x,0.125_x}};
     ExactIntervalType time(0.0_x,0.03125_x);
     auto recurrence=graded_series_centre_polynomial_step(field,domain,time,Sweeper<FloatDP>(),2u,2u,true);
-    ARIADNE_TEST_ASSERT(not recurrence.exact_polynomial_available)
-    ARIADNE_TEST_EQUALS(recurrence.polynomial.result_size(),1u)
-    ARIADNE_TEST_EQUALS(recurrence.polynomial.argument_size(),2u)
+    ARIADNE_TESTING_PROVE(not recurrence.exact_polynomial_available);
+    ARIADNE_TESTING_EXPECT_EQUAL(recurrence.polynomial.result_size(),1u);
+    ARIADNE_TESTING_EXPECT_EQUAL(recurrence.polynomial.argument_size(),2u);
     Vector<FloatDPBounds> point({FloatDPBounds(0,dp),FloatDPBounds(0.03125_x,dp)});
     // sin(0)=0: the equilibrium has zero candidate value and zero residual.
-    ARIADNE_TEST_ASSERT(refines(FloatDPBounds(0,dp),recurrence.polynomial(point)[0u]))
-    ARIADNE_TEST_ASSERT(refines(FloatDPBounds(0,dp),recurrence.defect(point)[0u]))
-    ARIADNE_TEST_ASSERT(definitely(is_bounded(recurrence.defect.range())))
+    ARIADNE_TESTING_PROVE(refines(FloatDPBounds(0,dp),recurrence.polynomial(point)[0u]));
+    ARIADNE_TESTING_PROVE(refines(FloatDPBounds(0,dp),recurrence.defect(point)[0u]));
+    ARIADNE_TESTING_PROVE(definitely(is_bounded(recurrence.defect.range())));
 }
+};
+
 }
 
-int main() {
-    ARIADNE_TEST_CALL(test_polynomial_operators())
-    ARIADNE_TEST_CALL(test_unsupported_polynomial_diagnostics())
-    ARIADNE_TEST_CALL(test_non_polynomial_recurrence_diagnostics())
-    return ARIADNE_TEST_FAILURES;
-}
 
+int main(int argc, char** argv) {
+    ARIADNE_TESTING_SUITE("test_polynomial_procedure");
+    ARIADNE_TESTING_ADD_TEST(TestPolynomialProcedure, test_polynomial_operators);
+    ARIADNE_TESTING_ADD_TEST(TestPolynomialProcedure, test_unsupported_polynomial_diagnostics);
+    ARIADNE_TESTING_ADD_TEST(TestPolynomialProcedure, test_non_polynomial_recurrence_diagnostics);
+    return ARIADNE_TESTING_RUN_TESTS_WITH_ARGS(argc, argv);
+}

@@ -23,11 +23,15 @@
  */
 
 #include "integration/runge_kutta_integrator.hpp"
-#include "macro/testing.hpp"
+#include "ariadne-testing.hpp"
 
 using namespace Ariadne;
 
 namespace {
+class TestRungeKuttaIntegrator : public Ariadne::Testing::ContextFixture {
+  public:
+    using ContextFixture::ContextFixture;
+
 Void test_classical_fourth_order_step() {
     auto x=EffectiveScalarMultivariateFunction::coordinate(1u,0u);
     ApproximateVectorMultivariateFunction f=EffectiveVectorMultivariateFunction({x});
@@ -35,8 +39,8 @@ Void test_classical_fourth_order_step() {
     RungeKutta4Integrator integrator(0.5);
     auto next=integrator.step(f,initial,FloatDPApproximation(0.5,dp));
     // For x'=x the fourth-order Taylor polynomial at h=1/2 is 211/128.
-    ARIADNE_TEST_WITHIN(next[0u].get_d(),211.0/128.0,1e-14)
-    ARIADNE_TEST_EQUALS(initial[0u].get_d(),1.0)
+    ARIADNE_TESTING_EXPECT_WITHIN(next[0u].get_d(),211.0/128.0,1e-14);
+    ARIADNE_TESTING_EXPECT_EQUAL(initial[0u].get_d(),1.0);
 }
 
 Void test_evolution_uses_each_instance_step() {
@@ -47,20 +51,24 @@ Void test_evolution_uses_each_instance_step() {
     RungeKutta4Integrator fine(0.125);
     auto coarse_path=coarse.evolve(f,initial,FloatDPApproximation(0.5,dp));
     auto fine_path=fine.evolve(f,initial,FloatDPApproximation(0.5,dp));
-    ARIADNE_TEST_EQUALS(coarse_path.size(),3u)
-    ARIADNE_TEST_EQUALS(fine_path.size(),5u)
-    ARIADNE_TEST_EQUALS(coarse_path[1u].first.get_d(),0.25)
-    ARIADNE_TEST_EQUALS(fine_path[1u].first.get_d(),0.125)
-    ARIADNE_TEST_EQUALS(coarse_path.back().second[0u].get_d(),2.5)
-    ARIADNE_TEST_EQUALS(fine_path.back().second[0u].get_d(),2.5)
+    ARIADNE_TESTING_EXPECT_EQUAL(coarse_path.size(),3u);
+    ARIADNE_TESTING_EXPECT_EQUAL(fine_path.size(),5u);
+    ARIADNE_TESTING_EXPECT_EQUAL(coarse_path[1u].first.get_d(),0.25);
+    ARIADNE_TESTING_EXPECT_EQUAL(fine_path[1u].first.get_d(),0.125);
+    ARIADNE_TESTING_EXPECT_EQUAL(coarse_path.back().second[0u].get_d(),2.5);
+    ARIADNE_TESTING_EXPECT_EQUAL(fine_path.back().second[0u].get_d(),2.5);
     auto zero_path=fine.evolve(f,initial,FloatDPApproximation(0,dp));
-    ARIADNE_TEST_EQUALS(zero_path.size(),1u)
-    ARIADNE_TEST_EQUALS(zero_path[0u].second[0u].get_d(),2.0)
+    ARIADNE_TESTING_EXPECT_EQUAL(zero_path.size(),1u);
+    ARIADNE_TESTING_EXPECT_EQUAL(zero_path[0u].second[0u].get_d(),2.0);
 }
+};
+
 }
 
-int main() {
-    ARIADNE_TEST_CALL(test_classical_fourth_order_step())
-    ARIADNE_TEST_CALL(test_evolution_uses_each_instance_step())
-    return ARIADNE_TEST_FAILURES;
+
+int main(int argc, char** argv) {
+    ARIADNE_TESTING_SUITE("test_runge_kutta_integrator");
+    ARIADNE_TESTING_ADD_TEST(TestRungeKuttaIntegrator, test_classical_fourth_order_step);
+    ARIADNE_TESTING_ADD_TEST(TestRungeKuttaIntegrator, test_evolution_uses_each_instance_step);
+    return ARIADNE_TESTING_RUN_TESTS_WITH_ARGS(argc, argv);
 }

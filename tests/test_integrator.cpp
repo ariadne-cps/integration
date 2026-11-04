@@ -26,6 +26,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include "integration/integrator.hpp"
 #include "algebra/vector.hpp"
 #include "algebra/algebra.hpp"
@@ -35,44 +36,26 @@
 #include "function/formula.hpp"
 #include "logging/logging_command_line_interface.hpp"
 
-#include "macro/testing.hpp"
+#include "ariadne-testing.hpp"
 
 using namespace Ariadne;
 using namespace std;
 
 struct UnsafeReal : Real { UnsafeReal(double d) : Real(operator""_x(d)) { } };
 
-class TestIntegrator
+class TestIntegrator : public Ariadne::Testing::ContextFixture
 {
     typedef Vector<ExactIntervalType> ExactIntervalVectorType;
   private:
     std::unique_ptr<IntegratorInterface> integrator_ptr;
   public:
-    TestIntegrator(const IntegratorInterface& i)
-        : integrator_ptr(i.clone())
+    TestIntegrator(Ariadne::Testing::Context& context, const IntegratorInterface& i)
+        : ContextFixture(context), integrator_ptr(i.clone())
     { }
 
-    Int test() {
-        ARIADNE_TEST_PRINT(integrator_ptr.operator->());
-        ARIADNE_TEST_PRINT(*integrator_ptr);
-        ARIADNE_TEST_CALL(test_constant_derivative());
-        ARIADNE_TEST_CALL(test_quadratic_flow());
-        ARIADNE_TEST_CALL(test_linear());
-        ARIADNE_TEST_CALL(test_spiral());
-        ARIADNE_TEST_CALL(test_logistic());
-        ARIADNE_TEST_CALL(test_time_variant());
-        ARIADNE_TEST_CALL(test_time_variant_with_parameters());
-        ARIADNE_TEST_CALL(test_step_size());
-        return 0;
-    }
+    
 
-    Int test_affine() {
-        ARIADNE_TEST_CALL(test_constant_derivative());
-        ARIADNE_TEST_CALL(test_quadratic_flow());
-        ARIADNE_TEST_CALL(test_linear());
-        ARIADNE_TEST_CALL(test_spiral());
-        return 0;
-    }
+    
 
     Void test_constant_derivative() {
 
@@ -84,15 +67,15 @@ class TestIntegrator
         EffectiveScalarMultivariateFunction t=EffectiveScalarMultivariateFunction::coordinate(3,2);
 
         EffectiveVectorMultivariateFunction f={o*2,o*3};
-        ARIADNE_TEST_PRINT(f);
+        ARIADNE_TESTING_NOTE(f);
         ExactBoxType d={{0.0_x,1.0_x},{-0.5_x,1.5_x}};
         StepSizeType h=0.25_x;
         ValidatedVectorMultivariateFunctionPatch flow=integrator_ptr->flow_step(f,d,suggest(h));
         EffectiveVectorMultivariateFunction expected_flow={x0+2*t,y0+3*t};
-        ARIADNE_TEST_PRINT(flow);
-        ARIADNE_TEST_PRINT(expected_flow);
-        ARIADNE_TEST_PRINT(flow.errors());
-        ARIADNE_TEST_BINARY_PREDICATE(operator<,norm(flow-expected_flow),1e-8_pr);
+        ARIADNE_TESTING_NOTE(flow);
+        ARIADNE_TESTING_NOTE(expected_flow);
+        ARIADNE_TESTING_NOTE(flow.errors());
+        ARIADNE_TESTING_EXPECT_LESS(norm(flow-expected_flow), 1e-8_pr);
     }
 
     Void test_quadratic_flow() {
@@ -109,11 +92,11 @@ class TestIntegrator
         StepSizeType h=0.25_x;
         ValidatedVectorMultivariateFunctionPatch flow=integrator_ptr->flow_step(f,d,suggest(h));
         EffectiveVectorMultivariateFunction expected_flow={x0+t,y0+x0*t+t*t/2};
-        ARIADNE_TEST_PRINT(f);
-        ARIADNE_TEST_PRINT(flow);
-        ARIADNE_TEST_PRINT(expected_flow);
-        ARIADNE_TEST_PRINT(flow.errors());
-        ARIADNE_TEST_BINARY_PREDICATE(operator<,norm(flow-expected_flow),1e-8_pr);
+        ARIADNE_TESTING_NOTE(f);
+        ARIADNE_TESTING_NOTE(flow);
+        ARIADNE_TESTING_NOTE(expected_flow);
+        ARIADNE_TESTING_NOTE(flow.errors());
+        ARIADNE_TESTING_EXPECT_LESS(norm(flow-expected_flow), 1e-8_pr);
     }
 
     Void test_linear() {
@@ -130,11 +113,11 @@ class TestIntegrator
         StepSizeType h=0.25_x;
         ValidatedVectorMultivariateFunctionPatch flow=integrator_ptr->flow_step(f,d,suggest(h));
         EffectiveVectorMultivariateFunction expected_flow={x0*(1+t+t*t/2+t*t*t/6+t*t*t*t/24),y0*(1-t+t*t/2-t*t*t/6+t*t*t*t/24)};
-        ARIADNE_TEST_PRINT(f);
-        ARIADNE_TEST_PRINT(flow);
-        ARIADNE_TEST_PRINT(expected_flow);
-        ARIADNE_TEST_PRINT(flow.errors());
-        ARIADNE_TEST_BINARY_PREDICATE(operator<,norm(flow-expected_flow),1e-4_pr);
+        ARIADNE_TESTING_NOTE(f);
+        ARIADNE_TESTING_NOTE(flow);
+        ARIADNE_TESTING_NOTE(expected_flow);
+        ARIADNE_TESTING_NOTE(flow.errors());
+        ARIADNE_TESTING_EXPECT_LESS(norm(flow-expected_flow), 1e-4_pr);
     };
 
     Void test_spiral() {
@@ -152,12 +135,12 @@ class TestIntegrator
         StepSizeType h=0.25_x;
         ValidatedVectorMultivariateFunctionPatch flow=integrator_ptr->flow_step(f,d,suggest(h));
         EffectiveVectorMultivariateFunction expected_flow={exp(-half*t)*(x0*cos(t)-y0*sin(t)),exp(-half*t)*(x0*sin(t)+y0*cos(t))};
-        ARIADNE_TEST_PRINT(f);
-        ARIADNE_TEST_PRINT(flow);
-        ARIADNE_TEST_PRINT(expected_flow);
-        ARIADNE_TEST_PRINT(flow.errors());
-        ARIADNE_TEST_PRINT(flow-expected_flow);
-        ARIADNE_TEST_BINARY_PREDICATE(operator<,norm(flow-expected_flow),1e-3_pr);
+        ARIADNE_TESTING_NOTE(f);
+        ARIADNE_TESTING_NOTE(flow);
+        ARIADNE_TESTING_NOTE(expected_flow);
+        ARIADNE_TESTING_NOTE(flow.errors());
+        ARIADNE_TESTING_NOTE(flow-expected_flow);
+        ARIADNE_TESTING_EXPECT_LESS(norm(flow-expected_flow), 1e-3_pr);
     }
 
     // Equation: dx/dt = x*(1-x)
@@ -175,14 +158,14 @@ class TestIntegrator
         ValidatedVectorMultivariateFunctionPatch flow=integrator_ptr->flow_step(f,d,suggest(h));
         ValidatedVectorMultivariateTaylorFunctionModelDP taylor_flow=dynamic_cast<ValidatedVectorMultivariateTaylorFunctionModelDP&>(flow.reference());
         EffectiveVectorMultivariateFunction expected_flow={1/(1+(1/x0-1)*exp(-t))};
-        ARIADNE_TEST_PRINT(*integrator_ptr);
-        ARIADNE_TEST_PRINT(f);
-        ARIADNE_TEST_PRINT(flow);
-        ARIADNE_TEST_PRINT(expected_flow);
-        ARIADNE_TEST_PRINT(taylor_flow.errors());
-        ARIADNE_TEST_PRINT(taylor_flow-expected_flow);
-        ARIADNE_TEST_BINARY_PREDICATE(operator<,taylor_flow.error(),0.01_pr);
-        ARIADNE_TEST_BINARY_PREDICATE(operator<,norm(taylor_flow-expected_flow),0.014_pr);
+        ARIADNE_TESTING_NOTE(*integrator_ptr);
+        ARIADNE_TESTING_NOTE(f);
+        ARIADNE_TESTING_NOTE(flow);
+        ARIADNE_TESTING_NOTE(expected_flow);
+        ARIADNE_TESTING_NOTE(taylor_flow.errors());
+        ARIADNE_TESTING_NOTE(taylor_flow-expected_flow);
+        ARIADNE_TESTING_EXPECT_LESS(taylor_flow.error(), 0.01_pr);
+        ARIADNE_TESTING_EXPECT_LESS(norm(taylor_flow-expected_flow), 0.014_pr);
     };
 
     Void test_time_variant() {
@@ -208,11 +191,11 @@ class TestIntegrator
         UpperBoxType B = step_bounds.second;
         ValidatedVectorMultivariateFunctionPatch flow=integrator_ptr->flow_step(f,d,Interval<StepSizeType>(t0,t0+h),ExactBoxType(0u),B);
         EffectiveVectorMultivariateFunction expected_flow={(x+b/a*t0+(b/a+c)/a)*exp(a*(t-t0))-b/a*t-(b/a+c)/a,y+c*(t-t0)+b/2*(t*t-t0*t0),z+c*(t-t0)};
-        ARIADNE_TEST_PRINT(f);
-        ARIADNE_TEST_PRINT(flow);
-        ARIADNE_TEST_PRINT(expected_flow);
-        ARIADNE_TEST_PRINT(flow.errors());
-        ARIADNE_TEST_BINARY_PREDICATE(operator<,norm(flow-expected_flow),1e-4_pr);
+        ARIADNE_TESTING_NOTE(f);
+        ARIADNE_TESTING_NOTE(flow);
+        ARIADNE_TESTING_NOTE(expected_flow);
+        ARIADNE_TESTING_NOTE(flow.errors());
+        ARIADNE_TESTING_EXPECT_LESS(norm(flow-expected_flow), 1e-4_pr);
     };
 
     Void test_time_variant_with_parameters() {
@@ -240,12 +223,12 @@ class TestIntegrator
         //   The function below should be zero for phi=expected_flow[0]
         // EffectiveScalarMultivariateFunction phi_error=derivative(phi,1)-(a*phi+b*t+c);
 
-        ARIADNE_TEST_PRINT(f);
-        ARIADNE_TEST_PRINT(flow);
-        ARIADNE_TEST_PRINT(expected_flow);
-        ARIADNE_TEST_PRINT(flow-expected_flow);
-        ARIADNE_TEST_PRINT(flow.errors());
-        ARIADNE_TEST_BINARY_PREDICATE(operator<,norm(flow-expected_flow),1e-4_pr);
+        ARIADNE_TESTING_NOTE(f);
+        ARIADNE_TESTING_NOTE(flow);
+        ARIADNE_TESTING_NOTE(expected_flow);
+        ARIADNE_TESTING_NOTE(flow-expected_flow);
+        ARIADNE_TESTING_NOTE(flow.errors());
+        ARIADNE_TESTING_EXPECT_LESS(norm(flow-expected_flow), 1e-4_pr);
     }
 
     // Equation: dx/dt=x^2;
@@ -261,59 +244,63 @@ class TestIntegrator
         StepSizeType h=0.0009765625_dy;
 
         try {
-            ARIADNE_TEST_CONSTRUCT(ValidatedVectorMultivariateFunctionPatch,flow,(integrator_ptr->flow_step(f,domx,h)));
-            ARIADNE_TEST_EQUALS(flow.domain()[0],domx[0]);
-            ARIADNE_TEST_EQUALS(flow.domain()[1].upper_bound(),h);
-            ARIADNE_TEST_PRINT(flow.domain());
-            ARIADNE_TEST_EQUALS(flow.domain()[1].lower_bound(),0);
+            ValidatedVectorMultivariateFunctionPatch flow(integrator_ptr->flow_step(f,domx,h)); ARIADNE_TESTING_NOTE(flow);
+            ARIADNE_TESTING_EXPECT_EQUAL(flow.domain()[0],domx[0]);
+            ARIADNE_TESTING_EXPECT_EQUAL(flow.domain()[1].upper_bound(),h);
+            ARIADNE_TESTING_NOTE(flow.domain());
+            ARIADNE_TESTING_EXPECT_EQUAL(flow.domain()[1].lower_bound(),0);
         } catch (IncompleteFlowException const& e) {
-            ARIADNE_TEST_WARN("Integrator "<<*integrator_ptr<<" cannot compute flow of dx/dt=x^2 starting in [1.0:1.5] up to time 1/1024.")
-            ARIADNE_TEST_WARN("Integrator::flow_step(f,d,"<<h<<") threw IncompleteFlowException.")
-            ARIADNE_TEST_COMPARE(e.computed_model().domain()[1].upper_bound(),<,h);
+            do { std::ostringstream message; message << "Integrator "<<*integrator_ptr<<" cannot compute flow of dx/dt=x^2 starting in [1.0:1.5] up to time 1/1024."; this->ctx().warning(message.str()); } while(false);
+            do { std::ostringstream message; message << "Integrator::flow_step(f,d,"<<h<<") threw IncompleteFlowException."; this->ctx().warning(message.str()); } while(false);
+            ARIADNE_TESTING_EXPECT_LESS(e.computed_model().domain()[1].upper_bound(), h);
         } catch (FlowBoundsException const&) {
-            ARIADNE_TEST_WARN("Integrator "<<*integrator_ptr<<" cannot compute flow of dx/dt=x^2 starting in [1.0:1.5] up to time 1/1024.")
-            ARIADNE_TEST_WARN("Integrator::flow_step(f,d,"<<h<<") threw FlowBoundsException.")
+            do { std::ostringstream message; message << "Integrator "<<*integrator_ptr<<" cannot compute flow of dx/dt=x^2 starting in [1.0:1.5] up to time 1/1024."; this->ctx().warning(message.str()); } while(false);
+            do { std::ostringstream message; message << "Integrator::flow_step(f,d,"<<h<<") threw FlowBoundsException."; this->ctx().warning(message.str()); } while(false);
         }
 
         h=1.0_dy;
 
         try {
-            ARIADNE_TEST_CONSTRUCT(ValidatedVectorMultivariateFunctionPatch,flow,(integrator_ptr->flow_step(f,domx,h)));
-            ARIADNE_TEST_EQUALS(flow.domain()[1].upper_bound(),h);
-            ARIADNE_TEST_WARN("Integrator::flow_step(f,d,"<<h<<") completed, which should be impossible.");
+            ValidatedVectorMultivariateFunctionPatch flow(integrator_ptr->flow_step(f,domx,h)); ARIADNE_TESTING_NOTE(flow);
+            ARIADNE_TESTING_EXPECT_EQUAL(flow.domain()[1].upper_bound(),h);
+            do { std::ostringstream message; message << "Integrator::flow_step(f,d,"<<h<<") completed, which should be impossible."; this->ctx().warning(message.str()); } while(false);
         } catch (IncompleteFlowException const& e) {
-            ARIADNE_TEST_NOTIFY("Integrator::flow_step(f,d,"<<h<<") caught IncompleteFlowException as expected.")
-            ARIADNE_TEST_COMPARE(e.computed_model().domain()[1].upper_bound(),<,h);
+            ARIADNE_TESTING_NOTE("Integrator::flow_step(f,d,"<<h<<") caught IncompleteFlowException as expected.");
+            ARIADNE_TESTING_EXPECT_LESS(e.computed_model().domain()[1].upper_bound(), h);
         } catch (FlowBoundsException const&) {
-            ARIADNE_TEST_WARN("Integrator::flow_step(f,d,"<<h<<") threw FlowBoundsException.")
+            do { std::ostringstream message; message << "Integrator::flow_step(f,d,"<<h<<") threw FlowBoundsException."; this->ctx().warning(message.str()); } while(false);
         } catch (FlowTimeStepException const&) {
-            ARIADNE_TEST_WARN("Integrator::flow_step(f,d,"<<h<<") threw FlowTimeStepException.")
+            do { std::ostringstream message; message << "Integrator::flow_step(f,d,"<<h<<") threw FlowTimeStepException."; this->ctx().warning(message.str()); } while(false);
         } catch (DivideByZeroException const&) {
-            ARIADNE_TEST_WARN("Integrator::flow_step(f,d,"<<h<<") threw DivideByZeroException.")
+            do { std::ostringstream message; message << "Integrator::flow_step(f,d,"<<h<<") threw DivideByZeroException."; this->ctx().warning(message.str()); } while(false);
         }
 
         try {
-            ARIADNE_TEST_ASSIGN_CONSTRUCT(StepSizeType,hsug,h);
-            ARIADNE_TEST_CONSTRUCT(ValidatedVectorMultivariateFunctionPatch,flow,(integrator_ptr->flow_step(f,domx,suggest(hsug))));
-            ARIADNE_TEST_ASSIGN_CONSTRUCT(auto,hused,flow.domain()[1].upper_bound());
-            ARIADNE_TEST_COMPARE(flow.domain()[1].upper_bound(),<,h);
-            if (hsug==hused) { ARIADNE_TEST_NOTIFY("Integrator::flow_step(f,dom,suggest("<<h<<") used step-size "<<hused<<"; suggested step-size changed to actual step-size."); }
-            else if (hsug==h) { ARIADNE_TEST_NOTIFY("Integrator::flow_step(f,dom,suggest("<<h<<") used step-size "<<hused<<"; suggested step-size kept at requested step-size."); }
-            else { ARIADNE_TEST_ERROR("Integrator::flow_step(f,d,suggest("<<h<<") used step-size "<<hused<<"; suggested step-size changed to "<<hsug<<", which is neither equal to requested step-size nor actual step-size."); }
+            StepSizeType hsug = h; ARIADNE_TESTING_NOTE(hsug);
+            ValidatedVectorMultivariateFunctionPatch flow(integrator_ptr->flow_step(f,domx,suggest(hsug))); ARIADNE_TESTING_NOTE(flow);
+            auto hused = flow.domain()[1].upper_bound(); ARIADNE_TESTING_NOTE(hused);
+            ARIADNE_TESTING_EXPECT_LESS(flow.domain()[1].upper_bound(), h);
+            if (hsug==hused) { ARIADNE_TESTING_NOTE("Integrator::flow_step(f,dom,suggest("<<h<<") used step-size "<<hused<<"; suggested step-size changed to actual step-size."); }
+            else if (hsug==h) { ARIADNE_TESTING_NOTE("Integrator::flow_step(f,dom,suggest("<<h<<") used step-size "<<hused<<"; suggested step-size kept at requested step-size."); }
+            else { { ARIADNE_TESTING_NOTE("Integrator::flow_step(f,d,suggest("<<h<<") used step-size "<<hused<<"; suggested step-size changed to "<<hsug<<", which is neither equal to requested step-size nor actual step-size."); ARIADNE_TESTING_PROVE(false); }; }
         } catch (IncompleteFlowException const& e) {
-            ARIADNE_TEST_WARN("Integrator::flow_step(f,d,suggest("<<h<<")) caught IncompleteFlowException.")
-            ARIADNE_TEST_COMPARE(e.computed_model().domain()[1].upper_bound(),<,h);
+            do { std::ostringstream message; message << "Integrator::flow_step(f,d,suggest("<<h<<")) caught IncompleteFlowException."; this->ctx().warning(message.str()); } while(false);
+            ARIADNE_TESTING_EXPECT_LESS(e.computed_model().domain()[1].upper_bound(), h);
         } catch (FlowBoundsException const&) {
-            ARIADNE_TEST_WARN("Integrator::flow_step(f,d,suggest("<<h<<")) threw FlowBoundsException, when a smaller step-size should be tried.")
+            do { std::ostringstream message; message << "Integrator::flow_step(f,d,suggest("<<h<<")) threw FlowBoundsException, when a smaller step-size should be tried."; this->ctx().warning(message.str()); } while(false);
         } catch (FlowTimeStepException const&) {
-            ARIADNE_TEST_WARN("Integrator::flow_step(f,d,suggest("<<h<<")) threw FlowTimeStepException, when a smaller step-size should be tried.")
+            do { std::ostringstream message; message << "Integrator::flow_step(f,d,suggest("<<h<<")) threw FlowTimeStepException, when a smaller step-size should be tried."; this->ctx().warning(message.str()); } while(false);
         } catch (DivideByZeroException const&) {
-            ARIADNE_TEST_ERROR("Integrator::flow_step(f,d,suggest("<<h<<")) threw DivideByZeroException, when a smaller step-size should be tried.")
+            { ARIADNE_TESTING_NOTE("Integrator::flow_step(f,d,suggest("<<h<<")) threw DivideByZeroException, when a smaller step-size should be tried."); ARIADNE_TESTING_PROVE(false); };
         }
 
     }
 
 };
+class TestIntegratorExtras : public Ariadne::Testing::ContextFixture {
+  public:
+    using ContextFixture::ContextFixture;
+
 
 Void test_taylor_series_step_maximum_error() {
     auto x=ValidatedScalarMultivariateFunction::coordinates(2);
@@ -328,17 +315,12 @@ Void test_taylor_series_step_maximum_error() {
     StepSizeType h=0.03125_x;
 
     TaylorSeriesIntegrator strict_integrator(step_maximum_error=1e-8,order=8);
-    ARIADNE_TEST_ASSERT(strict_integrator.has_step_maximum_error());
-    ARIADNE_TEST_THROWS(
-        strict_integrator.flow_step(f,domain,h),
-        FlowTimeStepException);
+    ARIADNE_TESTING_PROVE(strict_integrator.has_step_maximum_error());
+    ARIADNE_TESTING_EXPECT_THROWS(FlowTimeStepException, strict_integrator.flow_step(f,domain,h));
 
     TaylorSeriesIntegrator loose_integrator(step_maximum_error=1e-2,order=8);
-    ARIADNE_TEST_CONSTRUCT(
-        FlowStepModelType,
-        flow,
-        (loose_integrator.flow_step(f,domain,h)));
-    ARIADNE_TEST_COMPARE(flow.error(),<,1e-2_pr);
+    FlowStepModelType flow(loose_integrator.flow_step(f,domain,h)); ARIADNE_TESTING_NOTE(flow);
+    ARIADNE_TESTING_EXPECT_LESS(flow.error(), 1e-2_pr);
 }
 
 Void test_bounder_time_dependent_flow() {
@@ -348,45 +330,76 @@ Void test_bounder_time_dependent_flow() {
     StepSizeType h(0.125_x);
     TaylorSeriesBounderIntegrator integrator(step_maximum_error=1e-6,order=4);
     auto flow=integrator.flow_step(field,domain,suggest(h));
-    ARIADNE_TEST_COMPARE(flow.domain()[1u].upper_bound(),<=,FloatDP(h,dp))
+    ARIADNE_TESTING_EXPECT_LESS_EQUAL(flow.domain()[1u].upper_bound(), FloatDP(h,dp));
     auto time=FloatDPBounds(flow.domain()[1u].upper_bound());
     Vector<FloatDPBounds> point({FloatDPBounds(0.5_x,dp),time});
-    ARIADNE_TEST_ASSERT(refines(FloatDPBounds(0.5_x,dp)+sqr(time)/2,flow(point)[0u]))
+    ARIADNE_TESTING_PROVE(refines(FloatDPBounds(0.5_x,dp)+sqr(time)/2,flow(point)[0u]));
 }
 
-Int main(Int argc, const char* argv[]) {
-    if (not LoggingCommandLineInterface().acquire(argc,argv)) return -1;
 
+};
+
+int main(int argc, char** argv) {
+    ARIADNE_TESTING_SUITE("test_integrator");
     ThresholdSweeper<FloatDP> sweeper(DoublePrecision(),1e-10);
-
-    TaylorPicardIntegrator taylor_picard_integrator(
-            step_maximum_error=1e-8, sweeper, lipschitz_tolerance=0.5_x, minimum_temporal_order=0, maximum_temporal_order=16);
-    ARIADNE_TEST_CLASS("TaylorPicardIntegrator",TestIntegrator(taylor_picard_integrator));
-
-
-    GradedTaylorPicardIntegrator unbounded_taylor_picard_integrator(
-            step_maximum_error=1e-8,order=8);
-    ARIADNE_TEST_CLASS("GradedTaylorPicardIntegrator",TestIntegrator(unbounded_taylor_picard_integrator));
-
-    TaylorSeriesIntegrator taylor_series_integrator(sweeper, lipschitz_tolerance=0.5_x, order=6);
-    ARIADNE_TEST_CLASS("TaylorSeriesIntegrator",TestIntegrator(taylor_series_integrator))
-    ARIADNE_TEST_CALL(test_taylor_series_step_maximum_error());
-    ARIADNE_TEST_CALL(test_bounder_time_dependent_flow());
-
-    TaylorSeriesBounderIntegrator taylor_series_bounder_integrator(
-            step_maximum_error=1e-6,sweeper,lipschitz_tolerance=0.5_x,order=6);
-    ARIADNE_TEST_CLASS("TaylorSeriesBounderIntegrator",TestIntegrator(taylor_series_bounder_integrator));
-
-    GradedTaylorSeriesIntegrator graded_taylor_series_integrator(
-            step_maximum_error=1e-6, sweeper, lipschitz_tolerance=0.5_x,
-            minimum_spacial_order=1, minimum_temporal_order=4,
-            maximum_spacial_order=4, maximum_temporal_order=8);
-    ARIADNE_TEST_CLASS("GradedTaylorSeriesIntegrator",TestIntegrator(graded_taylor_series_integrator));
-
-    ARIADNE_PRINT_TEST_CASE_TITLE("AffineIntegrator");
-    AffineIntegrator affine_integrator(1, 6);
-    TestIntegrator(affine_integrator).test_affine();
-
-    std::cerr<<"INCOMPLETE "<<std::flush;
-    return ARIADNE_TEST_FAILURES;
+    auto integrator_v0 = Ariadne::Testing::fixture_variant<TestIntegrator>(ariadne_test_suite, "TaylorPicardIntegrator", [&](Ariadne::Testing::Context& ctx) { return TestIntegrator(ctx, TaylorPicardIntegrator(step_maximum_error=1e-8, sweeper, lipschitz_tolerance=0.5_x, minimum_temporal_order=0, maximum_temporal_order=16)); });
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v0, test_constant_derivative);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v0, test_quadratic_flow);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v0, test_linear);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v0, test_spiral);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v0, test_logistic);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v0, test_time_variant);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v0, test_time_variant_with_parameters);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v0, test_step_size);
+    auto integrator_v1 = Ariadne::Testing::fixture_variant<TestIntegrator>(ariadne_test_suite, "GradedTaylorPicardIntegrator", [&](Ariadne::Testing::Context& ctx) { return TestIntegrator(ctx, GradedTaylorPicardIntegrator(step_maximum_error=1e-8,order=8)); });
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v1, test_constant_derivative);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v1, test_quadratic_flow);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v1, test_linear);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v1, test_spiral);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v1, test_logistic);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v1, test_time_variant);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v1, test_time_variant_with_parameters);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v1, test_step_size);
+    auto integrator_v2 = Ariadne::Testing::fixture_variant<TestIntegrator>(ariadne_test_suite, "TaylorSeriesIntegrator", [&](Ariadne::Testing::Context& ctx) { return TestIntegrator(ctx, TaylorSeriesIntegrator(sweeper, lipschitz_tolerance=0.5_x, order=6)); });
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v2, test_constant_derivative);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v2, test_quadratic_flow);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v2, test_linear);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v2, test_spiral);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v2, test_logistic);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v2, test_time_variant);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v2, test_time_variant_with_parameters);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v2, test_step_size);
+    auto integrator_v3 = Ariadne::Testing::fixture_variant<TestIntegrator>(ariadne_test_suite, "TaylorSeriesBounderIntegrator", [&](Ariadne::Testing::Context& ctx) { return TestIntegrator(ctx, TaylorSeriesBounderIntegrator(step_maximum_error=1e-6,sweeper,lipschitz_tolerance=0.5_x,order=6)); });
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v3, test_constant_derivative);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v3, test_quadratic_flow);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v3, test_linear);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v3, test_spiral);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v3, test_logistic);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v3, test_time_variant);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v3, test_time_variant_with_parameters);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v3, test_step_size);
+    auto integrator_v4 = Ariadne::Testing::fixture_variant<TestIntegrator>(ariadne_test_suite, "GradedTaylorSeriesIntegrator", [&](Ariadne::Testing::Context& ctx) { return TestIntegrator(ctx, GradedTaylorSeriesIntegrator(step_maximum_error=1e-6, sweeper, lipschitz_tolerance=0.5_x, minimum_spacial_order=1, minimum_temporal_order=4, maximum_spacial_order=4, maximum_temporal_order=8)); });
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v4, test_constant_derivative);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v4, test_quadratic_flow);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v4, test_linear);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v4, test_spiral);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v4, test_logistic);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v4, test_time_variant);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v4, test_time_variant_with_parameters);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v4, test_step_size);
+    auto integrator_v5 = Ariadne::Testing::fixture_variant<TestIntegrator>(ariadne_test_suite, "AffineIntegrator", [&](Ariadne::Testing::Context& ctx) { return TestIntegrator(ctx, AffineIntegrator(1, 6)); });
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v5, test_constant_derivative);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v5, test_quadratic_flow);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v5, test_linear);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v5, test_spiral);
+    ARIADNE_TESTING_ADD_TEST(TestIntegratorExtras, test_taylor_series_step_maximum_error);
+    ARIADNE_TESTING_ADD_TEST(TestIntegratorExtras, test_bounder_time_dependent_flow);
+    // Preserve the legacy logging-verbosity CTest invocation separately from
+    // Ariadne Testing's own --full/--concise reporting flags.
+    if (argc == 3 && std::string_view(argv[1]) == "--verbosity" &&
+        std::string_view(argv[2]) == "12") {
+        Logger::instance().configuration().set_verbosity(12u);
+        return ARIADNE_TESTING_RUN_TESTS();
+    }
+    return ARIADNE_TESTING_RUN_TESTS_WITH_ARGS(argc, argv);
 }

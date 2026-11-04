@@ -26,11 +26,15 @@
 #include <sstream>
 #include "integration/integrator.hpp"
 #include "function/taylor_function.hpp"
-#include "macro/testing.hpp"
+#include "ariadne-testing.hpp"
 
 using namespace Ariadne;
 
 namespace {
+class TestAffineIntegrator : public Ariadne::Testing::ContextFixture {
+  public:
+    using ContextFixture::ContextFixture;
+
 Void test_linear_flow() {
     auto x=EffectiveScalarMultivariateFunction::coordinate(1u,0u);
     ValidatedVectorMultivariateFunction field=EffectiveVectorMultivariateFunction({x});
@@ -38,16 +42,16 @@ Void test_linear_flow() {
     UpperBoxType bound={{0.0_x,0.5_x}};
     StepSizeType h(0.125_x);
     AffineIntegrator integrator(SpacialOrder(1u),TemporalOrder(6u));
-    ARIADNE_TEST_EQUALS(integrator.spacial_order(),1u)
-    ARIADNE_TEST_EQUALS(integrator.temporal_order(),6u)
+    ARIADNE_TESTING_EXPECT_EQUAL(integrator.spacial_order(),1u);
+    ARIADNE_TESTING_EXPECT_EQUAL(integrator.temporal_order(),6u);
     std::unique_ptr<IntegratorInterface> clone(integrator.clone());
     std::ostringstream text;
     text << *clone;
-    ARIADNE_TEST_ASSERT(text.str().find("AffineIntegrator")!=std::string::npos)
+    ARIADNE_TESTING_PROVE(text.str().find("AffineIntegrator")!=std::string::npos);
     auto flow=clone->flow_step(field,domain,h,bound);
     Vector<FloatDPBounds> point({FloatDPBounds(0.25_x,dp),FloatDPBounds(h,dp)});
     auto expected=FloatDPBounds(0.25_x,dp)*exp(FloatDPBounds(h,dp));
-    ARIADNE_TEST_ASSERT(refines(expected,flow(point)[0u]))
+    ARIADNE_TESTING_PROVE(refines(expected,flow(point)[0u]));
 }
 
 Void test_nonlinear_flow_enclosure() {
@@ -65,10 +69,10 @@ Void test_nonlinear_flow_enclosure() {
         FloatDPBounds x0(initial,dp),t(time,dp);
         Vector<FloatDPBounds> point({x0,t});
         auto expected=x0/(1-x0*t);
-        ARIADNE_TEST_ASSERT(refines(expected,flow(point)[0u]))
+        ARIADNE_TESTING_PROVE(refines(expected,flow(point)[0u]));
       }
     }
-    ARIADNE_TEST_ASSERT(flow.error().get(dp).raw()>FloatDP(0,dp))
+    ARIADNE_TESTING_PROVE(flow.error().get(dp).raw()>FloatDP(0,dp));
 }
 
 Void test_time_and_parameter_flow() {
@@ -86,7 +90,7 @@ Void test_time_and_parameter_flow() {
         Vector<FloatDPBounds> point({FloatDPBounds(initial,dp),FloatDPBounds(1.125_x,dp),FloatDPBounds(parameter,dp)});
         auto expected=FloatDPBounds(initial,dp)+FloatDPBounds(parameter,dp)*FloatDPBounds(0.125_x,dp)
                       +(sqr(FloatDPBounds(1.125_x,dp))-1)/2;
-        ARIADNE_TEST_ASSERT(refines(expected,flow(point)[0u]))
+        ARIADNE_TESTING_PROVE(refines(expected,flow(point)[0u]));
       }
     }
 }
@@ -96,20 +100,20 @@ Void test_flow_derivatives() {
     ValidatedVectorMultivariateFunction field=EffectiveVectorMultivariateFunction({sqr(x)});
     AffineIntegrator integrator(SpacialOrder(1u),TemporalOrder(3u));
     auto derivatives=integrator.flow_derivative(field,Vector<FloatDPBounds>({FloatDPBounds(0.25_x,dp)}));
-    ARIADNE_TEST_EQUALS(derivatives.size(),1u)
-    ARIADNE_TEST_EQUALS(derivatives[0u].argument_size(),2u)
+    ARIADNE_TESTING_EXPECT_EQUAL(derivatives.size(),1u);
+    ARIADNE_TESTING_EXPECT_EQUAL(derivatives[0u].argument_size(),2u);
     FloatDPBounds temporal_coefficient=derivatives[0u][MultiIndex::unit(2u,1u)];
-    ARIADNE_TEST_ASSERT(refines(FloatDPBounds(0.0625_x,dp),temporal_coefficient))
+    ARIADNE_TESTING_PROVE(refines(FloatDPBounds(0.0625_x,dp),temporal_coefficient));
     AffineIntegrator stationary(SpacialOrder(0u),TemporalOrder(0u));
     auto zero_order=stationary.flow_derivative(field,Vector<FloatDPBounds>({FloatDPBounds(0.25_x,dp)}));
-    ARIADNE_TEST_ASSERT(refines(FloatDPBounds(0.25_x,dp),zero_order[0u].value()))
+    ARIADNE_TESTING_PROVE(refines(FloatDPBounds(0.25_x,dp),zero_order[0u].value()));
     Vector<FloatDPBounds> point({FloatDPBounds(0.25_x,dp)});
     ValidatedVectorMultivariateFunction wrong_result=EffectiveVectorMultivariateFunction({x,x});
-    ARIADNE_TEST_THROWS(integrator.flow_derivative(wrong_result,point),std::runtime_error)
+    ARIADNE_TESTING_EXPECT_THROWS(std::runtime_error, integrator.flow_derivative(wrong_result,point));
     auto y=EffectiveScalarMultivariateFunction::coordinate(2u,1u);
     ValidatedVectorMultivariateFunction wrong_arguments=EffectiveVectorMultivariateFunction({y});
-    ARIADNE_TEST_THROWS(integrator.flow_derivative(wrong_arguments,point),std::runtime_error)
-    ARIADNE_TEST_THROWS(AffineIntegrator(SpacialOrder(std::numeric_limits<DegreeType>::max()),TemporalOrder(1)),std::runtime_error)
+    ARIADNE_TESTING_EXPECT_THROWS(std::runtime_error, integrator.flow_derivative(wrong_arguments,point));
+    ARIADNE_TESTING_EXPECT_THROWS(std::runtime_error, AffineIntegrator(SpacialOrder(std::numeric_limits<DegreeType>::max()),TemporalOrder(1)));
 }
 
 Void test_autonomous_parameter_flow() {
@@ -126,17 +130,21 @@ Void test_autonomous_parameter_flow() {
         for(ExactDouble t:{1.0_x,1.125_x}) {
             FloatDPBounds elapsed=FloatDPBounds(t,dp)-1;
             Vector<FloatDPBounds> point({FloatDPBounds(0.0625_x,dp),FloatDPBounds(t,dp),FloatDPBounds(0.25_x,dp)});
-            ARIADNE_TEST_ASSERT(refines(FloatDPBounds(0.0625_x,dp)+FloatDPBounds(0.25_x,dp)*elapsed,flow(point)[0u]))
+            ARIADNE_TESTING_PROVE(refines(FloatDPBounds(0.0625_x,dp)+FloatDPBounds(0.25_x,dp)*elapsed,flow(point)[0u]));
         }
     }
 }
+};
+
 }
 
-int main() {
-    ARIADNE_TEST_CALL(test_linear_flow())
-    ARIADNE_TEST_CALL(test_nonlinear_flow_enclosure())
-    ARIADNE_TEST_CALL(test_time_and_parameter_flow())
-    ARIADNE_TEST_CALL(test_flow_derivatives())
-    ARIADNE_TEST_CALL(test_autonomous_parameter_flow())
-    return ARIADNE_TEST_FAILURES;
+
+int main(int argc, char** argv) {
+    ARIADNE_TESTING_SUITE("test_affine_integrator");
+    ARIADNE_TESTING_ADD_TEST(TestAffineIntegrator, test_linear_flow);
+    ARIADNE_TESTING_ADD_TEST(TestAffineIntegrator, test_nonlinear_flow_enclosure);
+    ARIADNE_TESTING_ADD_TEST(TestAffineIntegrator, test_time_and_parameter_flow);
+    ARIADNE_TESTING_ADD_TEST(TestAffineIntegrator, test_flow_derivatives);
+    ARIADNE_TESTING_ADD_TEST(TestAffineIntegrator, test_autonomous_parameter_flow);
+    return ARIADNE_TESTING_RUN_TESTS_WITH_ARGS(argc, argv);
 }

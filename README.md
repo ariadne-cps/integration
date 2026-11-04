@@ -21,8 +21,9 @@ Integration depends directly on:
 
 - [ariadne-cps/function](https://github.com/ariadne-cps/function), included as Git submodule `ss/fun`.
 - [ariadne-cps/configuration](https://github.com/ariadne-cps/configuration), used for shared build configuration.
+- [ariadne-cps/testing](https://github.com/ariadne-cps/testing), pinned as the test-only submodule `ss/tst` for fixture-local assertions and diagnostics.
 
-Function supplies Geometry, Algebra, and the lower Ariadne layers transitively. The configuration submodule is pinned to the same commit used by Function.
+Function supplies Geometry, Algebra, and the lower Ariadne layers transitively. The configuration submodule is pinned to the same commit used by Function. Unit tests use Ariadne Testing fixtures, including variants for each integrator and logging-verbosity setting.
 
 ## Build
 

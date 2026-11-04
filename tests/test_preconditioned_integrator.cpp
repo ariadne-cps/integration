@@ -28,24 +28,28 @@
 #include "integration/integrator.hpp"
 #include "function/taylor_function.hpp"
 #include "logging/logging.hpp"
-#include "macro/testing.hpp"
+#include "ariadne-testing.hpp"
 
 using namespace Ariadne;
 
 namespace {
+class TestPreconditionedIntegrator : public Ariadne::Testing::ContextFixture {
+  public:
+    using ContextFixture::ContextFixture;
+
 Void check_factorisation(PreconditionedTaylorSeriesState const& state,
                          ValidatedVectorMultivariateFunctionPatch const& original,
                          Vector<FloatDPBounds> const& point) {
     auto expected=original(point);
     auto local=state.normalised_mapping()(point);
-    ARIADNE_TEST_EQUALS(state.parameter_domain().dimension(),original.argument_size())
-    ARIADNE_TEST_EQUALS(state.local_domain().dimension(),original.result_size())
+    ARIADNE_TESTING_EXPECT_EQUAL(state.parameter_domain().dimension(),original.argument_size());
+    ARIADNE_TESTING_EXPECT_EQUAL(state.local_domain().dimension(),original.result_size());
     for(SizeType i=0u;i<expected.size();++i) {
         FloatDPBounds reconstructed(state.centre()[i]);
         for(SizeType j=0u;j<local.size();++j) {
             reconstructed+=FloatDPBounds(state.linear_map()[i][j])*local[j];
         }
-        ARIADNE_TEST_ASSERT(refines(expected[i],reconstructed))
+        ARIADNE_TESTING_PROVE(refines(expected[i],reconstructed));
     }
 }
 
@@ -68,14 +72,14 @@ Void test_preconditioning_geometry() {
                 for(SizeType k=0u;k<2u;++k) {
                     dot+=state.linear_map()[k][i].get_d()*state.linear_map()[k][j].get_d();
                 }
-                ARIADNE_TEST_WITHIN(dot,(i==j ? 1.0 : 0.0),1e-12)
+                ARIADNE_TESTING_EXPECT_WITHIN(dot,(i==j ? 1.0 : 0.0),1e-12);
             }
         }
         std::ostringstream text;
         text << static_cast<IntegratorInterface const&>(integrator);
-        ARIADNE_TEST_ASSERT(text.str().find(mode==TaylorSeriesPreconditioning::QR ? "QR" : "IDENTITY")!=std::string::npos)
+        ARIADNE_TESTING_PROVE(text.str().find(mode==TaylorSeriesPreconditioning::QR ? "QR" : "IDENTITY")!=std::string::npos);
         std::unique_ptr<PreconditionedGradedTaylorSeriesIntegrator> copy(integrator.clone());
-        ARIADNE_TEST_ASSERT(copy->preconditioning()==mode)
+        ARIADNE_TESTING_PROVE(copy->preconditioning()==mode);
     }
     // Extra enclosure parameters intentionally retain identity orientation.
     ExactBoxType parameter_domain(3u,ExactIntervalType(-1.0_x,1.0_x));
@@ -96,15 +100,15 @@ Void test_rank_deficient_geometry() {
     constant[1u]=factory.create_constant(domain,2);
     auto state=integrator.precondition(constant);
     check_factorisation(state,constant,Vector<FloatDPBounds>({0,0},dp));
-    ARIADNE_TEST_EQUALS(state.linear_map()[0u][0u],FloatDP(1,dp))
-    ARIADNE_TEST_EQUALS(state.linear_map()[1u][1u],FloatDP(1,dp))
+    ARIADNE_TESTING_EXPECT_EQUAL(state.linear_map()[0u][0u],FloatDP(1,dp));
+    ARIADNE_TESTING_EXPECT_EQUAL(state.linear_map()[1u][1u],FloatDP(1,dp));
     // The coefficients are finite, but forming a squared norm can overflow.
     // The preconditioner must retain a usable identity orientation.
     ExactBoxType large_domain={{-1.0_x,1.0_x}};
     auto large=factory.create_identity(large_domain);
     large[0u]=large[0u]*FloatDPBounds(0x1p1020_x,dp);
     auto large_state=integrator.precondition(large);
-    ARIADNE_TEST_EQUALS(large_state.linear_map()[0u][0u],FloatDP(1,dp))
+    ARIADNE_TESTING_EXPECT_EQUAL(large_state.linear_map()[0u][0u],FloatDP(1,dp));
     check_factorisation(large_state,large,Vector<FloatDPBounds>({FloatDPBounds(1,dp)}));
 }
 
@@ -114,11 +118,11 @@ Void check_rotation_endpoint(PreconditionedTaylorSeriesStep const& step,StepSize
     FloatDPBounds t(elapsed,dp);
     Vector<FloatDPBounds> expected({cos(t)-sin(t),sin(t)+cos(t)});
     for(SizeType i=0u;i<2u;++i) {
-        ARIADNE_TEST_ASSERT(refines(expected[i],value[i]))
+        ARIADNE_TESTING_PROVE(refines(expected[i],value[i]));
     }
-    ARIADNE_TEST_EQUALS(step.final_state().centre().size(),2u)
-    ARIADNE_TEST_EQUALS(step.final_state().parameter_domain().dimension(),2u)
-    ARIADNE_TEST_ASSERT(definitely(is_bounded(step.flowpipe_mapping().range())))
+    ARIADNE_TESTING_EXPECT_EQUAL(step.final_state().centre().size(),2u);
+    ARIADNE_TESTING_EXPECT_EQUAL(step.final_state().parameter_domain().dimension(),2u);
+    ARIADNE_TESTING_PROVE(definitely(is_bounded(step.flowpipe_mapping().range())));
 }
 
 Void test_rotating_flow_and_carried_state() {
@@ -134,12 +138,12 @@ Void test_rotating_flow_and_carried_state() {
         integrator.set_preconditioning(mode);
         integrator.set_diagnostics(diagnostics);
         integrator.set_carried_expansion_diagnostics(diagnostics);
-        ARIADNE_TEST_EQUALS(integrator.diagnostics(),diagnostics)
-        ARIADNE_TEST_EQUALS(integrator.carried_expansion_diagnostics(),diagnostics)
+        ARIADNE_TESTING_EXPECT_EQUAL(integrator.diagnostics(),diagnostics);
+        ARIADNE_TESTING_EXPECT_EQUAL(integrator.carried_expansion_diagnostics(),diagnostics);
         auto initial=integrator.function_factory().create_identity(domain);
         auto first=integrator.step(field,integrator.precondition(initial),suggest(h));
-        ARIADNE_TEST_COMPARE(first.time_step(),>,StepSizeType(0))
-        ARIADNE_TEST_COMPARE(first.time_step(),<=,h)
+        ARIADNE_TESTING_EXPECT_GREATER(first.time_step(), StepSizeType(0));
+        ARIADNE_TESTING_EXPECT_LESS_EQUAL(first.time_step(), h);
         check_rotation_endpoint(first,first.time_step());
         auto second=integrator.step(field,first.final_state(),suggest(h));
         check_rotation_endpoint(second,first.time_step()+second.time_step());
@@ -157,10 +161,10 @@ Void test_physical_flow_step() {
     // exercises normalisation and conversion back to physical coordinates.
     for(auto domain:{ExactBoxType{{0.875_x,1.125_x}},ExactBoxType{{1.0_x,1.0_x}}}) {
         auto flow=integrator.flow_step(field,domain,h,bound);
-        ARIADNE_TEST_EQUALS(flow.domain(),product(domain,ExactIntervalType(0,h)))
+        ARIADNE_TESTING_EXPECT_EQUAL(flow.domain(),product(domain,ExactIntervalType(0,h)));
         for(auto time:{StepSizeType(0),h}) {
             Vector<FloatDPBounds> point({FloatDPBounds(1,dp),FloatDPBounds(time,dp)});
-            ARIADNE_TEST_ASSERT(refines(exp(FloatDPBounds(time,dp)),flow(point)[0u]))
+            ARIADNE_TESTING_PROVE(refines(exp(FloatDPBounds(time,dp)),flow(point)[0u]));
         }
     }
     ExactBoxType domain={{0.875_x,1.125_x}};
@@ -169,13 +173,13 @@ Void test_physical_flow_step() {
     integrator.set_minimum_temporal_order(1u);
     integrator.set_maximum_temporal_order(1u);
     integrator.set_step_maximum_error(1e-16);
-    ARIADNE_TEST_THROWS(integrator.flow_step(field,domain,h,bound),FlowTimeStepException)
+    ARIADNE_TESTING_EXPECT_THROWS(FlowTimeStepException, integrator.flow_step(field,domain,h,bound));
     ValidatedVectorMultivariateFunction wrong_result=EffectiveVectorMultivariateFunction({x,x});
-    ARIADNE_TEST_THROWS(integrator.flow_step(wrong_result,domain,h,bound),std::runtime_error)
+    ARIADNE_TESTING_EXPECT_THROWS(std::runtime_error, integrator.flow_step(wrong_result,domain,h,bound));
     auto extra=EffectiveScalarMultivariateFunction::coordinate(2u,1u);
     ValidatedVectorMultivariateFunction wrong_arguments=EffectiveVectorMultivariateFunction({extra});
-    ARIADNE_TEST_THROWS(integrator.flow_step(wrong_arguments,domain,h,bound),std::runtime_error)
-    ARIADNE_TEST_THROWS(integrator.flow_step(field,domain,h,UpperBoxType(0u)),std::runtime_error)
+    ARIADNE_TESTING_EXPECT_THROWS(std::runtime_error, integrator.flow_step(wrong_arguments,domain,h,bound));
+    ARIADNE_TESTING_EXPECT_THROWS(std::runtime_error, integrator.flow_step(field,domain,h,UpperBoxType(0u)));
 }
 
 Void test_step_dimension_contracts() {
@@ -189,18 +193,18 @@ Void test_step_dimension_contracts() {
     ValidatedVectorMultivariateFunction wrong_arguments=EffectiveVectorMultivariateFunction({y});
     auto state=integrator.precondition(mapping);
     auto h=suggest(StepSizeType(0.03125_x));
-    ARIADNE_TEST_THROWS(integrator.step(wrong_result,state,h),std::runtime_error)
-    ARIADNE_TEST_THROWS(integrator.step(wrong_arguments,state,h),std::runtime_error)
+    ARIADNE_TESTING_EXPECT_THROWS(std::runtime_error, integrator.step(wrong_result,state,h));
+    ARIADNE_TESTING_EXPECT_THROWS(std::runtime_error, integrator.step(wrong_arguments,state,h));
     Vector<FloatDP> centre({FloatDP(0,dp)});
     PreconditionedTaylorSeriesState wrong_rows(centre,Matrix<FloatDP>(0u,1u,dp),domain,mapping);
-    ARIADNE_TEST_THROWS(integrator.step(field,wrong_rows,h),std::runtime_error)
+    ARIADNE_TESTING_EXPECT_THROWS(std::runtime_error, integrator.step(field,wrong_rows,h));
     PreconditionedTaylorSeriesState wrong_columns(centre,Matrix<FloatDP>(1u,0u,dp),domain,mapping);
-    ARIADNE_TEST_THROWS(integrator.step(field,wrong_columns,h),std::runtime_error)
+    ARIADNE_TESTING_EXPECT_THROWS(std::runtime_error, integrator.step(field,wrong_columns,h));
     PreconditionedTaylorSeriesState wrong_domain(centre,Matrix<FloatDP>::identity(1u,dp),ExactBoxType(),mapping);
-    ARIADNE_TEST_THROWS(integrator.step(field,wrong_domain,h),std::runtime_error)
+    ARIADNE_TESTING_EXPECT_THROWS(std::runtime_error, integrator.step(field,wrong_domain,h));
     auto wrong_mapping=integrator.function_factory().create_zeros(2u,domain);
     PreconditionedTaylorSeriesState wrong_image(centre,Matrix<FloatDP>::identity(1u,dp),domain,wrong_mapping);
-    ARIADNE_TEST_THROWS(integrator.step(field,wrong_image,h),std::runtime_error)
+    ARIADNE_TESTING_EXPECT_THROWS(std::runtime_error, integrator.step(field,wrong_image,h));
 }
 
 Void test_stationary_zero_order_step() {
@@ -217,10 +221,10 @@ Void test_stationary_zero_order_step() {
         auto initial=integrator.function_factory().create_constants(domain,Vector<FloatDPBounds>({FloatDPBounds(1,dp)}));
         auto h=StepSizeType(0.03125_x);
         auto step=integrator.step(field,integrator.precondition(initial),suggest(h));
-        ARIADNE_TEST_EQUALS(step.time_step(),h)
+        ARIADNE_TESTING_EXPECT_EQUAL(step.time_step(),h);
         auto value=step.evolved_mapping()(Vector<FloatDPBounds>({FloatDPBounds(0,dp)}));
-        ARIADNE_TEST_ASSERT(refines(FloatDPBounds(1,dp),value[0u]))
-        ARIADNE_TEST_COMPARE(step.evolved_mapping().error(),<=,1e-6_pr)
+        ARIADNE_TESTING_PROVE(refines(FloatDPBounds(1,dp),value[0u]));
+        ARIADNE_TESTING_EXPECT_LESS_EQUAL(step.evolved_mapping().error(), 1e-6_pr);
     }
 }
 
@@ -241,24 +245,28 @@ Void test_adaptive_orders_and_step_rejection() {
         integrator.set_maximum_temporal_order(configuration==2u ? 2u : 1u);
         auto initial=integrator.function_factory().create_identity(domain);
         auto step=integrator.step(field,integrator.precondition(initial),suggest(h));
-        ARIADNE_TEST_COMPARE(step.time_step(),>,StepSizeType(0))
-        ARIADNE_TEST_COMPARE(step.time_step(),<,h)
-        ARIADNE_TEST_COMPARE(step.evolved_mapping().error(),<=,1e-6_pr)
+        ARIADNE_TESTING_EXPECT_GREATER(step.time_step(), StepSizeType(0));
+        ARIADNE_TESTING_EXPECT_LESS(step.time_step(), h);
+        ARIADNE_TESTING_EXPECT_LESS_EQUAL(step.evolved_mapping().error(), 1e-6_pr);
         auto value=step.evolved_mapping()(Vector<FloatDPBounds>({FloatDPBounds(0.5_x,dp)}));
-        ARIADNE_TEST_ASSERT(refines(FloatDPBounds(0.5_x,dp)*exp(FloatDPBounds(step.time_step(),dp)),value[0u]))
+        ARIADNE_TESTING_PROVE(refines(FloatDPBounds(0.5_x,dp)*exp(FloatDPBounds(step.time_step(),dp)),value[0u]));
        }
       }
     }
 }
+};
+
 }
 
-int main() {
-    ARIADNE_TEST_CALL(test_preconditioning_geometry())
-    ARIADNE_TEST_CALL(test_rank_deficient_geometry())
-    ARIADNE_TEST_CALL(test_rotating_flow_and_carried_state())
-    ARIADNE_TEST_CALL(test_physical_flow_step())
-    ARIADNE_TEST_CALL(test_step_dimension_contracts())
-    ARIADNE_TEST_CALL(test_stationary_zero_order_step())
-    ARIADNE_TEST_CALL(test_adaptive_orders_and_step_rejection())
-    return ARIADNE_TEST_FAILURES;
+
+int main(int argc, char** argv) {
+    ARIADNE_TESTING_SUITE("test_preconditioned_integrator");
+    ARIADNE_TESTING_ADD_TEST(TestPreconditionedIntegrator, test_preconditioning_geometry);
+    ARIADNE_TESTING_ADD_TEST(TestPreconditionedIntegrator, test_rank_deficient_geometry);
+    ARIADNE_TESTING_ADD_TEST(TestPreconditionedIntegrator, test_rotating_flow_and_carried_state);
+    ARIADNE_TESTING_ADD_TEST(TestPreconditionedIntegrator, test_physical_flow_step);
+    ARIADNE_TESTING_ADD_TEST(TestPreconditionedIntegrator, test_step_dimension_contracts);
+    ARIADNE_TESTING_ADD_TEST(TestPreconditionedIntegrator, test_stationary_zero_order_step);
+    ARIADNE_TESTING_ADD_TEST(TestPreconditionedIntegrator, test_adaptive_orders_and_step_rejection);
+    return ARIADNE_TESTING_RUN_TESTS_WITH_ARGS(argc, argv);
 }

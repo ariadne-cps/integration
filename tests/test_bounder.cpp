@@ -30,42 +30,34 @@
 #include "function/formula.hpp"
 #include "function/taylor_model.hpp"
 
-#include "macro/testing.hpp"
+#include "ariadne-testing.hpp"
 
 using namespace Ariadne;
 using namespace std;
 
-class TestBounder
+class TestBounder : public Ariadne::Testing::ContextFixture
 {
   private:
     std::unique_ptr<BounderInterface> bounder_ptr;
     EffectiveScalarMultivariateFunction x, y;
   public:
-    TestBounder(const BounderInterface& b)
-        : bounder_ptr(b.clone())
+    unsigned _saved_verbosity;
+  public:
+    TestBounder(Ariadne::Testing::Context& context, const BounderInterface& b, unsigned verbosity)
+        : ContextFixture(context), bounder_ptr(b.clone()),
+          _saved_verbosity(Logger::instance().configuration().verbosity())
     {
+        Logger::instance().configuration().set_verbosity(verbosity);
         x=EffectiveScalarMultivariateFunction::coordinate(2,0);
         y=EffectiveScalarMultivariateFunction::coordinate(2,1);
     }
 
-    Int test() {
-        ARIADNE_TEST_CALL(test_print_name());
-        ARIADNE_TEST_CALL(test_D_mismatch());
-        ARIADNE_TEST_CALL(test_DA_mismatch());
-        ARIADNE_TEST_CALL(test_suggested_step_acceptable());
-        ARIADNE_TEST_CALL(test_suggested_step_not_acceptable());
-        ARIADNE_TEST_CALL(test_unbounded());
-        ARIADNE_TEST_CALL(test_overflowing_vector_field());
-        ARIADNE_TEST_CALL(test_time_invariant_with_parameter());
-        ARIADNE_TEST_CALL(test_time_variant_without_parameter());
-        ARIADNE_TEST_CALL(test_time_variant_with_parameter());
-        ARIADNE_TEST_CALL(test_handle_forwarding());
-        ARIADNE_TEST_CALL(test_time_variant_dimension_errors());
-        return 0;
-    }
+
+
+    ~TestBounder() { Logger::instance().configuration().set_verbosity(_saved_verbosity); }
 
     Void test_print_name() {
-        ARIADNE_TEST_PRINT(*bounder_ptr);
+        ARIADNE_TESTING_NOTE(*bounder_ptr);
     }
 
     Void test_D_mismatch() {
@@ -73,7 +65,7 @@ class TestBounder
         ExactBoxType D={ExactIntervalType(-0.25_x,0.25_x)};
         StepSizeType hsug(0.25_x);
 
-        ARIADNE_TEST_FAIL(bounder_ptr->compute(f,D,suggest(hsug)));
+        ARIADNE_TESTING_EXPECT_EXCEPTION(bounder_ptr->compute(f,D,suggest(hsug)));
     }
 
     Void test_DA_mismatch() {
@@ -82,7 +74,7 @@ class TestBounder
         ExactBoxType A={ExactIntervalType(-0.25_x,0.25_x)};
         StepSizeType hsug(0.25_x);
 
-        ARIADNE_TEST_FAIL(bounder_ptr->compute(f,D,A,suggest(hsug)));
+        ARIADNE_TESTING_EXPECT_EXCEPTION(bounder_ptr->compute(f,D,A,suggest(hsug)));
     }
 
     Void test_suggested_step_acceptable() {
@@ -94,10 +86,10 @@ class TestBounder
         UpperBoxType B;
         std::tie(h,B) = bounder_ptr->compute(f,dom,suggest(hsug));
 
-        ARIADNE_TEST_PRINT(h);
-        ARIADNE_TEST_PRINT(B);
-        ARIADNE_TEST_EQUAL(h,hsug);
-        ARIADNE_TEST_ASSERT(definitely(is_bounded(B)));
+        ARIADNE_TESTING_NOTE(h);
+        ARIADNE_TESTING_NOTE(B);
+        ARIADNE_TESTING_EXPECT_EQUAL(h,hsug);
+        ARIADNE_TESTING_PROVE(definitely(is_bounded(B)));
     }
 
     Void test_suggested_step_not_acceptable() {
@@ -109,10 +101,10 @@ class TestBounder
         UpperBoxType B;
         std::tie(h,B) = bounder_ptr->compute(f,dom,suggest(hsug));
 
-        ARIADNE_TEST_PRINT(h);
-        ARIADNE_TEST_PRINT(B);
-        ARIADNE_TEST_COMPARE(h,<,hsug);
-        ARIADNE_TEST_ASSERT(definitely(is_bounded(B)));
+        ARIADNE_TESTING_NOTE(h);
+        ARIADNE_TESTING_NOTE(B);
+        ARIADNE_TESTING_EXPECT_LESS(h, hsug);
+        ARIADNE_TESTING_PROVE(definitely(is_bounded(B)));
     }
 
     Void test_unbounded() {
@@ -120,7 +112,7 @@ class TestBounder
         ExactBoxType dom={ExactIntervalType(-20.0_x,20.0_x),ExactIntervalType(-20.0_x,20.0_x)};
         StepSizeType hsug(10.0_x);
 
-        ARIADNE_TEST_THROWS(bounder_ptr->compute(f,dom,suggest(hsug)),BoundingNotFoundException);
+        ARIADNE_TESTING_EXPECT_THROWS(BoundingNotFoundException, bounder_ptr->compute(f,dom,suggest(hsug)));
     }
 
     Void test_overflowing_vector_field() {
@@ -131,7 +123,7 @@ class TestBounder
         EffectiveVectorMultivariateFunction f={pow(x,3),-y};
         ExactBoxType dom={{-0x1p500_x,0x1p500_x},{-1.0_x,1.0_x}};
         StepSizeType step(0.125_x);
-        ARIADNE_TEST_THROWS(bounder_ptr->compute(f,dom,suggest(step)),BoundingNotFoundException);
+        ARIADNE_TESTING_EXPECT_THROWS(BoundingNotFoundException, bounder_ptr->compute(f,dom,suggest(step)));
     }
 
     Void test_time_invariant_with_parameter() {
@@ -150,8 +142,8 @@ class TestBounder
 
         std::tie(h,B) = bounder_ptr->compute(f,D,A,suggest(hsug));
 
-        ARIADNE_TEST_COMPARE(h,<=,hsug);
-        ARIADNE_TEST_ASSERT(definitely(is_bounded(B)));
+        ARIADNE_TESTING_EXPECT_LESS_EQUAL(h, hsug);
+        ARIADNE_TESTING_PROVE(definitely(is_bounded(B)));
     }
 
     Void test_time_variant_without_parameter() {
@@ -169,8 +161,8 @@ class TestBounder
 
         std::tie(h,B) = bounder_ptr->compute(f,D,td,suggest(hsug));
 
-        ARIADNE_TEST_COMPARE(h,<=,hsug);
-        ARIADNE_TEST_ASSERT(definitely(is_bounded(B)));
+        ARIADNE_TESTING_EXPECT_LESS_EQUAL(h, hsug);
+        ARIADNE_TESTING_PROVE(definitely(is_bounded(B)));
     }
 
     Void test_time_variant_with_parameter() {
@@ -190,8 +182,8 @@ class TestBounder
 
         std::tie(h,B) = bounder_ptr->compute(f,D,td,A,suggest(hsug));
 
-        ARIADNE_TEST_COMPARE(h,<=,hsug);
-        ARIADNE_TEST_ASSERT(definitely(is_bounded(B)));
+        ARIADNE_TESTING_EXPECT_LESS_EQUAL(h, hsug);
+        ARIADNE_TESTING_PROVE(definitely(is_bounded(B)));
     }
 
     Void test_handle_forwarding() {
@@ -203,14 +195,14 @@ class TestBounder
         std::unique_ptr<BounderHandle> cloned(assigned.clone());
         std::ostringstream printed;
         cloned->_write(printed);
-        ARIADNE_TEST_EQUALS(printed.str(),"EulerBounder");
+        ARIADNE_TESTING_EXPECT_EQUAL(printed.str(),"EulerBounder");
 
         ExactBoxType D={{0.0_x,0.0_x}};
         ExactBoxType A={{0.0_x,0.25_x}};
         StepSizeType step(0.125_x);
         Suggestion<StepSizeType> suggestion=suggest(step);
         static_cast<StepSizeType&>(suggestion)=step;
-        ARIADNE_TEST_EQUALS(static_cast<StepSizeType const&>(suggestion),step);
+        ARIADNE_TESTING_EXPECT_EQUAL(static_cast<StepSizeType const&>(suggestion),step);
         auto x0=EffectiveScalarMultivariateFunction::coordinate(1u,0u);
         auto xp=EffectiveScalarMultivariateFunction::coordinate(2u,0u);
         auto p=EffectiveScalarMultivariateFunction::coordinate(2u,1u);
@@ -229,10 +221,10 @@ class TestBounder
             auto timed=cloned->compute(EffectiveVectorMultivariateFunction({xt+t}),D,step,suggestion);
             auto full=cloned->compute(EffectiveVectorMultivariateFunction({xtp+tp+ap}),D,step,A,suggestion);
             for(auto const& computed:{autonomous,parametric,timed,full}) {
-                ARIADNE_TEST_COMPARE(computed.first,<=,step);
-                ARIADNE_TEST_ASSERT(definitely(is_bounded(computed.second)));
-                ARIADNE_TEST_EQUALS(computed.second.dimension(),1u);
-                ARIADNE_TEST_ASSERT(refines(UpperBoxType(D),computed.second));
+                ARIADNE_TESTING_EXPECT_LESS_EQUAL(computed.first, step);
+                ARIADNE_TESTING_PROVE(definitely(is_bounded(computed.second)));
+                ARIADNE_TESTING_EXPECT_EQUAL(computed.second.dimension(),1u);
+                ARIADNE_TESTING_PROVE(refines(UpperBoxType(D),computed.second));
             }
         }
         Logger::instance().configuration().set_verbosity(previous_verbosity);
@@ -244,20 +236,39 @@ class TestBounder
         ExactBoxType D={{0.0_x,1.0_x}};
         auto x0=EffectiveScalarMultivariateFunction::coordinate(2u,0u);
         EffectiveVectorMultivariateFunction timed={x0};
-        ARIADNE_TEST_THROWS(bounder.compute(timed,ExactBoxType(0u),step,ExactBoxType(0u),suggest(step)),std::runtime_error);
-        ARIADNE_TEST_THROWS(bounder.compute(timed,D,step,D,suggest(step)),std::runtime_error);
+        ARIADNE_TESTING_EXPECT_THROWS(std::runtime_error, bounder.compute(timed,ExactBoxType(0u),step,ExactBoxType(0u),suggest(step)));
+        ARIADNE_TESTING_EXPECT_THROWS(std::runtime_error, bounder.compute(timed,D,step,D,suggest(step)));
     }
 };
 
-Int main() {
 
-    List<BounderHandle> bounders = { EulerBounder() };
-
-    for(unsigned verbosity:{0u,3u}) {
-        Logger::instance().configuration().set_verbosity(verbosity);
-        for (BounderHandle bounder : bounders)
-            TestBounder(bounder).test();
-    }
-
-    return ARIADNE_TEST_FAILURES;
+int main(int argc, char** argv) {
+    ARIADNE_TESTING_SUITE("test_bounder");
+    auto bounder_v0 = Ariadne::Testing::fixture_variant<TestBounder>(ariadne_test_suite, "EulerBounder/verbosity=0", [](Ariadne::Testing::Context& ctx) { return TestBounder(ctx, EulerBounder(), 0u); });
+    ARIADNE_TESTING_ADD_VARIANT_TEST(bounder_v0, test_print_name);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(bounder_v0, test_D_mismatch);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(bounder_v0, test_DA_mismatch);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(bounder_v0, test_suggested_step_acceptable);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(bounder_v0, test_suggested_step_not_acceptable);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(bounder_v0, test_unbounded);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(bounder_v0, test_overflowing_vector_field);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(bounder_v0, test_time_invariant_with_parameter);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(bounder_v0, test_time_variant_without_parameter);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(bounder_v0, test_time_variant_with_parameter);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(bounder_v0, test_handle_forwarding);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(bounder_v0, test_time_variant_dimension_errors);
+    auto bounder_v3 = Ariadne::Testing::fixture_variant<TestBounder>(ariadne_test_suite, "EulerBounder/verbosity=3", [](Ariadne::Testing::Context& ctx) { return TestBounder(ctx, EulerBounder(), 3u); });
+    ARIADNE_TESTING_ADD_VARIANT_TEST(bounder_v3, test_print_name);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(bounder_v3, test_D_mismatch);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(bounder_v3, test_DA_mismatch);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(bounder_v3, test_suggested_step_acceptable);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(bounder_v3, test_suggested_step_not_acceptable);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(bounder_v3, test_unbounded);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(bounder_v3, test_overflowing_vector_field);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(bounder_v3, test_time_invariant_with_parameter);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(bounder_v3, test_time_variant_without_parameter);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(bounder_v3, test_time_variant_with_parameter);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(bounder_v3, test_handle_forwarding);
+    ARIADNE_TESTING_ADD_VARIANT_TEST(bounder_v3, test_time_variant_dimension_errors);
+    return ARIADNE_TESTING_RUN_TESTS_WITH_ARGS(argc, argv);
 }
