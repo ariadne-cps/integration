@@ -8,6 +8,7 @@
 [![codecov](https://codecov.io/gh/ariadne-cps/integration/branch/main/graph/badge.svg)](https://codecov.io/gh/ariadne-cps/integration)
 
 Ariadne Integration is the standalone C++20 integration layer used by Ariadne. It provides validated and approximate ODE integrators, flow bounders and inclusion integration on top of Ariadne Function.
+Although independently maintained and usable, this repository is also part of the [Ariadne repository structure](https://github.com/ariadne-cps/ariadne/blob/main/doc/structure.md).
 
 ## Layout
 
@@ -20,7 +21,7 @@ The umbrella header is `include/ariadne-integration.hpp`.
 Integration depends directly on:
 
 - [ariadne-cps/function](https://github.com/ariadne-cps/function), included as Git submodule `ss/fun`.
-- [ariadne-cps/configuration](https://github.com/ariadne-cps/configuration), used for shared build configuration.
+- [ariadne-cps/build](https://github.com/ariadne-cps/build), used for shared build configuration.
 - [ariadne-cps/testing](https://github.com/ariadne-cps/testing), pinned as the test-only submodule `ss/tst` for fixture-local assertions and diagnostics.
 
 Function supplies Geometry, Algebra, and the lower Ariadne layers transitively. The configuration submodule is pinned to the same commit used by Function. Unit tests use Ariadne Testing fixtures, including variants for each integrator and logging-verbosity setting.
