@@ -16,7 +16,7 @@ if(Python3_FOUND)
     add_subdirectory(bindings)
 
     if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
-        ariadne_finalize_python_module(NAME integration)
+        ariadne_finalize_python_module(NAME integration MODULE_IMPORT_NAME pyariadne_integration)
 
         # Install the combined extension rather than the INTERFACE binding target.
         # Keep the destination relative to respect cmake --install --prefix.

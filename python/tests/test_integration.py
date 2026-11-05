@@ -1,4 +1,4 @@
-from pyariadne import *
+from pyariadne_integration import *
 
 
 def test_integration():

@@ -32,5 +32,6 @@ target_link_libraries(pyariadne-integration INTERFACE
 
 ariadne_add_python_module(
     NAME integration
+    MODULE_IMPORT_NAME pyariadne_integration
     MODULE_SOURCE integration_module.cpp
 )

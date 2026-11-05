@@ -45,7 +45,3 @@ When a compatible Python development environment is available, the standalone bu
 If you would like to contribute to Ariadne Integration, please contact the developer:
 
 - Luca Geretti <luca.geretti@univr.it>
-
-## License
-
-Ariadne Integration is released under the GNU General Public License v3.0.
