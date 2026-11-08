@@ -204,25 +204,29 @@ void print_results(
         auto opts=Bench::TableOptions::ruled();
         opts.group_columns={0u};
         report.set_table_options(opts);
-        std::vector<BenchmarkResult> sorted=results;
+        // Remainder values need not be assignable. Sort pointers to the
+        // immutable measurements instead of copying or moving results.
+        std::vector<BenchmarkResult const*> sorted;
+        sorted.reserve(results.size());
+        for(auto const& result:results) sorted.push_back(&result);
         std::sort(sorted.begin(),sorted.end(),
-            [by_integrator](auto const& left,auto const& right) {
+            [by_integrator](auto const* left,auto const* right) {
                 if(by_integrator)
-                    return std::tie(left.integrator,left.function)
-                         < std::tie(right.integrator,right.function);
-                return std::tie(left.function,left.integrator)
-                     < std::tie(right.function,right.integrator);
+                    return std::tie(left->integrator,left->function)
+                         < std::tie(right->integrator,right->function);
+                return std::tie(left->function,left->integrator)
+                     < std::tie(right->function,right->integrator);
             });
-        for(auto const& result:sorted) {
+        for(auto const* result:sorted) {
             std::ostringstream rem,components;
-            rem<<result.remainder;
-            components<<result.component_remainders;
+            rem<<result->remainder;
+            components<<result->component_remainders;
             report.add_row({
-                by_integrator?result.integrator:result.function,
-                by_integrator?result.function:result.integrator,
-                Bench::Table::number(result.time_us_per_step,6u),
+                by_integrator?result->integrator:result->function,
+                by_integrator?result->function:result->integrator,
+                Bench::Table::number(result->time_us_per_step,6u),
                 rem.str(),components.str()
-            },result.timing);
+            },result->timing);
         }
         report.print();
     };
