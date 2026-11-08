@@ -1,22 +1,20 @@
-#include <algorithm>
-#include <chrono>
-#include <iomanip>
+#include <cmath>
 #include <optional>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <utility>
 
-#include "logging/logging_command_line_interface.hpp"
-#include "logging/logging.hpp"
+#include "ariadne-benchmarking.hpp"
 #include "integrator_benchmark.hpp"
 
 using namespace Ariadne;
 using namespace IntegratorBenchmark;
+namespace Bench=Ariadne::Benchmarking;
 
 namespace {
 
-using Clock=std::chrono::steady_clock;
 
 constexpr double benchmark_step_maximum_error=1e-8;
 constexpr Nat maximum_halvings=20u;
@@ -61,7 +59,7 @@ Trial try_step(
         <<", function="<<benchmark_case.name
         <<", step="<<step)
 
-    const auto start=Clock::now();
+    const auto start=Bench::Clock::now();
     try {
         auto flow=run_integrator_step(
             *named_integrator.integrator,
@@ -69,8 +67,7 @@ Trial try_step(
             step);
 
         const double elapsed_ms=
-            std::chrono::duration<double,std::milli>(
-                Clock::now()-start).count();
+            Bench::elapsed_ns(start,Bench::Clock::now())/1e6;
         const auto remainder=flow.error();
 
         LOGGING_PRINTLN_AT(3,
@@ -105,8 +102,7 @@ Trial try_step(
     }
 
     const double elapsed_ms=
-        std::chrono::duration<double,std::milli>(
-            Clock::now()-start).count();
+        Bench::elapsed_ns(start,Bench::Clock::now())/1e6;
 
     return {false,elapsed_ms,std::nullopt};
 }
@@ -211,87 +207,33 @@ void print_table(
         const std::vector<BenchmarkCase>& cases,
         const std::vector<std::vector<MaximumStepResult>>& results)
 {
-    constexpr std::size_t column_spacing=2u;
-
-    std::size_t function_width=std::string("function").size();
-    for(const auto& benchmark_case : cases) {
-        function_width=std::max(
-            function_width,
-            benchmark_case.name.size());
+    // Maximum accepted step is a *capability*, not a duration. Use the
+    // framework's generic table rather than its timing-statistics Report.
+    std::vector<Bench::TableColumn> columns{{"function"}};
+    for(const auto& integrator:integrators)
+        columns.push_back({integrator.key});
+    Bench::Table table(std::move(columns),Bench::TableOptions::ruled());
+    for(std::size_t row=0u;row<cases.size();++row) {
+        std::vector<std::string> cells{cases[row].name};
+        for(std::size_t col=0u;col<integrators.size();++col)
+            cells.push_back(results[row][col].display);
+        table.add_row(std::move(cells));
     }
-
-    std::vector<std::size_t> integrator_widths(integrators.size());
-    for(SizeType integrator_index=0u;
-            integrator_index!=integrators.size();
-            ++integrator_index) {
-        auto& width=integrator_widths[integrator_index];
-        width=integrators[integrator_index].key.size();
-        for(SizeType case_index=0u;
-                case_index!=cases.size();
-                ++case_index) {
-            width=std::max(
-                width,
-                results[case_index][integrator_index].display.size());
-        }
-    }
-
-    std::ostringstream table;
-    table
-        <<"Maximum-step integrator benchmark\n"
-        <<"step_maximum_error="<<benchmark_step_maximum_error<<"\n"
-        <<"Values are largest accepted steps found; "
-        <<">= means no failing upper bound was found; "
-        <<"< means no accepted step was found\n";
-
-    table
-        <<std::left
-        <<std::setw(static_cast<int>(function_width))
-        <<"function";
-
-    for(SizeType integrator_index=0u;
-            integrator_index!=integrators.size();
-            ++integrator_index) {
-        table
-            <<std::string(column_spacing,' ')
-            <<std::left
-            <<std::setw(static_cast<int>(
-                integrator_widths[integrator_index]))
-            <<integrators[integrator_index].key;
-    }
-    table<<"\n";
-
-    for(SizeType case_index=0u; case_index!=cases.size(); ++case_index) {
-        table
-            <<std::left
-            <<std::setw(static_cast<int>(function_width))
-            <<cases[case_index].name;
-
-        for(SizeType integrator_index=0u;
-                integrator_index!=integrators.size();
-                ++integrator_index) {
-            table
-                <<std::string(column_spacing,' ')
-                <<std::left
-                <<std::setw(static_cast<int>(
-                    integrator_widths[integrator_index]))
-                <<results[case_index][integrator_index].display;
-        }
-        table<<"\n";
-    }
-
+    LOGGING_PRINTLN("Maximum-step integrator benchmark")
+    LOGGING_PRINTLN("step_maximum_error="<<benchmark_step_maximum_error)
+    LOGGING_PRINTLN("Values are largest accepted steps found; >= means no failing "
+                    "upper bound was found; < means no accepted step was found")
     LOGGING_PRINTLN(table.str())
 }
 
 } // namespace
 
 Int main(Int argc, const char* argv[]) {
-    Logger::instance().configuration().set_verbosity(1u);
-
     BenchmarkCommandLineSelection selection;
     const auto benchmark_parsers=
         make_benchmark_argument_parsers(selection);
 
-    LoggingCommandLineInterface command_line;
+    Bench::CommandLine command_line;
     command_line.add(CommandLineContribution(
         "integrator-benchmark",
         benchmark_parsers));

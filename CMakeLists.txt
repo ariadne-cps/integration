@@ -21,8 +21,9 @@ endif()
 
 if(EXISTS "${PROJECT_SOURCE_DIR}/.git")
     # Pinned child commits guarantee their internal consistency.
+    # Testing and Benchmarking are independent development dependencies.
     require_same_dependency_commit(Build CHAINS
-        "build" "function|build")
+        "build" "function|build" "logging|build")
 endif()
 
 setup_project()
@@ -36,7 +37,7 @@ target_include_directories(integration INTERFACE
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include/ariadne-integration>
 )
-target_link_libraries(integration INTERFACE function)
+target_link_libraries(integration INTERFACE function logging)
 
 add_subdirectory(src)
 target_link_libraries(INTEGRATION_SRC PRIVATE integration)
@@ -53,7 +54,7 @@ setup_project_library(
     LINK_LIBRARIES integration
 )
 
-setup_standalone_project_tests(
+setup_standalone_project(
     TARGET ariadne-integration
     TEST_DIRECTORY tests
     TEST_TARGET tests
