@@ -1,3 +1,31 @@
+/***************************************************************************
+ *            benchmarks/integrator_benchmark.hpp
+ *
+ *  Copyright  2026  Luca Geretti
+ *
+ ****************************************************************************/
+
+/*
+ *  This file is part of Ariadne Integration.
+ *
+ *  Ariadne Integration is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  Ariadne Integration is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with Ariadne Integration. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/** @file benchmarks/integrator_benchmark.hpp
+ *  @brief Benchmark scenario selection, integrator configuration and performance cases.
+ */
+
 #pragma once
 
 #include <cstdlib>
@@ -17,24 +45,28 @@ namespace IntegratorBenchmark {
 
 using namespace Ariadne;
 
+/** @brief Classification of the algebraic complexity of a benchmark flow. */
 enum class AlgebraicClass {
     Affine,
     Polynomial,
     Analytic
 };
 
+/** @brief Sparsity of the benchmark vector field. */
 enum class Sparsity {
     Sparse,
     Intermediate,
     Dense
 };
 
+/** @brief Magnitude of coupling between benchmark variables. */
 enum class CouplingStrength {
     Weak,
     Moderate,
     Strong
 };
 
+/** @brief Structural pattern of coupling between variables. */
 enum class CouplingStructure {
     Decoupled,
     Directed,
@@ -42,6 +74,7 @@ enum class CouplingStructure {
     Global
 };
 
+/** @brief Growth in polynomial degree along the flow. */
 enum class FlowDegreeGrowth {
     None,
     Slow,
@@ -50,34 +83,40 @@ enum class FlowDegreeGrowth {
     Unbounded
 };
 
+/** @brief Relative scales of time or state variables. */
 enum class ScaleSeparation {
     Low,
     Moderate,
     High
 };
 
+/** @brief Directional differences in a benchmark flow. */
 enum class Anisotropy {
     Low,
     Moderate,
     High
 };
 
+/** @brief Rotational and shear characteristics of the benchmark flow. */
 enum class RotationShear {
     Low,
     Moderate,
     High
 };
 
+/** @brief Allowed range of polynomial degrees. */
 struct DegreeRange {
     std::optional<Nat> minimum;
     std::optional<Nat> maximum;
 
+    /** @brief Perform the integration operation. */
     bool contains(Nat polynomial_degree_value) const {
         return (!minimum || polynomial_degree_value>=*minimum)
             && (!maximum || polynomial_degree_value<=*maximum);
     }
 };
 
+/** @brief Qualitative characteristics of a benchmark problem. */
 struct BenchmarkCharacteristics {
     Nat dimension;
     AlgebraicClass algebraic_class;
@@ -91,6 +130,7 @@ struct BenchmarkCharacteristics {
     RotationShear rotation_shear;
 };
 
+/** @brief One configured integrator benchmark instance. */
 struct BenchmarkCase {
     std::string name;
     ValidatedVectorMultivariateFunction vector_field;
@@ -98,6 +138,7 @@ struct BenchmarkCase {
     BenchmarkCharacteristics characteristics;
 };
 
+/** @brief Filters used to select benchmark scenarios. */
 struct BenchmarkSelector {
     std::set<Nat> dimensions;
     std::set<AlgebraicClass> algebraic_classes;
@@ -111,18 +152,21 @@ struct BenchmarkSelector {
     std::set<RotationShear> rotation_shears;
 };
 
+/** @brief Selection parsed from benchmark command-line options. */
 struct BenchmarkCommandLineSelection {
     std::string integrator="all";
     BenchmarkSelector benchmarks;
     bool list_cases=false;
 };
 
+/** @brief Associates an integrator implementation with its benchmark name. */
 struct NamedIntegrator {
     std::string key;
     std::string name;
     std::unique_ptr<IntegratorInterface> integrator;
 };
 
+/** @brief Perform the integration operation. */
 inline ExactBoxType box2() {
     return ExactBoxType({
         {-0.25_x,0.25_x},
@@ -130,6 +174,7 @@ inline ExactBoxType box2() {
     });
 }
 
+/** @brief Perform the integration operation. */
 inline ExactBoxType box4() {
     return ExactBoxType({
         {-0.25_x,0.25_x},
@@ -139,6 +184,7 @@ inline ExactBoxType box4() {
     });
 }
 
+/** @brief Perform the integration operation. */
 inline BenchmarkCase make_affine_2d_dense_rotating() {
     // A1: isolate geometric wrapping in a linear system.  The dense,
     // non-normal linear part rotates and shears sets without introducing
@@ -146,6 +192,7 @@ inline BenchmarkCase make_affine_2d_dense_rotating() {
     // should benefit from an oriented affine/Taylor-model representation,
     // whereas an axis-aligned box is expected to wrap.
     auto x=ValidatedScalarMultivariateFunction::coordinates(2);
+    /** @brief Perform the integration operation. */
     ValidatedVectorMultivariateFunction f({
         x[0]-2*x[1],
         2*x[0]-x[1]
@@ -164,12 +211,14 @@ inline BenchmarkCase make_affine_2d_dense_rotating() {
     }};
 }
 
+/** @brief Perform the integration operation. */
 inline BenchmarkCase make_affine_4d_sparse_multiscale() {
     // A2: isolate time-scale separation in an axis-aligned, sparse affine
     // system with only weak one-way coupling.  This should favour methods
     // that preserve simple scaled coordinates; QR rotation is not expected
     // to help much while the principal directions remain axis-aligned.
     auto x=ValidatedScalarMultivariateFunction::coordinates(4);
+    /** @brief Perform the integration operation. */
     ValidatedVectorMultivariateFunction f({
         -16*x[0]+x[1],
         -4*x[1],
@@ -190,12 +239,14 @@ inline BenchmarkCase make_affine_4d_sparse_multiscale() {
     }};
 }
 
+/** @brief Perform the integration operation. */
 inline BenchmarkCase make_polynomial_low_2d_sparse_weak() {
     // P1: baseline low-degree nonlinear case.  Sparsity and weak coupling
     // keep mixed dependencies limited and the spatial degree of the flow
     // grows gradually.  A graded Taylor representation should be able to
     // exploit this structure without requiring geometric preconditioning.
     auto x=ValidatedScalarMultivariateFunction::coordinates(2);
+    /** @brief Perform the integration operation. */
     ValidatedVectorMultivariateFunction f({
         x[0]+sqr(x[0]),
         -x[1]+x[0]/4
@@ -214,12 +265,14 @@ inline BenchmarkCase make_polynomial_low_2d_sparse_weak() {
     }};
 }
 
+/** @brief Perform the integration operation. */
 inline BenchmarkCase make_polynomial_low_2d_dense_strong() {
     // P2: keep degree low but make both components strongly coupled.  The
     // purpose is to stress the generation of mixed monomials independently
     // of high polynomial degree.  A full multivariate Taylor model, and in
     // particular a total-degree series method, should be a natural fit.
     auto x=ValidatedScalarMultivariateFunction::coordinates(2);
+    /** @brief Perform the integration operation. */
     ValidatedVectorMultivariateFunction f({
         x[0]+x[1]+x[0]*x[1],
         x[0]-x[1]+sqr(x[0])-sqr(x[1])
@@ -238,6 +291,7 @@ inline BenchmarkCase make_polynomial_low_2d_dense_strong() {
     }};
 }
 
+/** @brief Perform the integration operation. */
 inline BenchmarkCase make_polynomial_low_2d_sparse_fastgrowth() {
     // P3: low vector-field degree but fast growth of spatial degree in the
     // time-series coefficients, with sparse asymmetric coupling.  This is
@@ -245,6 +299,7 @@ inline BenchmarkCase make_polynomial_low_2d_sparse_fastgrowth() {
     // an oriented set representation cannot compensate for missing spatial
     // polynomial order.
     auto x=ValidatedScalarMultivariateFunction::coordinates(2);
+    /** @brief Perform the integration operation. */
     ValidatedVectorMultivariateFunction f({
         x[1],
         x[1]-x[0]-sqr(x[0])*x[1]
@@ -263,6 +318,7 @@ inline BenchmarkCase make_polynomial_low_2d_sparse_fastgrowth() {
     }};
 }
 
+/** @brief Perform the integration operation. */
 inline BenchmarkCase make_polynomial_low_2d_rotating_anisotropic() {
     // G1: moderate polynomial complexity with a strongly non-normal linear
     // part.  The main stress is anisotropy plus rotation/shear rather than
@@ -270,6 +326,7 @@ inline BenchmarkCase make_polynomial_low_2d_rotating_anisotropic() {
     // preconditioning should have the clearest opportunity to outperform an
     // axis-aligned Taylor-model representation.
     auto x=ValidatedScalarMultivariateFunction::coordinates(2);
+    /** @brief Perform the integration operation. */
     ValidatedVectorMultivariateFunction f({
         x[0]-8*x[1]+sqr(x[0])/4,
         x[0]-x[1]
@@ -288,6 +345,7 @@ inline BenchmarkCase make_polynomial_low_2d_rotating_anisotropic() {
     }};
 }
 
+/** @brief Perform the integration operation. */
 inline BenchmarkCase make_polynomial_low_4d_sparse_strong_propagation() {
     // P6: the vector field is sparse, but coupling forms a nonlinear ring so
     // successive time derivatives propagate dependencies through all four
@@ -295,6 +353,7 @@ inline BenchmarkCase make_polynomial_low_4d_sparse_strong_propagation() {
     // density.  Sparse/graded representations may win early, while a full
     // multivariate Taylor model becomes relevant as mixed terms accumulate.
     auto x=ValidatedScalarMultivariateFunction::coordinates(4);
+    /** @brief Perform the integration operation. */
     ValidatedVectorMultivariateFunction f({
         x[1]+x[0]*x[1],
         x[2]+x[1]*x[2],
@@ -315,6 +374,7 @@ inline BenchmarkCase make_polynomial_low_4d_sparse_strong_propagation() {
     }};
 }
 
+/** @brief Perform the integration operation. */
 inline BenchmarkCase make_analytic_2d_dense() {
     // T1: dense non-polynomial analytic dynamics.  This stresses elementary
     // function expansion and rigorous remainder bounds rather than finite
@@ -322,6 +382,7 @@ inline BenchmarkCase make_analytic_2d_dense() {
     // be competitive when paired with Taylor models carrying interval
     // remainders.
     auto x=ValidatedScalarMultivariateFunction::coordinates(2);
+    /** @brief Perform the integration operation. */
     ValidatedVectorMultivariateFunction f({
         sin(x[0])+exp(x[1])-1,
         cos(x[1])+x[0]*x[1]-1
@@ -340,6 +401,7 @@ inline BenchmarkCase make_analytic_2d_dense() {
     }};
 }
 
+/** @brief Perform the integration operation. */
 inline std::vector<BenchmarkCase> make_benchmark_library() {
     std::vector<BenchmarkCase> cases;
     cases.push_back(make_affine_2d_dense_rotating());
@@ -429,10 +491,12 @@ inline std::vector<BenchmarkCase> make_cases(
     return select_benchmark_cases(make_benchmark_library(),selector);
 }
 
+/** @brief Perform the integration operation. */
 inline std::vector<BenchmarkCase> make_cases() {
     return make_benchmark_library();
 }
 
+/** @brief Perform the integration operation. */
 inline const char* characteristic_name(AlgebraicClass value) {
     switch(value) {
         case AlgebraicClass::Affine: return "affine";
@@ -442,6 +506,7 @@ inline const char* characteristic_name(AlgebraicClass value) {
     }
 }
 
+/** @brief Perform the integration operation. */
 inline const char* characteristic_name(Sparsity value) {
     switch(value) {
         case Sparsity::Sparse: return "sparse";
@@ -451,6 +516,7 @@ inline const char* characteristic_name(Sparsity value) {
     }
 }
 
+/** @brief Perform the integration operation. */
 inline const char* characteristic_name(CouplingStrength value) {
     switch(value) {
         case CouplingStrength::Weak: return "weak";
@@ -460,6 +526,7 @@ inline const char* characteristic_name(CouplingStrength value) {
     }
 }
 
+/** @brief Perform the integration operation. */
 inline const char* characteristic_name(CouplingStructure value) {
     switch(value) {
         case CouplingStructure::Decoupled: return "decoupled";
@@ -470,6 +537,7 @@ inline const char* characteristic_name(CouplingStructure value) {
     }
 }
 
+/** @brief Perform the integration operation. */
 inline const char* characteristic_name(FlowDegreeGrowth value) {
     switch(value) {
         case FlowDegreeGrowth::None: return "none";
@@ -481,6 +549,7 @@ inline const char* characteristic_name(FlowDegreeGrowth value) {
     }
 }
 
+/** @brief Perform the integration operation. */
 inline const char* characteristic_name(ScaleSeparation value) {
     switch(value) {
         case ScaleSeparation::Low: return "low";
@@ -490,6 +559,7 @@ inline const char* characteristic_name(ScaleSeparation value) {
     }
 }
 
+/** @brief Perform the integration operation. */
 inline const char* characteristic_name(Anisotropy value) {
     switch(value) {
         case Anisotropy::Low: return "low";
@@ -499,6 +569,7 @@ inline const char* characteristic_name(Anisotropy value) {
     }
 }
 
+/** @brief Perform the integration operation. */
 inline const char* characteristic_name(RotationShear value) {
     switch(value) {
         case RotationShear::Low: return "low";
@@ -508,6 +579,7 @@ inline const char* characteristic_name(RotationShear value) {
     }
 }
 
+/** @brief Perform the integration operation. */
 inline std::string describe(const BenchmarkCase& benchmark_case) {
     const auto& c=benchmark_case.characteristics;
     std::ostringstream stream;
@@ -542,6 +614,7 @@ inline void print_benchmark_cases(
     }
 }
 
+/** @brief Perform the integration operation. */
 inline std::vector<NamedIntegrator> make_all_integrators(double step_error) {
     constexpr DegreeType order_value=8;
 
@@ -607,9 +680,11 @@ inline std::vector<NamedIntegrator> select_integrators(
     for(const auto& named_integrator : all) {
         std::cerr << "  " << named_integrator.key << "\n";
     }
+    /** @brief Perform the integration operation. */
     std::exit(1);
 }
 
+/** @brief Return the requested integration parameter or result. */
 inline bool is_integrator_selection(const std::string& value) {
     return value=="all"
         || value=="taylor-picard"
@@ -649,6 +724,7 @@ inline std::vector<std::string> split_selector_values(
     return result;
 }
 
+/** @brief Perform the integration operation. */
 inline Nat parse_selector_nat(const std::string& value) {
     if(value.empty() || value[0]=='-') {
         throw std::runtime_error(
@@ -664,6 +740,7 @@ inline Nat parse_selector_nat(const std::string& value) {
     return static_cast<Nat>(parsed);
 }
 
+/** @brief Perform the integration operation. */
 inline DegreeRange parse_degree_range(const std::string& value) {
     const std::size_t separator=value.find(':');
     if(separator==std::string::npos) {
@@ -697,6 +774,7 @@ inline DegreeRange parse_degree_range(const std::string& value) {
     return range;
 }
 
+/** @brief Perform the integration operation. */
 inline AlgebraicClass parse_algebraic_class(const std::string& value) {
     if(value=="affine") return AlgebraicClass::Affine;
     if(value=="polynomial") return AlgebraicClass::Polynomial;
@@ -705,6 +783,7 @@ inline AlgebraicClass parse_algebraic_class(const std::string& value) {
         "Unknown algebraic class '"+value+"'.");
 }
 
+/** @brief Perform the integration operation. */
 inline Sparsity parse_sparsity(const std::string& value) {
     if(value=="sparse") return Sparsity::Sparse;
     if(value=="intermediate") return Sparsity::Intermediate;
@@ -755,6 +834,7 @@ inline ScaleSeparation parse_scale_separation(
         "Unknown scale separation '"+value+"'.");
 }
 
+/** @brief Perform the integration operation. */
 inline Anisotropy parse_anisotropy(const std::string& value) {
     if(value=="low") return Anisotropy::Low;
     if(value=="moderate") return Anisotropy::Moderate;
@@ -763,6 +843,7 @@ inline Anisotropy parse_anisotropy(const std::string& value) {
         "Unknown anisotropy '"+value+"'.");
 }
 
+/** @brief Perform the integration operation. */
 inline RotationShear parse_rotation_shear(const std::string& value) {
     if(value=="low") return RotationShear::Low;
     if(value=="moderate") return RotationShear::Moderate;

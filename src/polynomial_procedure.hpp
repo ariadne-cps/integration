@@ -1,25 +1,29 @@
 /***************************************************************************
- *            polynomial_procedure.hpp
+ *            src/polynomial_procedure.hpp
  *
  *  Copyright  2008-20  Pieter Collins
  *
  ****************************************************************************/
 
 /*
- *  This file is part of Ariadne.
+ *  This file is part of Ariadne Integration.
  *
- *  Ariadne is free software: you can redistribute it and/or modify
+ *  Ariadne Integration is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  Ariadne is distributed in the hope that it will be useful,
+ *  Ariadne Integration is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with Ariadne.  If not, see <https://www.gnu.org/licenses/>.
+ *  along with Ariadne Integration. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/** @file src/polynomial_procedure.hpp
+ *  @brief Internal polynomial recurrence and degree-analysis utilities.
  */
 
 #ifndef ARIADNE_INTEGRATION_POLYNOMIAL_PROCEDURE_HPP
@@ -34,6 +38,7 @@ namespace Ariadne::IntegrationDetail {
 // Internal polynomial diagnostics, shared by the recurrence and its unit tests.
 // DIV requires a constant denominator; POW and non-polynomial operations are
 // deliberately excluded from the degree analyser.
+/** @brief Perform the integration operation. */
 Bool polynomial_procedure_degree(Vector<ValidatedProcedure> const& p, DegreeType& degree);
 Bool evaluate_polynomial_procedure(Vector<ValidatedProcedure> const& p,
     Vector<Differential<FloatDPBounds>> const& x,
@@ -41,6 +46,7 @@ Bool evaluate_polynomial_procedure(Vector<ValidatedProcedure> const& p,
 
 // A centre-series candidate and residual diagnostics. The candidate receives
 // a validated remainder only in the caller after separate certification.
+/** @brief Intermediate result produced by centre polynomial recurrence. */
 struct CentrePolynomialRecurrenceResult {
     ValidatedVectorMultivariateTaylorFunctionModelDP polynomial;
     ValidatedVectorMultivariateTaylorFunctionModelDP defect;

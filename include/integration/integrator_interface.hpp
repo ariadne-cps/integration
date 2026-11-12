@@ -6,24 +6,24 @@
  ****************************************************************************/
 
 /*
- *  This file is part of Ariadne.
+ *  This file is part of Ariadne Integration.
  *
- *  Ariadne is free software: you can redistribute it and/or modify
+ *  Ariadne Integration is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  Ariadne is distributed in the hope that it will be useful,
+ *  Ariadne Integration is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with Ariadne.  If not, see <https://www.gnu.org/licenses/>.
+ *  along with Ariadne Integration. If not, see <https://www.gnu.org/licenses/>.
  */
 
-/*! \file integration/integrator_interface.hpp
- *  \brief Interface for solver classes for differential equations.
+/** @file integration/integrator_interface.hpp
+ *  @brief Interface and error types for flow and integration solvers.
  */
 
 #ifndef ARIADNE_INTEGRATOR_INTERFACE_HPP
@@ -40,11 +40,14 @@
 
 namespace Ariadne {
 
+/** @brief Error raised when validated flow bounds are unavailable. */
 struct FlowBoundsException : public std::runtime_error {
     FlowBoundsException(const StringType& what) : std::runtime_error(what) { }
 };
 
+/** @brief Type representing flow step model type in integration algorithms. */
 class FlowStepModelType;
+/** @brief Type representing flow model type in integration algorithms. */
 class FlowModelType;
 
 template<class T> class Suggestion;
@@ -52,7 +55,9 @@ template<class T> class Suggestion;
 //! \ingroup DifferentialEquationSubModule
 //! \brief A solution to the differential equation could not be computed over the requested time interval.
 struct IncompleteFlowException : public std::runtime_error {
+    /** @brief Construct the integration object. */
     IncompleteFlowException(const StringType& what, FlowStepModelType const& model);
+    /** @brief Construct the integration object. */
     IncompleteFlowException(IncompleteFlowException const& other);
     FlowStepModelType const& computed_model() const { return *this->_computed_model; }
   private:

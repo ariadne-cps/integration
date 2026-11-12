@@ -6,24 +6,24 @@
  ****************************************************************************/
 
 /*
- *  This file is part of Ariadne.
+ *  This file is part of Ariadne Integration.
  *
- *  Ariadne is free software: you can redistribute it and/or modify
+ *  Ariadne Integration is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  Ariadne is distributed in the hope that it will be useful,
+ *  Ariadne Integration is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with Ariadne.  If not, see <https://www.gnu.org/licenses/>.
+ *  along with Ariadne Integration. If not, see <https://www.gnu.org/licenses/>.
  */
 
-/*! \file integration/integrator.hpp
- *  \brief Solver classes for differential equations.
+/** @file integration/integrator.hpp
+ *  @brief Validated and approximate integrators for ordinary differential equations.
  */
 
 #ifndef ARIADNE_INTEGRATOR_HPP
@@ -57,6 +57,7 @@
 namespace Ariadne {
 
 
+/** @brief Type representing real in integration algorithms. */
 class Real;
 template<class X> class Vector;
 template<class X> class Differential;
@@ -70,20 +71,29 @@ typedef SharedPointer<const ValidatedFunctionPatchFactoryInterface> ValidatedFun
 typedef SharedPointer<const ValidatedFunctionPatchFactoryInterface> FunctionFactoryPointer;
 typedef SharedPointer<const BounderInterface> BounderPointer;
 
+/** @brief Type representing step maximum error in integration algorithms. */
 struct StepMaximumError : Attribute<ApproximateDouble> {
     StepMaximumError(ApproximateDouble x) : Attribute<ApproximateDouble>(x) { }
     StepMaximumError(double x) : Attribute<ApproximateDouble>(x) { }
 };
 
+/** @brief Type representing step sweep threshold in integration algorithms. */
 struct StepSweepThreshold : Attribute<ApproximateDouble> {
     explicit StepSweepThreshold(ApproximateDouble const& value) : Attribute<ApproximateDouble>(value) { }
 };
+/** @brief Type representing order in integration algorithms. */
 struct Order : Attribute<DegreeType> { Order(DegreeType v) : Attribute<DegreeType>(v) { } };
+/** @brief Type representing spacial order in integration algorithms. */
 struct SpacialOrder : Attribute<DegreeType> { SpacialOrder(DegreeType v) : Attribute<DegreeType>(v) { } };
+/** @brief Type representing temporal order in integration algorithms. */
 struct TemporalOrder : Attribute<DegreeType> { TemporalOrder(DegreeType v) : Attribute<DegreeType>(v) { } };
+/** @brief Type representing minimum spacial order in integration algorithms. */
 struct MinimumSpacialOrder : Attribute<DegreeType> { MinimumSpacialOrder(DegreeType v) : Attribute<DegreeType>(v) { } };
+/** @brief Type representing minimum temporal order in integration algorithms. */
 struct MinimumTemporalOrder : Attribute<DegreeType> { MinimumTemporalOrder(DegreeType v) : Attribute<DegreeType>(v) { } };
+/** @brief Type representing maximum spacial order in integration algorithms. */
 struct MaximumSpacialOrder : Attribute<DegreeType> { MaximumSpacialOrder(DegreeType v) : Attribute<DegreeType>(v) { } };
+/** @brief Type representing maximum temporal order in integration algorithms. */
 struct MaximumTemporalOrder : Attribute<DegreeType> { MaximumTemporalOrder(DegreeType v) : Attribute<DegreeType>(v) { } };
 
 static const Generator<StepMaximumError> step_maximum_error = Generator<StepMaximumError>();
@@ -101,6 +111,7 @@ class FlowStepModelType : public ValidatedVectorMultivariateFunctionPatch {
   public:
     using ValidatedVectorMultivariateFunctionPatch::ValidatedVectorMultivariateFunctionPatch;
     FlowStepModelType(ValidatedVectorMultivariateFunctionPatch const& fsmt) : ValidatedVectorMultivariateFunctionPatch(fsmt) { }
+    /** @brief Apply the corresponding integration operator. */
     friend OutputStream& operator<<(OutputStream& os, FlowStepModelType const& flwstpm);
 };
 
@@ -108,9 +119,11 @@ class FlowStepModelType : public ValidatedVectorMultivariateFunctionPatch {
 class FlowModelType : public List<ValidatedVectorMultivariateFunctionPatch> {
   public:
     using List<ValidatedVectorMultivariateFunctionPatch>::List;
+    /** @brief Apply the corresponding integration operator. */
     friend OutputStream& operator<<(OutputStream& os, FlowModelType const& flwm);
 };
 
+/** @brief Type representing integrator base in integration algorithms. */
 class IntegratorBase
     : public IntegratorInterface
 {
@@ -155,8 +168,10 @@ class IntegratorBase
     ValidatedFunctionPatchFactory _function_factory;
 };
 
+/** @brief Type representing bounded integrator base in integration algorithms. */
 class BoundedIntegratorBase : public IntegratorBase {
   protected:
+    /** @brief Construct the integration object. */
     BoundedIntegratorBase(Sweeper<FloatDP> sweeper, LipschitzTolerance lipschitz_tolerance);
   public:
 
@@ -230,6 +245,7 @@ class TaylorPicardIntegrator
     Void set_step_maximum_error(ApproximateDouble e) { _step_maximum_error = cast_exact(e); }
 
     virtual TaylorPicardIntegrator* clone() const { return new TaylorPicardIntegrator(*this); }
+    /** @brief Perform the integration operation. */
     virtual Void _write(OutputStream& os) const;
 
     virtual FlowStepModelType
@@ -275,7 +291,9 @@ class GradedTaylorPicardIntegrator
 
     //! \brief The order of the method.
     DegreeType order() const { return this->_order; }
+    /** @brief Configure or reset the integration state. */
     Void set_order(Nat m) {
+        /** @brief Construct the integration object. */
         ARIADNE_PRECONDITION(m<=std::numeric_limits<DegreeType>::max());
         const DegreeType order=static_cast<DegreeType>(m);
         this->_order=order;
@@ -293,6 +311,7 @@ class GradedTaylorPicardIntegrator
     Void set_diagnostics(Bool diagnostics) { _diagnostics=diagnostics; }
 
     virtual GradedTaylorPicardIntegrator* clone() const { return new GradedTaylorPicardIntegrator(*this); }
+    /** @brief Perform the integration operation. */
     virtual Void _write(OutputStream& os) const;
 
     virtual FlowStepModelType
@@ -345,6 +364,7 @@ class TaylorSeriesIntegrator
     Bool has_step_maximum_error() const { return this->_has_step_maximum_error; }
     //! \brief The maximum permissible error of a single step.
     ExactDouble step_maximum_error() const {
+        /** @brief Construct the integration object. */
         ARIADNE_PRECONDITION(this->has_step_maximum_error());
         return this->_step_maximum_error;
     }
@@ -355,12 +375,14 @@ class TaylorSeriesIntegrator
     }
     //! \brief  Set the sweep threshold of the Taylor model.
     Sweeper<FloatDP> const& sweeper() const { return this->_sweeper; }
+    /** @brief Configure or reset the integration state. */
     Void set_sweeper(Sweeper<FloatDP> const& sweeper) {
         _sweeper = sweeper;
         this->set_function_factory(ValidatedFunctionPatchFactory(make_taylor_function_patch_factory(_sweeper)));
     }
 
     virtual TaylorSeriesIntegrator* clone() const { return new TaylorSeriesIntegrator(*this); }
+    /** @brief Perform the integration operation. */
     virtual Void _write(OutputStream& os) const;
 
     virtual FlowStepModelType
@@ -395,6 +417,7 @@ class TaylorSeriesBounderIntegrator
                                    Order order);
 
     virtual TaylorSeriesBounderIntegrator* clone() const { return new TaylorSeriesBounderIntegrator(*this); }
+    /** @brief Perform the integration operation. */
     virtual Void _write(OutputStream& os) const;
 
     virtual FlowStepModelType
@@ -453,6 +476,7 @@ class GradedTaylorSeriesIntegrator
     Void set_maximum_temporal_order(DegreeType m) { this->_maximum_temporal_order=m; }
     //! \brief  Set the sweep threshold of the Taylor model.
     Sweeper<FloatDP> const& sweeper() const { return this->_sweeper; }
+    /** @brief Configure or reset the integration state. */
     Void set_sweeper(Sweeper<FloatDP> const& sweeper) {
         _sweeper = sweeper;
         this->set_function_factory(ValidatedFunctionPatchFactory(make_taylor_function_patch_factory(_sweeper)));
@@ -462,6 +486,7 @@ class GradedTaylorSeriesIntegrator
     Void set_step_maximum_error(ApproximateDouble e) { _step_maximum_error = cast_exact(e); }
 
     virtual GradedTaylorSeriesIntegrator* clone() const { return new GradedTaylorSeriesIntegrator(*this); }
+    /** @brief Perform the integration operation. */
     virtual Void _write(OutputStream& os) const;
 
     virtual FlowStepModelType
@@ -534,6 +559,7 @@ class PreconditionedTaylorSeriesStep {
     PreconditionedTaylorSeriesState const& final_state() const { return _final_state; }
 };
 
+/** @brief Type representing taylor series preconditioning in integration algorithms. */
 enum class TaylorSeriesPreconditioning { IDENTITY, QR };
 
 //! \brief A graded Taylor-series integrator with explicit preconditioning support.
@@ -558,14 +584,17 @@ class PreconditionedGradedTaylorSeriesIntegrator
     Bool carried_expansion_diagnostics() const { return _carried_expansion_diagnostics; }
     Void set_carried_expansion_diagnostics(Bool value) { _carried_expansion_diagnostics=value; }
 
+    /** @brief Perform the integration operation. */
     virtual PreconditionedGradedTaylorSeriesIntegrator* clone() const override {
         return new PreconditionedGradedTaylorSeriesIntegrator(*this);
     }
+    /** @brief Perform the integration operation. */
     virtual Void _write(OutputStream& os) const override;
 
     //! \brief Factor a parameterised state as x(s)=c+A*y(s), retaining the
     //! complete Taylor-model dependence in y(s).
     PreconditionedTaylorSeriesState
+    /** @brief Perform the integration operation. */
     precondition(const ValidatedVectorMultivariateFunctionPatch& state) const;
 
     //! \brief Propagate a preconditioned local initial set for one validated
@@ -598,6 +627,7 @@ class AffineIntegrator
     DegreeType _spacial_order;
     DegreeType _temporal_order;
   public:
+    /** @brief Construct the integration object. */
     AffineIntegrator(SpacialOrder spacial_order, TemporalOrder temporal_order);
 
     //! \brief The order of the method in space.
@@ -605,6 +635,7 @@ class AffineIntegrator
     //! \brief The order of the method in time.
     DegreeType temporal_order() const { return this->_temporal_order; }
     virtual AffineIntegrator* clone() const { return new AffineIntegrator(*this); }
+    /** @brief Perform the integration operation. */
     virtual Void _write(OutputStream& os) const;
 
     virtual FlowStepModelType
