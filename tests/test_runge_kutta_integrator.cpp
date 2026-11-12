@@ -27,6 +27,7 @@
  */
 
 #include "integration/runge_kutta_integrator.hpp"
+
 #include "ariadne-testing.hpp"
 
 using namespace Ariadne;
@@ -36,39 +37,38 @@ class TestRungeKuttaIntegrator : public Ariadne::Testing::ContextFixture {
   public:
     using ContextFixture::ContextFixture;
 
-Void test_classical_fourth_order_step() {
-    auto x=EffectiveScalarMultivariateFunction::coordinate(1u,0u);
-    ApproximateVectorMultivariateFunction f=EffectiveVectorMultivariateFunction({x});
-    FloatDPApproximationVector initial({FloatDPApproximation(1,dp)});
-    RungeKutta4Integrator integrator(0.5);
-    auto next=integrator.step(f,initial,FloatDPApproximation(0.5,dp));
-    // For x'=x the fourth-order Taylor polynomial at h=1/2 is 211/128.
-    ARIADNE_TESTING_EXPECT_WITHIN(next[0u].get_d(),211.0/128.0,1e-14);
-    ARIADNE_TESTING_EXPECT_EQUAL(initial[0u].get_d(),1.0);
-}
+    Void test_classical_fourth_order_step() {
+        auto x = EffectiveScalarMultivariateFunction::coordinate(1u, 0u);
+        ApproximateVectorMultivariateFunction f = EffectiveVectorMultivariateFunction({x});
+        FloatDPApproximationVector initial({FloatDPApproximation(1, dp)});
+        RungeKutta4Integrator integrator(0.5);
+        auto next = integrator.step(f, initial, FloatDPApproximation(0.5, dp));
+        // For x'=x the fourth-order Taylor polynomial at h=1/2 is 211/128.
+        ARIADNE_TESTING_EXPECT_WITHIN(next[0u].get_d(), 211.0 / 128.0, 1e-14);
+        ARIADNE_TESTING_EXPECT_EQUAL(initial[0u].get_d(), 1.0);
+    }
 
-Void test_evolution_uses_each_instance_step() {
-    auto one=EffectiveScalarMultivariateFunction::constant(1u,1);
-    ApproximateVectorMultivariateFunction f=EffectiveVectorMultivariateFunction({one});
-    FloatDPApproximationVector initial({FloatDPApproximation(2,dp)});
-    RungeKutta4Integrator coarse(0.25);
-    RungeKutta4Integrator fine(0.125);
-    auto coarse_path=coarse.evolve(f,initial,FloatDPApproximation(0.5,dp));
-    auto fine_path=fine.evolve(f,initial,FloatDPApproximation(0.5,dp));
-    ARIADNE_TESTING_EXPECT_EQUAL(coarse_path.size(),3u);
-    ARIADNE_TESTING_EXPECT_EQUAL(fine_path.size(),5u);
-    ARIADNE_TESTING_EXPECT_EQUAL(coarse_path[1u].first.get_d(),0.25);
-    ARIADNE_TESTING_EXPECT_EQUAL(fine_path[1u].first.get_d(),0.125);
-    ARIADNE_TESTING_EXPECT_EQUAL(coarse_path.back().second[0u].get_d(),2.5);
-    ARIADNE_TESTING_EXPECT_EQUAL(fine_path.back().second[0u].get_d(),2.5);
-    auto zero_path=fine.evolve(f,initial,FloatDPApproximation(0,dp));
-    ARIADNE_TESTING_EXPECT_EQUAL(zero_path.size(),1u);
-    ARIADNE_TESTING_EXPECT_EQUAL(zero_path[0u].second[0u].get_d(),2.0);
-}
+    Void test_evolution_uses_each_instance_step() {
+        auto one = EffectiveScalarMultivariateFunction::constant(1u, 1);
+        ApproximateVectorMultivariateFunction f = EffectiveVectorMultivariateFunction({one});
+        FloatDPApproximationVector initial({FloatDPApproximation(2, dp)});
+        RungeKutta4Integrator coarse(0.25);
+        RungeKutta4Integrator fine(0.125);
+        auto coarse_path = coarse.evolve(f, initial, FloatDPApproximation(0.5, dp));
+        auto fine_path = fine.evolve(f, initial, FloatDPApproximation(0.5, dp));
+        ARIADNE_TESTING_EXPECT_EQUAL(coarse_path.size(), 3u);
+        ARIADNE_TESTING_EXPECT_EQUAL(fine_path.size(), 5u);
+        ARIADNE_TESTING_EXPECT_EQUAL(coarse_path[1u].first.get_d(), 0.25);
+        ARIADNE_TESTING_EXPECT_EQUAL(fine_path[1u].first.get_d(), 0.125);
+        ARIADNE_TESTING_EXPECT_EQUAL(coarse_path.back().second[0u].get_d(), 2.5);
+        ARIADNE_TESTING_EXPECT_EQUAL(fine_path.back().second[0u].get_d(), 2.5);
+        auto zero_path = fine.evolve(f, initial, FloatDPApproximation(0, dp));
+        ARIADNE_TESTING_EXPECT_EQUAL(zero_path.size(), 1u);
+        ARIADNE_TESTING_EXPECT_EQUAL(zero_path[0u].second[0u].get_d(), 2.0);
+    }
 };
 
-}
-
+} // namespace
 
 int main(int argc, char** argv) {
     ARIADNE_TESTING_SUITE("test_runge_kutta_integrator");

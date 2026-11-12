@@ -111,8 +111,7 @@ struct DegreeRange {
 
     /** @brief Perform the integration operation. */
     bool contains(Nat polynomial_degree_value) const {
-        return (!minimum || polynomial_degree_value>=*minimum)
-            && (!maximum || polynomial_degree_value<=*maximum);
+        return (!minimum || polynomial_degree_value >= *minimum) && (!maximum || polynomial_degree_value <= *maximum);
     }
 };
 
@@ -154,9 +153,9 @@ struct BenchmarkSelector {
 
 /** @brief Selection parsed from benchmark command-line options. */
 struct BenchmarkCommandLineSelection {
-    std::string integrator="all";
+    std::string integrator = "all";
     BenchmarkSelector benchmarks;
-    bool list_cases=false;
+    bool list_cases = false;
 };
 
 /** @brief Associates an integrator implementation with its benchmark name. */
@@ -169,18 +168,18 @@ struct NamedIntegrator {
 /** @brief Perform the integration operation. */
 inline ExactBoxType box2() {
     return ExactBoxType({
-        {-0.25_x,0.25_x},
-        {-0.25_x,0.25_x}
+        {-0.25_x, 0.25_x},
+        {-0.25_x, 0.25_x}
     });
 }
 
 /** @brief Perform the integration operation. */
 inline ExactBoxType box4() {
     return ExactBoxType({
-        {-0.25_x,0.25_x},
-        {-0.25_x,0.25_x},
-        {-0.25_x,0.25_x},
-        {-0.25_x,0.25_x}
+        {-0.25_x, 0.25_x},
+        {-0.25_x, 0.25_x},
+        {-0.25_x, 0.25_x},
+        {-0.25_x, 0.25_x}
     });
 }
 
@@ -191,24 +190,13 @@ inline BenchmarkCase make_affine_2d_dense_rotating() {
     // polynomial truncation error.  A stateful QR-preconditioned method
     // should benefit from an oriented affine/Taylor-model representation,
     // whereas an axis-aligned box is expected to wrap.
-    auto x=ValidatedScalarMultivariateFunction::coordinates(2);
+    auto x = ValidatedScalarMultivariateFunction::coordinates(2);
     /** @brief Perform the integration operation. */
-    ValidatedVectorMultivariateFunction f({
-        x[0]-2*x[1],
-        2*x[0]-x[1]
-    });
-    return {"affine_2d_dense_rotating",f,box2(),{
-        2u,
-        AlgebraicClass::Affine,
-        1u,
-        Sparsity::Dense,
-        CouplingStrength::Strong,
-        CouplingStructure::Bidirectional,
-        FlowDegreeGrowth::None,
-        ScaleSeparation::Low,
-        Anisotropy::Moderate,
-        RotationShear::High
-    }};
+    ValidatedVectorMultivariateFunction f({x[0] - 2 * x[1],
+                                           2 * x[0] - x[1]});
+    return {
+        "affine_2d_dense_rotating", f, box2(), {2u, AlgebraicClass::Affine, 1u, Sparsity::Dense, CouplingStrength::Strong, CouplingStructure::Bidirectional, FlowDegreeGrowth::None, ScaleSeparation::Low, Anisotropy::Moderate, RotationShear::High}
+    };
 }
 
 /** @brief Perform the integration operation. */
@@ -217,26 +205,15 @@ inline BenchmarkCase make_affine_4d_sparse_multiscale() {
     // system with only weak one-way coupling.  This should favour methods
     // that preserve simple scaled coordinates; QR rotation is not expected
     // to help much while the principal directions remain axis-aligned.
-    auto x=ValidatedScalarMultivariateFunction::coordinates(4);
+    auto x = ValidatedScalarMultivariateFunction::coordinates(4);
     /** @brief Perform the integration operation. */
-    ValidatedVectorMultivariateFunction f({
-        -16*x[0]+x[1],
-        -4*x[1],
-        -x[2]+x[3]/4,
-        -x[3]/4
-    });
-    return {"affine_4d_sparse_multiscale",f,box4(),{
-        4u,
-        AlgebraicClass::Affine,
-        1u,
-        Sparsity::Sparse,
-        CouplingStrength::Weak,
-        CouplingStructure::Directed,
-        FlowDegreeGrowth::None,
-        ScaleSeparation::High,
-        Anisotropy::High,
-        RotationShear::Low
-    }};
+    ValidatedVectorMultivariateFunction f({-16 * x[0] + x[1],
+                                           -4 * x[1],
+                                           -x[2] + x[3] / 4,
+                                           -x[3] / 4});
+    return {
+        "affine_4d_sparse_multiscale", f, box4(), {4u, AlgebraicClass::Affine, 1u, Sparsity::Sparse, CouplingStrength::Weak, CouplingStructure::Directed, FlowDegreeGrowth::None, ScaleSeparation::High, Anisotropy::High, RotationShear::Low}
+    };
 }
 
 /** @brief Perform the integration operation. */
@@ -245,24 +222,13 @@ inline BenchmarkCase make_polynomial_low_2d_sparse_weak() {
     // keep mixed dependencies limited and the spatial degree of the flow
     // grows gradually.  A graded Taylor representation should be able to
     // exploit this structure without requiring geometric preconditioning.
-    auto x=ValidatedScalarMultivariateFunction::coordinates(2);
+    auto x = ValidatedScalarMultivariateFunction::coordinates(2);
     /** @brief Perform the integration operation. */
-    ValidatedVectorMultivariateFunction f({
-        x[0]+sqr(x[0]),
-        -x[1]+x[0]/4
-    });
-    return {"polynomial_low_2d_sparse_weak",f,box2(),{
-        2u,
-        AlgebraicClass::Polynomial,
-        2u,
-        Sparsity::Sparse,
-        CouplingStrength::Weak,
-        CouplingStructure::Directed,
-        FlowDegreeGrowth::Slow,
-        ScaleSeparation::Low,
-        Anisotropy::Low,
-        RotationShear::Low
-    }};
+    ValidatedVectorMultivariateFunction f({x[0] + sqr(x[0]),
+                                           -x[1] + x[0] / 4});
+    return {
+        "polynomial_low_2d_sparse_weak", f, box2(), {2u, AlgebraicClass::Polynomial, 2u, Sparsity::Sparse, CouplingStrength::Weak, CouplingStructure::Directed, FlowDegreeGrowth::Slow, ScaleSeparation::Low, Anisotropy::Low, RotationShear::Low}
+    };
 }
 
 /** @brief Perform the integration operation. */
@@ -271,24 +237,13 @@ inline BenchmarkCase make_polynomial_low_2d_dense_strong() {
     // purpose is to stress the generation of mixed monomials independently
     // of high polynomial degree.  A full multivariate Taylor model, and in
     // particular a total-degree series method, should be a natural fit.
-    auto x=ValidatedScalarMultivariateFunction::coordinates(2);
+    auto x = ValidatedScalarMultivariateFunction::coordinates(2);
     /** @brief Perform the integration operation. */
-    ValidatedVectorMultivariateFunction f({
-        x[0]+x[1]+x[0]*x[1],
-        x[0]-x[1]+sqr(x[0])-sqr(x[1])
-    });
-    return {"polynomial_low_2d_dense_strong",f,box2(),{
-        2u,
-        AlgebraicClass::Polynomial,
-        2u,
-        Sparsity::Dense,
-        CouplingStrength::Strong,
-        CouplingStructure::Bidirectional,
-        FlowDegreeGrowth::Slow,
-        ScaleSeparation::Low,
-        Anisotropy::Moderate,
-        RotationShear::Moderate
-    }};
+    ValidatedVectorMultivariateFunction f({x[0] + x[1] + x[0] * x[1],
+                                           x[0] - x[1] + sqr(x[0]) - sqr(x[1])});
+    return {
+        "polynomial_low_2d_dense_strong", f, box2(), {2u, AlgebraicClass::Polynomial, 2u, Sparsity::Dense, CouplingStrength::Strong, CouplingStructure::Bidirectional, FlowDegreeGrowth::Slow, ScaleSeparation::Low, Anisotropy::Moderate, RotationShear::Moderate}
+    };
 }
 
 /** @brief Perform the integration operation. */
@@ -298,24 +253,13 @@ inline BenchmarkCase make_polynomial_low_2d_sparse_fastgrowth() {
     // intended to expose insufficient MaximumSpacialOrder in graded methods;
     // an oriented set representation cannot compensate for missing spatial
     // polynomial order.
-    auto x=ValidatedScalarMultivariateFunction::coordinates(2);
+    auto x = ValidatedScalarMultivariateFunction::coordinates(2);
     /** @brief Perform the integration operation. */
-    ValidatedVectorMultivariateFunction f({
-        x[1],
-        x[1]-x[0]-sqr(x[0])*x[1]
-    });
-    return {"polynomial_low_2d_sparse_fastgrowth",f,box2(),{
-        2u,
-        AlgebraicClass::Polynomial,
-        3u,
-        Sparsity::Sparse,
-        CouplingStrength::Strong,
-        CouplingStructure::Bidirectional,
-        FlowDegreeGrowth::Fast,
-        ScaleSeparation::Low,
-        Anisotropy::Moderate,
-        RotationShear::Moderate
-    }};
+    ValidatedVectorMultivariateFunction f({x[1],
+                                           x[1] - x[0] - sqr(x[0]) * x[1]});
+    return {
+        "polynomial_low_2d_sparse_fastgrowth", f, box2(), {2u, AlgebraicClass::Polynomial, 3u, Sparsity::Sparse, CouplingStrength::Strong, CouplingStructure::Bidirectional, FlowDegreeGrowth::Fast, ScaleSeparation::Low, Anisotropy::Moderate, RotationShear::Moderate}
+    };
 }
 
 /** @brief Perform the integration operation. */
@@ -325,24 +269,13 @@ inline BenchmarkCase make_polynomial_low_2d_rotating_anisotropic() {
     // rapid degree growth.  This is the case where stateful QR
     // preconditioning should have the clearest opportunity to outperform an
     // axis-aligned Taylor-model representation.
-    auto x=ValidatedScalarMultivariateFunction::coordinates(2);
+    auto x = ValidatedScalarMultivariateFunction::coordinates(2);
     /** @brief Perform the integration operation. */
-    ValidatedVectorMultivariateFunction f({
-        x[0]-8*x[1]+sqr(x[0])/4,
-        x[0]-x[1]
-    });
-    return {"polynomial_low_2d_rotating_anisotropic",f,box2(),{
-        2u,
-        AlgebraicClass::Polynomial,
-        2u,
-        Sparsity::Dense,
-        CouplingStrength::Strong,
-        CouplingStructure::Bidirectional,
-        FlowDegreeGrowth::Slow,
-        ScaleSeparation::Low,
-        Anisotropy::High,
-        RotationShear::High
-    }};
+    ValidatedVectorMultivariateFunction f({x[0] - 8 * x[1] + sqr(x[0]) / 4,
+                                           x[0] - x[1]});
+    return {
+        "polynomial_low_2d_rotating_anisotropic", f, box2(), {2u, AlgebraicClass::Polynomial, 2u, Sparsity::Dense, CouplingStrength::Strong, CouplingStructure::Bidirectional, FlowDegreeGrowth::Slow, ScaleSeparation::Low, Anisotropy::High, RotationShear::High}
+    };
 }
 
 /** @brief Perform the integration operation. */
@@ -352,26 +285,15 @@ inline BenchmarkCase make_polynomial_low_4d_sparse_strong_propagation() {
     // variables.  This stresses flow densification rather than initial
     // density.  Sparse/graded representations may win early, while a full
     // multivariate Taylor model becomes relevant as mixed terms accumulate.
-    auto x=ValidatedScalarMultivariateFunction::coordinates(4);
+    auto x = ValidatedScalarMultivariateFunction::coordinates(4);
     /** @brief Perform the integration operation. */
-    ValidatedVectorMultivariateFunction f({
-        x[1]+x[0]*x[1],
-        x[2]+x[1]*x[2],
-        x[3]+x[2]*x[3],
-        -x[0]+x[3]*x[0]
-    });
-    return {"polynomial_low_4d_sparse_strong_propagation",f,box4(),{
-        4u,
-        AlgebraicClass::Polynomial,
-        2u,
-        Sparsity::Sparse,
-        CouplingStrength::Strong,
-        CouplingStructure::Global,
-        FlowDegreeGrowth::Slow,
-        ScaleSeparation::Low,
-        Anisotropy::Moderate,
-        RotationShear::Moderate
-    }};
+    ValidatedVectorMultivariateFunction f({x[1] + x[0] * x[1],
+                                           x[2] + x[1] * x[2],
+                                           x[3] + x[2] * x[3],
+                                           -x[0] + x[3] * x[0]});
+    return {
+        "polynomial_low_4d_sparse_strong_propagation", f, box4(), {4u, AlgebraicClass::Polynomial, 2u, Sparsity::Sparse, CouplingStrength::Strong, CouplingStructure::Global, FlowDegreeGrowth::Slow, ScaleSeparation::Low, Anisotropy::Moderate, RotationShear::Moderate}
+    };
 }
 
 /** @brief Perform the integration operation. */
@@ -381,24 +303,13 @@ inline BenchmarkCase make_analytic_2d_dense() {
     // polynomial degree.  Picard/series-bounder approaches are expected to
     // be competitive when paired with Taylor models carrying interval
     // remainders.
-    auto x=ValidatedScalarMultivariateFunction::coordinates(2);
+    auto x = ValidatedScalarMultivariateFunction::coordinates(2);
     /** @brief Perform the integration operation. */
-    ValidatedVectorMultivariateFunction f({
-        sin(x[0])+exp(x[1])-1,
-        cos(x[1])+x[0]*x[1]-1
-    });
-    return {"analytic_2d_dense",f,box2(),{
-        2u,
-        AlgebraicClass::Analytic,
-        std::nullopt,
-        Sparsity::Dense,
-        CouplingStrength::Strong,
-        CouplingStructure::Bidirectional,
-        FlowDegreeGrowth::Unbounded,
-        ScaleSeparation::Low,
-        Anisotropy::Moderate,
-        RotationShear::Moderate
-    }};
+    ValidatedVectorMultivariateFunction f({sin(x[0]) + exp(x[1]) - 1,
+                                           cos(x[1]) + x[0] * x[1] - 1});
+    return {
+        "analytic_2d_dense", f, box2(), {2u, AlgebraicClass::Analytic, std::nullopt, Sparsity::Dense, CouplingStrength::Strong, CouplingStructure::Bidirectional, FlowDegreeGrowth::Unbounded, ScaleSeparation::Low, Anisotropy::Moderate, RotationShear::Moderate}
+    };
 }
 
 /** @brief Perform the integration operation. */
@@ -417,68 +328,64 @@ inline std::vector<BenchmarkCase> make_benchmark_library() {
 
 template<class T>
 inline bool matches_allowed_values(
-        const std::set<T>& allowed,
-        const T& actual)
-{
-    return allowed.empty() || allowed.find(actual)!=allowed.end();
+    const std::set<T>& allowed,
+    const T& actual) {
+    return allowed.empty() || allowed.find(actual) != allowed.end();
 }
 
 inline bool matches(
-        const BenchmarkCase& benchmark_case,
-        const BenchmarkSelector& selector)
-{
-    const auto& c=benchmark_case.characteristics;
+    const BenchmarkCase& benchmark_case,
+    const BenchmarkSelector& selector) {
+    const auto& c = benchmark_case.characteristics;
 
-    if(!matches_allowed_values(selector.dimensions,c.dimension)) {
+    if (!matches_allowed_values(selector.dimensions, c.dimension)) {
         return false;
     }
-    if(!matches_allowed_values(
-            selector.algebraic_classes,c.algebraic_class)) {
+    if (!matches_allowed_values(
+            selector.algebraic_classes, c.algebraic_class)) {
         return false;
     }
-    if(selector.polynomial_degree) {
-        if(!c.polynomial_degree
-                || !selector.polynomial_degree->contains(
-                    *c.polynomial_degree)) {
+    if (selector.polynomial_degree) {
+        if (!c.polynomial_degree || !selector.polynomial_degree->contains(
+                                        *c.polynomial_degree)) {
             return false;
         }
     }
-    if(!matches_allowed_values(selector.sparsities,c.sparsity)) {
+    if (!matches_allowed_values(selector.sparsities, c.sparsity)) {
         return false;
     }
-    if(!matches_allowed_values(
-            selector.coupling_strengths,c.coupling_strength)) {
+    if (!matches_allowed_values(
+            selector.coupling_strengths, c.coupling_strength)) {
         return false;
     }
-    if(!matches_allowed_values(
-            selector.coupling_structures,c.coupling_structure)) {
+    if (!matches_allowed_values(
+            selector.coupling_structures, c.coupling_structure)) {
         return false;
     }
-    if(!matches_allowed_values(
-            selector.flow_degree_growths,c.flow_degree_growth)) {
+    if (!matches_allowed_values(
+            selector.flow_degree_growths, c.flow_degree_growth)) {
         return false;
     }
-    if(!matches_allowed_values(
-            selector.scale_separations,c.scale_separation)) {
+    if (!matches_allowed_values(
+            selector.scale_separations, c.scale_separation)) {
         return false;
     }
-    if(!matches_allowed_values(selector.anisotropies,c.anisotropy)) {
+    if (!matches_allowed_values(selector.anisotropies, c.anisotropy)) {
         return false;
     }
-    if(!matches_allowed_values(
-            selector.rotation_shears,c.rotation_shear)) {
+    if (!matches_allowed_values(
+            selector.rotation_shears, c.rotation_shear)) {
         return false;
     }
     return true;
 }
 
 inline std::vector<BenchmarkCase> select_benchmark_cases(
-        const std::vector<BenchmarkCase>& library,
-        const BenchmarkSelector& selector)
-{
+    const std::vector<BenchmarkCase>& library,
+    const BenchmarkSelector& selector) {
     std::vector<BenchmarkCase> selected;
-    for(const auto& benchmark_case : library) {
-        if(matches(benchmark_case,selector)) {
+    for (const auto& benchmark_case: library) {
+        if (matches(benchmark_case, selector)) {
             selected.push_back(benchmark_case);
         }
     }
@@ -486,9 +393,8 @@ inline std::vector<BenchmarkCase> select_benchmark_cases(
 }
 
 inline std::vector<BenchmarkCase> make_cases(
-        const BenchmarkSelector& selector)
-{
-    return select_benchmark_cases(make_benchmark_library(),selector);
+    const BenchmarkSelector& selector) {
+    return select_benchmark_cases(make_benchmark_library(), selector);
 }
 
 /** @brief Perform the integration operation. */
@@ -498,177 +404,198 @@ inline std::vector<BenchmarkCase> make_cases() {
 
 /** @brief Perform the integration operation. */
 inline const char* characteristic_name(AlgebraicClass value) {
-    switch(value) {
-        case AlgebraicClass::Affine: return "affine";
-        case AlgebraicClass::Polynomial: return "polynomial";
-        case AlgebraicClass::Analytic: return "analytic";
-        default: return "unknown";
+    switch (value) {
+        case AlgebraicClass::Affine:
+            return "affine";
+        case AlgebraicClass::Polynomial:
+            return "polynomial";
+        case AlgebraicClass::Analytic:
+            return "analytic";
+        default:
+            return "unknown";
     }
 }
 
 /** @brief Perform the integration operation. */
 inline const char* characteristic_name(Sparsity value) {
-    switch(value) {
-        case Sparsity::Sparse: return "sparse";
-        case Sparsity::Intermediate: return "intermediate";
-        case Sparsity::Dense: return "dense";
-        default: return "unknown";
+    switch (value) {
+        case Sparsity::Sparse:
+            return "sparse";
+        case Sparsity::Intermediate:
+            return "intermediate";
+        case Sparsity::Dense:
+            return "dense";
+        default:
+            return "unknown";
     }
 }
 
 /** @brief Perform the integration operation. */
 inline const char* characteristic_name(CouplingStrength value) {
-    switch(value) {
-        case CouplingStrength::Weak: return "weak";
-        case CouplingStrength::Moderate: return "moderate";
-        case CouplingStrength::Strong: return "strong";
-        default: return "unknown";
+    switch (value) {
+        case CouplingStrength::Weak:
+            return "weak";
+        case CouplingStrength::Moderate:
+            return "moderate";
+        case CouplingStrength::Strong:
+            return "strong";
+        default:
+            return "unknown";
     }
 }
 
 /** @brief Perform the integration operation. */
 inline const char* characteristic_name(CouplingStructure value) {
-    switch(value) {
-        case CouplingStructure::Decoupled: return "decoupled";
-        case CouplingStructure::Directed: return "directed";
-        case CouplingStructure::Bidirectional: return "bidirectional";
-        case CouplingStructure::Global: return "global";
-        default: return "unknown";
+    switch (value) {
+        case CouplingStructure::Decoupled:
+            return "decoupled";
+        case CouplingStructure::Directed:
+            return "directed";
+        case CouplingStructure::Bidirectional:
+            return "bidirectional";
+        case CouplingStructure::Global:
+            return "global";
+        default:
+            return "unknown";
     }
 }
 
 /** @brief Perform the integration operation. */
 inline const char* characteristic_name(FlowDegreeGrowth value) {
-    switch(value) {
-        case FlowDegreeGrowth::None: return "none";
-        case FlowDegreeGrowth::Slow: return "slow";
-        case FlowDegreeGrowth::Moderate: return "moderate";
-        case FlowDegreeGrowth::Fast: return "fast";
-        case FlowDegreeGrowth::Unbounded: return "unbounded";
-        default: return "unknown";
+    switch (value) {
+        case FlowDegreeGrowth::None:
+            return "none";
+        case FlowDegreeGrowth::Slow:
+            return "slow";
+        case FlowDegreeGrowth::Moderate:
+            return "moderate";
+        case FlowDegreeGrowth::Fast:
+            return "fast";
+        case FlowDegreeGrowth::Unbounded:
+            return "unbounded";
+        default:
+            return "unknown";
     }
 }
 
 /** @brief Perform the integration operation. */
 inline const char* characteristic_name(ScaleSeparation value) {
-    switch(value) {
-        case ScaleSeparation::Low: return "low";
-        case ScaleSeparation::Moderate: return "moderate";
-        case ScaleSeparation::High: return "high";
-        default: return "unknown";
+    switch (value) {
+        case ScaleSeparation::Low:
+            return "low";
+        case ScaleSeparation::Moderate:
+            return "moderate";
+        case ScaleSeparation::High:
+            return "high";
+        default:
+            return "unknown";
     }
 }
 
 /** @brief Perform the integration operation. */
 inline const char* characteristic_name(Anisotropy value) {
-    switch(value) {
-        case Anisotropy::Low: return "low";
-        case Anisotropy::Moderate: return "moderate";
-        case Anisotropy::High: return "high";
-        default: return "unknown";
+    switch (value) {
+        case Anisotropy::Low:
+            return "low";
+        case Anisotropy::Moderate:
+            return "moderate";
+        case Anisotropy::High:
+            return "high";
+        default:
+            return "unknown";
     }
 }
 
 /** @brief Perform the integration operation. */
 inline const char* characteristic_name(RotationShear value) {
-    switch(value) {
-        case RotationShear::Low: return "low";
-        case RotationShear::Moderate: return "moderate";
-        case RotationShear::High: return "high";
-        default: return "unknown";
+    switch (value) {
+        case RotationShear::Low:
+            return "low";
+        case RotationShear::Moderate:
+            return "moderate";
+        case RotationShear::High:
+            return "high";
+        default:
+            return "unknown";
     }
 }
 
 /** @brief Perform the integration operation. */
 inline std::string describe(const BenchmarkCase& benchmark_case) {
-    const auto& c=benchmark_case.characteristics;
+    const auto& c = benchmark_case.characteristics;
     std::ostringstream stream;
     stream
-        <<"dimension="<<c.dimension
-        <<", class="<<characteristic_name(c.algebraic_class)
-        <<", degree=";
-    if(c.polynomial_degree) {
-        stream<<*c.polynomial_degree;
+        << "dimension=" << c.dimension
+        << ", class=" << characteristic_name(c.algebraic_class)
+        << ", degree=";
+    if (c.polynomial_degree) {
+        stream << *c.polynomial_degree;
     } else {
-        stream<<"n/a";
+        stream << "n/a";
     }
     stream
-        <<", sparsity="<<characteristic_name(c.sparsity)
-        <<", coupling-strength="<<characteristic_name(c.coupling_strength)
-        <<", coupling-structure="<<characteristic_name(c.coupling_structure)
-        <<", flow-growth="<<characteristic_name(c.flow_degree_growth)
-        <<", scale-separation="<<characteristic_name(c.scale_separation)
-        <<", anisotropy="<<characteristic_name(c.anisotropy)
-        <<", rotation-shear="<<characteristic_name(c.rotation_shear);
+        << ", sparsity=" << characteristic_name(c.sparsity)
+        << ", coupling-strength=" << characteristic_name(c.coupling_strength)
+        << ", coupling-structure=" << characteristic_name(c.coupling_structure)
+        << ", flow-growth=" << characteristic_name(c.flow_degree_growth)
+        << ", scale-separation=" << characteristic_name(c.scale_separation)
+        << ", anisotropy=" << characteristic_name(c.anisotropy)
+        << ", rotation-shear=" << characteristic_name(c.rotation_shear);
     return stream.str();
 }
 
 inline void print_benchmark_cases(
-        const std::vector<BenchmarkCase>& cases)
-{
-    std::cout<<"Benchmark cases\n";
-    for(const auto& benchmark_case : cases) {
+    const std::vector<BenchmarkCase>& cases) {
+    std::cout << "Benchmark cases\n";
+    for (const auto& benchmark_case: cases) {
         std::cout
-            <<benchmark_case.name<<"\n"
-            <<"  "<<describe(benchmark_case)<<"\n";
+            << benchmark_case.name << "\n"
+            << "  " << describe(benchmark_case) << "\n";
     }
 }
 
 /** @brief Perform the integration operation. */
 inline std::vector<NamedIntegrator> make_all_integrators(double step_error) {
-    constexpr DegreeType order_value=8;
+    constexpr DegreeType order_value = 8;
 
     std::vector<NamedIntegrator> integrators;
-    integrators.push_back({
-        "taylor-picard",
-        "TaylorPicardIntegrator",
-        std::make_unique<TaylorPicardIntegrator>(StepMaximumError(step_error))
-    });
-    integrators.push_back({
-        "graded-taylor-picard",
-        "GradedTaylorPicardIntegrator",
-        std::make_unique<GradedTaylorPicardIntegrator>(
-            StepMaximumError(step_error),Order(order_value))
-    });
-    integrators.push_back({
-        "taylor-series",
-        "TaylorSeriesIntegrator",
-        std::make_unique<TaylorSeriesIntegrator>(
-            StepMaximumError(step_error),Order(order_value))
-    });
-    integrators.push_back({
-        "taylor-series-bounder",
-        "TaylorSeriesBounderIntegrator",
-        std::make_unique<TaylorSeriesBounderIntegrator>(
-            StepMaximumError(step_error),Order(order_value))
-    });
-    integrators.push_back({
-        "graded-taylor-series",
-        "GradedTaylorSeriesIntegrator",
-        std::make_unique<GradedTaylorSeriesIntegrator>(
-            StepMaximumError(step_error))
-    });
-    integrators.push_back({
-        "preconditioned-graded-taylor-series",
-        "PreconditionedGradedTaylorSeriesIntegrator",
-        std::make_unique<PreconditionedGradedTaylorSeriesIntegrator>(
-            StepMaximumError(step_error))
-    });
+    integrators.push_back({"taylor-picard",
+                           "TaylorPicardIntegrator",
+                           std::make_unique<TaylorPicardIntegrator>(StepMaximumError(step_error))});
+    integrators.push_back({"graded-taylor-picard",
+                           "GradedTaylorPicardIntegrator",
+                           std::make_unique<GradedTaylorPicardIntegrator>(
+                               StepMaximumError(step_error), Order(order_value))});
+    integrators.push_back({"taylor-series",
+                           "TaylorSeriesIntegrator",
+                           std::make_unique<TaylorSeriesIntegrator>(
+                               StepMaximumError(step_error), Order(order_value))});
+    integrators.push_back({"taylor-series-bounder",
+                           "TaylorSeriesBounderIntegrator",
+                           std::make_unique<TaylorSeriesBounderIntegrator>(
+                               StepMaximumError(step_error), Order(order_value))});
+    integrators.push_back({"graded-taylor-series",
+                           "GradedTaylorSeriesIntegrator",
+                           std::make_unique<GradedTaylorSeriesIntegrator>(
+                               StepMaximumError(step_error))});
+    integrators.push_back({"preconditioned-graded-taylor-series",
+                           "PreconditionedGradedTaylorSeriesIntegrator",
+                           std::make_unique<PreconditionedGradedTaylorSeriesIntegrator>(
+                               StepMaximumError(step_error))});
     return integrators;
 }
 
 inline std::vector<NamedIntegrator> select_integrators(
-        const std::string& selection,
-        double step_error)
-{
-    auto all=make_all_integrators(step_error);
-    if(selection=="all") {
+    const std::string& selection,
+    double step_error) {
+    auto all = make_all_integrators(step_error);
+    if (selection == "all") {
         return all;
     }
 
     std::vector<NamedIntegrator> selected;
-    for(auto& named_integrator : all) {
-        if(named_integrator.key==selection) {
+    for (auto& named_integrator: all) {
+        if (named_integrator.key == selection) {
             selected.push_back(std::move(named_integrator));
             return selected;
         }
@@ -677,7 +604,7 @@ inline std::vector<NamedIntegrator> select_integrators(
     std::cerr << "Unknown integrator '" << selection << "'.\n";
     std::cerr << "Available integrators:\n";
     std::cerr << "  all\n";
-    for(const auto& named_integrator : all) {
+    for (const auto& named_integrator: all) {
         std::cerr << "  " << named_integrator.key << "\n";
     }
     /** @brief Perform the integration operation. */
@@ -686,189 +613,203 @@ inline std::vector<NamedIntegrator> select_integrators(
 
 /** @brief Return the requested integration parameter or result. */
 inline bool is_integrator_selection(const std::string& value) {
-    return value=="all"
-        || value=="taylor-picard"
-        || value=="graded-taylor-picard"
-        || value=="taylor-series"
-        || value=="taylor-series-bounder"
-        || value=="graded-taylor-series"
-        || value=="preconditioned-graded-taylor-series";
+    return value == "all" || value == "taylor-picard" || value == "graded-taylor-picard" || value == "taylor-series" || value == "taylor-series-bounder" || value == "graded-taylor-series" || value == "preconditioned-graded-taylor-series";
 }
 
 inline std::vector<std::string> split_selector_values(
-        const std::string& values)
-{
-    if(values.empty()) {
+    const std::string& values) {
+    if (values.empty()) {
         throw std::runtime_error("Empty benchmark selector value.");
     }
 
     std::vector<std::string> result;
-    std::size_t begin=0u;
-    while(begin<=values.size()) {
-        const std::size_t end=values.find(',',begin);
-        const std::string value=values.substr(
+    std::size_t begin = 0u;
+    while (begin <= values.size()) {
+        const std::size_t end = values.find(',', begin);
+        const std::string value = values.substr(
             begin,
-            end==std::string::npos
+            end == std::string::npos
                 ? std::string::npos
-                : end-begin);
-        if(value.empty()) {
+                : end - begin);
+        if (value.empty()) {
             throw std::runtime_error(
                 "Empty value in benchmark selector list.");
         }
         result.push_back(value);
-        if(end==std::string::npos) {
+        if (end == std::string::npos) {
             break;
         }
-        begin=end+1u;
+        begin = end + 1u;
     }
     return result;
 }
 
 /** @brief Perform the integration operation. */
 inline Nat parse_selector_nat(const std::string& value) {
-    if(value.empty() || value[0]=='-') {
+    if (value.empty() || value[0] == '-') {
         throw std::runtime_error(
-            "Expected a non-negative integer, got '"+value+"'.");
+            "Expected a non-negative integer, got '" + value + "'.");
     }
 
-    std::size_t consumed=0u;
-    const unsigned long parsed=std::stoul(value,&consumed);
-    if(consumed!=value.size()) {
+    std::size_t consumed = 0u;
+    const unsigned long parsed = std::stoul(value, &consumed);
+    if (consumed != value.size()) {
         throw std::runtime_error(
-            "Expected a non-negative integer, got '"+value+"'.");
+            "Expected a non-negative integer, got '" + value + "'.");
     }
     return static_cast<Nat>(parsed);
 }
 
 /** @brief Perform the integration operation. */
 inline DegreeRange parse_degree_range(const std::string& value) {
-    const std::size_t separator=value.find(':');
-    if(separator==std::string::npos) {
-        const Nat polynomial_degree_value=parse_selector_nat(value);
-        return {polynomial_degree_value,polynomial_degree_value};
+    const std::size_t separator = value.find(':');
+    if (separator == std::string::npos) {
+        const Nat polynomial_degree_value = parse_selector_nat(value);
+        return {polynomial_degree_value, polynomial_degree_value};
     }
-    if(value.find(':',separator+1u)!=std::string::npos) {
+    if (value.find(':', separator + 1u) != std::string::npos) {
         throw std::runtime_error(
-            "Invalid degree range '"+value+"'.");
+            "Invalid degree range '" + value + "'.");
     }
 
-    const std::string minimum=value.substr(0u,separator);
-    const std::string maximum=value.substr(separator+1u);
-    if(minimum.empty() && maximum.empty()) {
+    const std::string minimum = value.substr(0u, separator);
+    const std::string maximum = value.substr(separator + 1u);
+    if (minimum.empty() && maximum.empty()) {
         throw std::runtime_error(
             "Degree range ':' does not restrict the degree.");
     }
 
     DegreeRange range;
-    if(!minimum.empty()) {
-        range.minimum=parse_selector_nat(minimum);
+    if (!minimum.empty()) {
+        range.minimum = parse_selector_nat(minimum);
     }
-    if(!maximum.empty()) {
-        range.maximum=parse_selector_nat(maximum);
+    if (!maximum.empty()) {
+        range.maximum = parse_selector_nat(maximum);
     }
-    if(range.minimum && range.maximum
-            && *range.minimum>*range.maximum) {
+    if (range.minimum && range.maximum && *range.minimum > *range.maximum) {
         throw std::runtime_error(
-            "Degree range minimum exceeds maximum in '"+value+"'.");
+            "Degree range minimum exceeds maximum in '" + value + "'.");
     }
     return range;
 }
 
 /** @brief Perform the integration operation. */
 inline AlgebraicClass parse_algebraic_class(const std::string& value) {
-    if(value=="affine") return AlgebraicClass::Affine;
-    if(value=="polynomial") return AlgebraicClass::Polynomial;
-    if(value=="analytic") return AlgebraicClass::Analytic;
+    if (value == "affine")
+        return AlgebraicClass::Affine;
+    if (value == "polynomial")
+        return AlgebraicClass::Polynomial;
+    if (value == "analytic")
+        return AlgebraicClass::Analytic;
     throw std::runtime_error(
-        "Unknown algebraic class '"+value+"'.");
+        "Unknown algebraic class '" + value + "'.");
 }
 
 /** @brief Perform the integration operation. */
 inline Sparsity parse_sparsity(const std::string& value) {
-    if(value=="sparse") return Sparsity::Sparse;
-    if(value=="intermediate") return Sparsity::Intermediate;
-    if(value=="dense") return Sparsity::Dense;
-    throw std::runtime_error("Unknown sparsity '"+value+"'.");
+    if (value == "sparse")
+        return Sparsity::Sparse;
+    if (value == "intermediate")
+        return Sparsity::Intermediate;
+    if (value == "dense")
+        return Sparsity::Dense;
+    throw std::runtime_error("Unknown sparsity '" + value + "'.");
 }
 
 inline CouplingStrength parse_coupling_strength(
-        const std::string& value)
-{
-    if(value=="weak") return CouplingStrength::Weak;
-    if(value=="moderate") return CouplingStrength::Moderate;
-    if(value=="strong") return CouplingStrength::Strong;
+    const std::string& value) {
+    if (value == "weak")
+        return CouplingStrength::Weak;
+    if (value == "moderate")
+        return CouplingStrength::Moderate;
+    if (value == "strong")
+        return CouplingStrength::Strong;
     throw std::runtime_error(
-        "Unknown coupling strength '"+value+"'.");
+        "Unknown coupling strength '" + value + "'.");
 }
 
 inline CouplingStructure parse_coupling_structure(
-        const std::string& value)
-{
-    if(value=="decoupled") return CouplingStructure::Decoupled;
-    if(value=="directed") return CouplingStructure::Directed;
-    if(value=="bidirectional") return CouplingStructure::Bidirectional;
-    if(value=="global") return CouplingStructure::Global;
+    const std::string& value) {
+    if (value == "decoupled")
+        return CouplingStructure::Decoupled;
+    if (value == "directed")
+        return CouplingStructure::Directed;
+    if (value == "bidirectional")
+        return CouplingStructure::Bidirectional;
+    if (value == "global")
+        return CouplingStructure::Global;
     throw std::runtime_error(
-        "Unknown coupling structure '"+value+"'.");
+        "Unknown coupling structure '" + value + "'.");
 }
 
 inline FlowDegreeGrowth parse_flow_degree_growth(
-        const std::string& value)
-{
-    if(value=="none") return FlowDegreeGrowth::None;
-    if(value=="slow") return FlowDegreeGrowth::Slow;
-    if(value=="moderate") return FlowDegreeGrowth::Moderate;
-    if(value=="fast") return FlowDegreeGrowth::Fast;
-    if(value=="unbounded") return FlowDegreeGrowth::Unbounded;
+    const std::string& value) {
+    if (value == "none")
+        return FlowDegreeGrowth::None;
+    if (value == "slow")
+        return FlowDegreeGrowth::Slow;
+    if (value == "moderate")
+        return FlowDegreeGrowth::Moderate;
+    if (value == "fast")
+        return FlowDegreeGrowth::Fast;
+    if (value == "unbounded")
+        return FlowDegreeGrowth::Unbounded;
     throw std::runtime_error(
-        "Unknown flow-degree growth '"+value+"'.");
+        "Unknown flow-degree growth '" + value + "'.");
 }
 
 inline ScaleSeparation parse_scale_separation(
-        const std::string& value)
-{
-    if(value=="low") return ScaleSeparation::Low;
-    if(value=="moderate") return ScaleSeparation::Moderate;
-    if(value=="high") return ScaleSeparation::High;
+    const std::string& value) {
+    if (value == "low")
+        return ScaleSeparation::Low;
+    if (value == "moderate")
+        return ScaleSeparation::Moderate;
+    if (value == "high")
+        return ScaleSeparation::High;
     throw std::runtime_error(
-        "Unknown scale separation '"+value+"'.");
+        "Unknown scale separation '" + value + "'.");
 }
 
 /** @brief Perform the integration operation. */
 inline Anisotropy parse_anisotropy(const std::string& value) {
-    if(value=="low") return Anisotropy::Low;
-    if(value=="moderate") return Anisotropy::Moderate;
-    if(value=="high") return Anisotropy::High;
+    if (value == "low")
+        return Anisotropy::Low;
+    if (value == "moderate")
+        return Anisotropy::Moderate;
+    if (value == "high")
+        return Anisotropy::High;
     throw std::runtime_error(
-        "Unknown anisotropy '"+value+"'.");
+        "Unknown anisotropy '" + value + "'.");
 }
 
 /** @brief Perform the integration operation. */
 inline RotationShear parse_rotation_shear(const std::string& value) {
-    if(value=="low") return RotationShear::Low;
-    if(value=="moderate") return RotationShear::Moderate;
-    if(value=="high") return RotationShear::High;
+    if (value == "low")
+        return RotationShear::Low;
+    if (value == "moderate")
+        return RotationShear::Moderate;
+    if (value == "high")
+        return RotationShear::High;
     throw std::runtime_error(
-        "Unknown rotation/shear '"+value+"'.");
+        "Unknown rotation/shear '" + value + "'.");
 }
 
 inline List<ArgumentParser> make_benchmark_argument_parsers(
-        BenchmarkCommandLineSelection& selection)
-{
+    BenchmarkCommandLineSelection& selection) {
     List<ArgumentParser> parsers;
 
     parsers.append(make_valued_argument_parser(
         "",
         "integrator",
         "Choose the integrator or 'all'",
-        [&selection](String const& value) -> VoidFunction {
-            const std::string parsed=value;
-            if(!is_integrator_selection(parsed)) {
+        [&selection](const String& value) -> VoidFunction {
+            const std::string parsed = value;
+            if (!is_integrator_selection(parsed)) {
                 throw std::runtime_error(
-                    "Unknown integrator '"+parsed+"'.");
+                    "Unknown integrator '" + parsed + "'.");
             }
-            return [&selection,parsed] {
-                selection.integrator=parsed;
+            return [&selection, parsed] {
+                selection.integrator = parsed;
             };
         }));
 
@@ -877,21 +818,21 @@ inline List<ArgumentParser> make_benchmark_argument_parsers(
         "list-cases",
         "List benchmark cases selected by the filters",
         [&selection] {
-            selection.list_cases=true;
+            selection.list_cases = true;
         }));
 
     parsers.append(make_valued_argument_parser(
         "",
         "dimension",
         "Select dimensions as a comma-separated list, e.g. 2,4",
-        [&selection](String const& value) -> VoidFunction {
+        [&selection](const String& value) -> VoidFunction {
             std::set<Nat> parsed;
-            for(const auto& item : split_selector_values(value)) {
+            for (const auto& item: split_selector_values(value)) {
                 parsed.insert(parse_selector_nat(item));
             }
-            return [&selection,parsed] {
+            return [&selection, parsed] {
                 selection.benchmarks.dimensions.insert(
-                    parsed.begin(),parsed.end());
+                    parsed.begin(), parsed.end());
             };
         }));
 
@@ -899,14 +840,14 @@ inline List<ArgumentParser> make_benchmark_argument_parsers(
         "",
         "class",
         "Select algebraic classes: affine, polynomial, analytic",
-        [&selection](String const& value) -> VoidFunction {
+        [&selection](const String& value) -> VoidFunction {
             std::set<AlgebraicClass> parsed;
-            for(const auto& item : split_selector_values(value)) {
+            for (const auto& item: split_selector_values(value)) {
                 parsed.insert(parse_algebraic_class(item));
             }
-            return [&selection,parsed] {
+            return [&selection, parsed] {
                 selection.benchmarks.algebraic_classes.insert(
-                    parsed.begin(),parsed.end());
+                    parsed.begin(), parsed.end());
             };
         }));
 
@@ -914,10 +855,10 @@ inline List<ArgumentParser> make_benchmark_argument_parsers(
         "",
         "degree",
         "Select polynomial degree range: N, N:M, N:, or :M",
-        [&selection](String const& value) -> VoidFunction {
-            const DegreeRange parsed=parse_degree_range(value);
-            return [&selection,parsed] {
-                selection.benchmarks.polynomial_degree=parsed;
+        [&selection](const String& value) -> VoidFunction {
+            const DegreeRange parsed = parse_degree_range(value);
+            return [&selection, parsed] {
+                selection.benchmarks.polynomial_degree = parsed;
             };
         }));
 
@@ -925,14 +866,14 @@ inline List<ArgumentParser> make_benchmark_argument_parsers(
         "",
         "sparsity",
         "Select sparsity: sparse, intermediate, dense",
-        [&selection](String const& value) -> VoidFunction {
+        [&selection](const String& value) -> VoidFunction {
             std::set<Sparsity> parsed;
-            for(const auto& item : split_selector_values(value)) {
+            for (const auto& item: split_selector_values(value)) {
                 parsed.insert(parse_sparsity(item));
             }
-            return [&selection,parsed] {
+            return [&selection, parsed] {
                 selection.benchmarks.sparsities.insert(
-                    parsed.begin(),parsed.end());
+                    parsed.begin(), parsed.end());
             };
         }));
 
@@ -940,14 +881,14 @@ inline List<ArgumentParser> make_benchmark_argument_parsers(
         "",
         "coupling-strength",
         "Select coupling strength: weak, moderate, strong",
-        [&selection](String const& value) -> VoidFunction {
+        [&selection](const String& value) -> VoidFunction {
             std::set<CouplingStrength> parsed;
-            for(const auto& item : split_selector_values(value)) {
+            for (const auto& item: split_selector_values(value)) {
                 parsed.insert(parse_coupling_strength(item));
             }
-            return [&selection,parsed] {
+            return [&selection, parsed] {
                 selection.benchmarks.coupling_strengths.insert(
-                    parsed.begin(),parsed.end());
+                    parsed.begin(), parsed.end());
             };
         }));
 
@@ -955,14 +896,14 @@ inline List<ArgumentParser> make_benchmark_argument_parsers(
         "",
         "coupling-structure",
         "Select coupling structure: decoupled, directed, bidirectional, global",
-        [&selection](String const& value) -> VoidFunction {
+        [&selection](const String& value) -> VoidFunction {
             std::set<CouplingStructure> parsed;
-            for(const auto& item : split_selector_values(value)) {
+            for (const auto& item: split_selector_values(value)) {
                 parsed.insert(parse_coupling_structure(item));
             }
-            return [&selection,parsed] {
+            return [&selection, parsed] {
                 selection.benchmarks.coupling_structures.insert(
-                    parsed.begin(),parsed.end());
+                    parsed.begin(), parsed.end());
             };
         }));
 
@@ -970,14 +911,14 @@ inline List<ArgumentParser> make_benchmark_argument_parsers(
         "",
         "flow-growth",
         "Select flow-degree growth: none, slow, moderate, fast, unbounded",
-        [&selection](String const& value) -> VoidFunction {
+        [&selection](const String& value) -> VoidFunction {
             std::set<FlowDegreeGrowth> parsed;
-            for(const auto& item : split_selector_values(value)) {
+            for (const auto& item: split_selector_values(value)) {
                 parsed.insert(parse_flow_degree_growth(item));
             }
-            return [&selection,parsed] {
+            return [&selection, parsed] {
                 selection.benchmarks.flow_degree_growths.insert(
-                    parsed.begin(),parsed.end());
+                    parsed.begin(), parsed.end());
             };
         }));
 
@@ -985,14 +926,14 @@ inline List<ArgumentParser> make_benchmark_argument_parsers(
         "",
         "scale-separation",
         "Select scale separation: low, moderate, high",
-        [&selection](String const& value) -> VoidFunction {
+        [&selection](const String& value) -> VoidFunction {
             std::set<ScaleSeparation> parsed;
-            for(const auto& item : split_selector_values(value)) {
+            for (const auto& item: split_selector_values(value)) {
                 parsed.insert(parse_scale_separation(item));
             }
-            return [&selection,parsed] {
+            return [&selection, parsed] {
                 selection.benchmarks.scale_separations.insert(
-                    parsed.begin(),parsed.end());
+                    parsed.begin(), parsed.end());
             };
         }));
 
@@ -1000,14 +941,14 @@ inline List<ArgumentParser> make_benchmark_argument_parsers(
         "",
         "anisotropy",
         "Select anisotropy: low, moderate, high",
-        [&selection](String const& value) -> VoidFunction {
+        [&selection](const String& value) -> VoidFunction {
             std::set<Anisotropy> parsed;
-            for(const auto& item : split_selector_values(value)) {
+            for (const auto& item: split_selector_values(value)) {
                 parsed.insert(parse_anisotropy(item));
             }
-            return [&selection,parsed] {
+            return [&selection, parsed] {
                 selection.benchmarks.anisotropies.insert(
-                    parsed.begin(),parsed.end());
+                    parsed.begin(), parsed.end());
             };
         }));
 
@@ -1015,14 +956,14 @@ inline List<ArgumentParser> make_benchmark_argument_parsers(
         "",
         "rotation-shear",
         "Select rotation/shear: low, moderate, high",
-        [&selection](String const& value) -> VoidFunction {
+        [&selection](const String& value) -> VoidFunction {
             std::set<RotationShear> parsed;
-            for(const auto& item : split_selector_values(value)) {
+            for (const auto& item: split_selector_values(value)) {
                 parsed.insert(parse_rotation_shear(item));
             }
-            return [&selection,parsed] {
+            return [&selection, parsed] {
                 selection.benchmarks.rotation_shears.insert(
-                    parsed.begin(),parsed.end());
+                    parsed.begin(), parsed.end());
             };
         }));
 

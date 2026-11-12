@@ -26,51 +26,48 @@
  *  @brief Implement runge kutta integrator operations.
  */
 
-#include "utility/standard.hpp"
-#include <iostream>
-
 #include "integration/runge_kutta_integrator.hpp"
 
-#include "utility/container.hpp"
-#include "numeric/numeric.hpp"
-#include "algebra/vector.hpp"
+#include <iostream>
+
 #include "algebra/algebra.hpp"
+#include "algebra/vector.hpp"
+#include "function/formula.hpp"
 #include "function/function.hpp"
 #include "function/taylor_model.hpp"
-#include "function/formula.hpp"
+#include "numeric/numeric.hpp"
+#include "utility/container.hpp"
+#include "utility/standard.hpp"
 
 namespace Ariadne {
 
 RungeKutta4Integrator::RungeKutta4Integrator(ApproximateDouble step_size)
-    : _step_size(step_size)
-{
+    : _step_size(step_size) {
 }
 
 FloatDPApproximationVector
-RungeKutta4Integrator::step(const ApproximateVectorMultivariateFunction& f, const FloatDPApproximationVector& x, const FloatDPApproximation& h) const
-{
-    FloatDPApproximationVector k1=f(x);
-    FloatDPApproximationVector k2=f(FloatDPApproximationVector(x+(h/2)*k1));
-    FloatDPApproximationVector k3=f(FloatDPApproximationVector(x+(h/2)*k2));
-    FloatDPApproximationVector k4=f(FloatDPApproximationVector(x+h*k3));
-    //std::cerr<<"k1,2,3,4="<<k1<<k2<<k3<<k4<<"\n";
-    return x+(h/6)*(k1+2.0*k2+2.0*k3+k4);
+    RungeKutta4Integrator::step(const ApproximateVectorMultivariateFunction& f, const FloatDPApproximationVector& x, const FloatDPApproximation& h) const {
+    FloatDPApproximationVector k1 = f(x);
+    FloatDPApproximationVector k2 = f(FloatDPApproximationVector(x + (h / 2) * k1));
+    FloatDPApproximationVector k3 = f(FloatDPApproximationVector(x + (h / 2) * k2));
+    FloatDPApproximationVector k4 = f(FloatDPApproximationVector(x + h * k3));
+    // std::cerr<<"k1,2,3,4="<<k1<<k2<<k3<<k4<<"\n";
+    return x + (h / 6) * (k1 + 2.0 * k2 + 2.0 * k3 + k4);
 }
 
-List< Pair<FloatDPApproximation,FloatDPApproximationVector> >
-RungeKutta4Integrator::evolve(const ApproximateVectorMultivariateFunction& f, const FloatDPApproximationVector& x0, const FloatDPApproximation& tmax) const
-{
-    const FloatDPApproximation h(this->_step_size,dp);
+List<Pair<FloatDPApproximation, FloatDPApproximationVector> >
+    RungeKutta4Integrator::evolve(const ApproximateVectorMultivariateFunction& f, const FloatDPApproximationVector& x0, const FloatDPApproximation& tmax) const {
+    const FloatDPApproximation h(this->_step_size, dp);
 
-    List< Pair<FloatDPApproximation,FloatDPApproximationVector> > res;
-    FloatDPApproximation t(0.0,dp);
-    FloatDPApproximationVector x=x0;
+    List<Pair<FloatDPApproximation, FloatDPApproximationVector> > res;
+    FloatDPApproximation t(0.0, dp);
+    FloatDPApproximationVector x = x0;
 
-    res.push_back(make_pair(t,x));
-    while(decide(t<tmax)) {
-        x=this->step(f,x,h);
-        t+=h;
-        res.push_back(make_pair(t,x));
+    res.push_back(make_pair(t, x));
+    while (decide(t < tmax)) {
+        x = this->step(f, x, h);
+        t += h;
+        res.push_back(make_pair(t, x));
     }
     return res;
 }

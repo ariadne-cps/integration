@@ -27,116 +27,117 @@
  */
 
 #include "bounder.hpp"
+
 #include "function/formula.hpp"
 #include "function/taylor_model.hpp"
 
 namespace Ariadne {
 
 BounderBase::BounderBase(LipschitzTolerance lipschitz, MinimumStepSize minimum_step)
-    : _lipschitz_tolerance(lipschitz), _minimum_step_size(minimum_step) { }
+    : _lipschitz_tolerance(lipschitz), _minimum_step_size(minimum_step) {}
 
-Pair<StepSizeType,UpperBoxType> BounderBase::compute(ValidatedVectorMultivariateFunction const& f, BoxDomainType const& D, Suggestion<StepSizeType> const& hsug) const {
-    return this->compute(f,D,BoxDomainType(0u),hsug);
+Pair<StepSizeType, UpperBoxType> BounderBase::compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const Suggestion<StepSizeType>& hsug) const {
+    return this->compute(f, D, BoxDomainType(0u), hsug);
 }
 
-Pair<StepSizeType,UpperBoxType> BounderBase::compute(ValidatedVectorMultivariateFunction const& f, BoxDomainType const& D, StepSizeType const& t, Suggestion<StepSizeType> const& hsug) const {
-    return this->compute(f,D,t,BoxDomainType(0u),hsug);
+Pair<StepSizeType, UpperBoxType> BounderBase::compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const StepSizeType& t, const Suggestion<StepSizeType>& hsug) const {
+    return this->compute(f, D, t, BoxDomainType(0u), hsug);
 }
 
-EulerBounder::EulerBounder(LipschitzTolerance lipschitz, MinimumStepSize minimum_step) : BounderBase(lipschitz,minimum_step) { }
+EulerBounder::EulerBounder(LipschitzTolerance lipschitz, MinimumStepSize minimum_step) : BounderBase(lipschitz, minimum_step) {}
 
-Pair<StepSizeType,UpperBoxType> EulerBounder::compute(ValidatedVectorMultivariateFunction const& f, BoxDomainType const& D, BoxDomainType const& A, Suggestion<StepSizeType> const& hsug) const {
-    ARIADNE_PRECONDITION(f.result_size()==D.dimension());
-    ARIADNE_PRECONDITION(f.argument_size()==D.dimension()+A.dimension());
-    return this->_compute(f,D,0,A,hsug);
+Pair<StepSizeType, UpperBoxType> EulerBounder::compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const BoxDomainType& A, const Suggestion<StepSizeType>& hsug) const {
+    ARIADNE_PRECONDITION(f.result_size() == D.dimension());
+    ARIADNE_PRECONDITION(f.argument_size() == D.dimension() + A.dimension());
+    return this->_compute(f, D, 0, A, hsug);
 }
 
-Pair<StepSizeType,UpperBoxType> EulerBounder::compute(ValidatedVectorMultivariateFunction const& f, BoxDomainType const& D, StepSizeType const& t, BoxDomainType const& A, Suggestion<StepSizeType> const& hsug) const {
-    ARIADNE_PRECONDITION(f.result_size()==D.dimension());
-    ARIADNE_PRECONDITION(f.argument_size()==D.dimension()+1u+A.dimension());
-    return this->_compute(f,D,t,A,hsug);
+Pair<StepSizeType, UpperBoxType> EulerBounder::compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const StepSizeType& t, const BoxDomainType& A, const Suggestion<StepSizeType>& hsug) const {
+    ARIADNE_PRECONDITION(f.result_size() == D.dimension());
+    ARIADNE_PRECONDITION(f.argument_size() == D.dimension() + 1u + A.dimension());
+    return this->_compute(f, D, t, A, hsug);
 }
 
-Pair<StepSizeType,UpperBoxType> EulerBounder::_compute(ValidatedVectorMultivariateFunction const& f, BoxDomainType const& D, StepSizeType const& t, BoxDomainType const& A, Suggestion<StepSizeType> const& hsug) const {
+Pair<StepSizeType, UpperBoxType> EulerBounder::_compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const StepSizeType& t, const BoxDomainType& A, const Suggestion<StepSizeType>& hsug) const {
     LOGGING_SCOPE_CREATE;
-    const PositiveFloatDP BOX_RADIUS_WIDENING=cast_positive(0.25_exact);
-    const PositiveFloatDP NO_WIDENING=cast_positive(1.0_exact);
-    const PositiveFloatDP INITIAL_STARTING_WIDENING=cast_positive(2.0_exact);
-    const PositiveFloatDP INITIAL_REFINING_WIDENING=cast_positive(1.125_exact);
-    const StepSizeType MINIMUM_STEP_SIZE(1,20u);
-    const CounterType EXPANSION_STEPS=4;
-    const CounterType REFINEMENT_STEPS=4;
+    const PositiveFloatDP BOX_RADIUS_WIDENING = cast_positive(0.25_exact);
+    const PositiveFloatDP NO_WIDENING = cast_positive(1.0_exact);
+    const PositiveFloatDP INITIAL_STARTING_WIDENING = cast_positive(2.0_exact);
+    const PositiveFloatDP INITIAL_REFINING_WIDENING = cast_positive(1.125_exact);
+    const StepSizeType MINIMUM_STEP_SIZE(1, 20u);
+    const CounterType EXPANSION_STEPS = 4;
+    const CounterType REFINEMENT_STEPS = 4;
 
-    StepSizeType h=hsug.suggestion();
+    StepSizeType h = hsug.suggestion();
 
-    FloatDPUpperBound lipschitz = norm(f.jacobian(Vector<FloatDPBounds>(cast_singleton(product(D,to_time_bounds(t,t+h),A))))).upper();
-    StepSizeType hlip = static_cast<StepSizeType>(cast_exact(this->_lipschitz_tolerance.value()/lipschitz));
-    h=min(hlip,h);
-    LOGGING_PRINTLN("min(hlip,h)="<<h);
+    FloatDPUpperBound lipschitz = norm(f.jacobian(Vector<FloatDPBounds>(cast_singleton(product(D, to_time_bounds(t, t + h), A))))).upper();
+    StepSizeType hlip = static_cast<StepSizeType>(cast_exact(this->_lipschitz_tolerance.value() / lipschitz));
+    h = min(hlip, h);
+    LOGGING_PRINTLN("min(hlip,h)=" << h);
 
-    IntervalDomainType T = to_time_bounds(t,t+h);
+    IntervalDomainType T = to_time_bounds(t, t + h);
 
     LOGGING_PRINTLN("Finding contraction");
 
-    UpperBoxType B=D;
-    Bool success=false;
-    StepSizeType hprev=h*1.5_dy;
-    while(!success) {
-        B=this->_formula(f,D,T,A,D,BOX_RADIUS_WIDENING,INITIAL_STARTING_WIDENING);
-        for(CounterType i=0; i<EXPANSION_STEPS; ++i) {
-            UpperBoxType Br=this->_refinement(f,D,T,A,B);
-            if(not definitely(is_bounded(Br))) {
-                success=false;
-                LOGGING_PRINTLN_AT(1,"B is not bounded.");
+    UpperBoxType B = D;
+    Bool success = false;
+    StepSizeType hprev = h * 1.5_dy;
+    while (!success) {
+        B = this->_formula(f, D, T, A, D, BOX_RADIUS_WIDENING, INITIAL_STARTING_WIDENING);
+        for (CounterType i = 0; i < EXPANSION_STEPS; ++i) {
+            UpperBoxType Br = this->_refinement(f, D, T, A, B);
+            if (not definitely(is_bounded(Br))) {
+                success = false;
+                LOGGING_PRINTLN_AT(1, "B is not bounded.");
                 break;
-            } else if(refines(Br,B)) {
-                B=Br;
-                success=true;
-                LOGGING_PRINTLN_AT(1,"Found contraction of B="<<B);
+            } else if (refines(Br, B)) {
+                B = Br;
+                success = true;
+                LOGGING_PRINTLN_AT(1, "Found contraction of B=" << B);
                 break;
             } else {
-                B=this->_formula(f,D,T,A,B, NO_WIDENING,INITIAL_REFINING_WIDENING);
-                LOGGING_PRINTLN_AT(1,"Expanding B to "<<B);
+                B = this->_formula(f, D, T, A, B, NO_WIDENING, INITIAL_REFINING_WIDENING);
+                LOGGING_PRINTLN_AT(1, "Expanding B to " << B);
             }
         }
-        if(!success) {
-            StepSizeType hnew=hlf(hprev);
-            LOGGING_PRINTLN_AT(1,"Reduced h to "<<h);
-            hprev=h;
-            h=StepSizeType(hnew.get_d());
+        if (!success) {
+            StepSizeType hnew = hlf(hprev);
+            LOGGING_PRINTLN_AT(1, "Reduced h to " << h);
+            hprev = h;
+            h = StepSizeType(hnew.get_d());
             if (h < this->_minimum_step_size.value())
-                ARIADNE_THROW(BoundingNotFoundException,"EulerBounder::_compute","The step size is lower than the minimum (" << this->_minimum_step_size.value() << ") allowed, bounding could not be found.");
-            T = to_time_bounds(t,t+h);
+                ARIADNE_THROW(BoundingNotFoundException, "EulerBounder::_compute", "The step size is lower than the minimum (" << this->_minimum_step_size.value() << ") allowed, bounding could not be found.");
+            T = to_time_bounds(t, t + h);
         }
     }
 
     LOGGING_PRINTLN("Refining B");
-    for(CounterType i=0; i<REFINEMENT_STEPS; ++i) {
-        B = this->_refinement(f,D,T,A,B);
-        LOGGING_PRINTLN_AT(1,"B="<<B);
+    for (CounterType i = 0; i < REFINEMENT_STEPS; ++i) {
+        B = this->_refinement(f, D, T, A, B);
+        LOGGING_PRINTLN_AT(1, "B=" << B);
     }
 
-    LOGGING_PRINTLN("Found B="<<B<<" using h="<<h);
+    LOGGING_PRINTLN("Found B=" << B << " using h=" << h);
 
-    return std::make_pair(h,B);
+    return std::make_pair(h, B);
 }
 
-UpperBoxType EulerBounder::_refinement(ValidatedVectorMultivariateFunction const& f, BoxDomainType const& D, IntervalDomainType const& T, BoxDomainType const& A, UpperBoxType const& B) const {
-    const PositiveFloatDP NO_WIDENING=cast_positive(1.0_exact);
-    return _formula(f,D,T,A,B, NO_WIDENING,NO_WIDENING);
+UpperBoxType EulerBounder::_refinement(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const IntervalDomainType& T, const BoxDomainType& A, const UpperBoxType& B) const {
+    const PositiveFloatDP NO_WIDENING = cast_positive(1.0_exact);
+    return _formula(f, D, T, A, B, NO_WIDENING, NO_WIDENING);
 }
 
-UpperBoxType EulerBounder::_formula(ValidatedVectorMultivariateFunction const& f, BoxDomainType const& D, IntervalDomainType const& T, BoxDomainType const& A, UpperBoxType const& B, PositiveFloatDP INITIAL_BOX_WIDENING, PositiveFloatDP VECTOR_WIDENING) const {
-    UpperIntervalType const rT(T);
-    UpperBoxType const rA(A);
-    UpperIntervalType const rH=rT-T.lower_bound();
+UpperBoxType EulerBounder::_formula(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const IntervalDomainType& T, const BoxDomainType& A, const UpperBoxType& B, PositiveFloatDP INITIAL_BOX_WIDENING, PositiveFloatDP VECTOR_WIDENING) const {
+    const UpperIntervalType rT(T);
+    const UpperBoxType rA(A);
+    const UpperIntervalType rH = rT - T.lower_bound();
 
-    const bool is_autonomous = (f.argument_size() == D.dimension()+A.dimension());
-    UpperBoxType dom = is_autonomous ? product(B,rA) : product(B,rT,rA);
+    const bool is_autonomous = (f.argument_size() == D.dimension() + A.dimension());
+    UpperBoxType dom = is_autonomous ? product(B, rA) : product(B, rT, rA);
 
-    UpperBoxType wD = (INITIAL_BOX_WIDENING!=1) ? D : D + INITIAL_BOX_WIDENING*(D-D.midpoint());
+    UpperBoxType wD = (INITIAL_BOX_WIDENING != 1) ? D : D + INITIAL_BOX_WIDENING * (D - D.midpoint());
 
-    return wD+(VECTOR_WIDENING*rH)*cast_vector(apply(f,dom));
+    return wD + (VECTOR_WIDENING * rH) * cast_vector(apply(f, dom));
 }
 
-} // namespace Ariadne;
+} // namespace Ariadne

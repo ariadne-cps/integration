@@ -31,35 +31,37 @@
 
 #include <iostream>
 
-#include "utility/container.hpp"
-#include "numeric/declarations.hpp"
 #include "algebra/declarations.hpp"
+#include "algebra/vector.hpp"
 #include "function/declarations.hpp"
+#include "function/function.hpp"
 #include "geometry/declarations.hpp"
 #include "integration/integrator.hpp"
+#include "numeric/declarations.hpp"
 #include "numeric/numeric.hpp"
-#include "algebra/vector.hpp"
-#include "function/function.hpp"
+#include "utility/container.hpp"
 
 namespace Ariadne {
 
-template<class T1, class T2> using Pair = std::pair<T1,T2>;
-template<class T> class List;
+template<class T1, class T2>
+using Pair = std::pair<T1, T2>;
+template<class T>
+class List;
 
 //! \brief An approximate differential equation integrator based on the classical 4th-order Runge-Kutta method.
-class RungeKutta4Integrator
-{
+class RungeKutta4Integrator {
   public:
     /** @brief Construct the integration object. */
     RungeKutta4Integrator(ApproximateDouble step_size);
 
     FloatDPApproximationVector
-    /** @brief Compute the requested flow, enclosure, or integration step. */
-    step(const ApproximateVectorMultivariateFunction& f, const FloatDPApproximationVector& x, const FloatDPApproximation& h) const;
+        /** @brief Compute the requested flow, enclosure, or integration step. */
+        step(const ApproximateVectorMultivariateFunction& f, const FloatDPApproximationVector& x, const FloatDPApproximation& h) const;
 
-    List< Pair<FloatDPApproximation,FloatDPApproximationVector> >
-    /** @brief Perform the integration operation. */
-    evolve(const ApproximateVectorMultivariateFunction& f, const FloatDPApproximationVector& x0, const FloatDPApproximation& tmax) const;
+    List<Pair<FloatDPApproximation, FloatDPApproximationVector> >
+        /** @brief Perform the integration operation. */
+        evolve(const ApproximateVectorMultivariateFunction& f, const FloatDPApproximationVector& x0, const FloatDPApproximation& tmax) const;
+
   private:
     ApproximateDouble _step_size;
 };

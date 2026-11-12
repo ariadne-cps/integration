@@ -29,49 +29,53 @@
 #ifndef ARIADNE_BOUNDER_HPP
 #define ARIADNE_BOUNDER_HPP
 
-#include "utility/typedefs.hpp"
-#include "utility/attribute.hpp"
 #include "algebra/algebra.hpp"
 #include "function/domain.hpp"
 #include "function/function_model.hpp"
-#include "logging/logging.hpp"
 #include "integrator_interface.hpp"
-
+#include "logging/logging.hpp"
+#include "utility/attribute.hpp"
+#include "utility/typedefs.hpp"
 
 namespace Ariadne {
 
-
 //! \brief An argument is a suggestion or hint, which is allowed to be ignored or used approximately.
-template<class T> class Suggestion {
+template<class T>
+class Suggestion {
     T _suggestion;
+
   public:
-    explicit Suggestion(T const& t) : _suggestion(t) { }
-    template<class TT> requires Convertible<TT,T> Suggestion(Suggestion<TT> const& s)
-        : Suggestion(s.suggestion()) { }
+    explicit Suggestion(const T& t) : _suggestion(t) {}
+    template<class TT>
+        requires Convertible<TT, T>
+    Suggestion(const Suggestion<TT>& s)
+        : Suggestion(s.suggestion()) {}
     /** @brief Perform the integration operation. */
-    template<class TT> friend Suggestion<TT> suggest(TT&& t);
-    T const& suggestion() const { return _suggestion; }
-    explicit operator T& () { return _suggestion; }
-    explicit operator T const& () const { return _suggestion; }
+    template<class TT>
+    friend Suggestion<TT> suggest(TT&& t);
+    const T& suggestion() const { return _suggestion; }
+    explicit operator T&() { return _suggestion; }
+    explicit operator const T&() const { return _suggestion; }
 };
-template<class T> Suggestion<T> suggest(T&& t) { return Suggestion<T>{std::forward<T>(t)}; }
+template<class T>
+Suggestion<T> suggest(T&& t) { return Suggestion<T>{std::forward<T>(t)}; }
 
 /** @brief Error raised when a flow bound cannot be established. */
 class BoundingNotFoundException : public std::runtime_error {
   public:
-    BoundingNotFoundException(const String& str) : std::runtime_error(str) { }
+    BoundingNotFoundException(const String& str) : std::runtime_error(str) {}
 };
 
 /** @brief Type representing lipschitz tolerance in integration algorithms. */
 struct LipschitzTolerance : Attribute<ExactDouble> {
-    explicit LipschitzTolerance(ExactDouble const& value) : Attribute<ExactDouble>(value) { }
+    explicit LipschitzTolerance(const ExactDouble& value) : Attribute<ExactDouble>(value) {}
 };
 static const Generator<LipschitzTolerance> lipschitz_tolerance = Generator<LipschitzTolerance>();
 /** @brief Construct the integration object. */
 static const LipschitzTolerance DEFAULT_LIPSCHITZ_TOLERANCE(0.5_x);
 /** @brief Type representing minimum step size in integration algorithms. */
 struct MinimumStepSize : Attribute<ExactDouble> {
-    explicit MinimumStepSize(ExactDouble const& value) : Attribute<ExactDouble>(value) { }
+    explicit MinimumStepSize(const ExactDouble& value) : Attribute<ExactDouble>(value) {}
 };
 static const Generator<MinimumStepSize> minimum_step_size = Generator<MinimumStepSize>();
 /** @brief Construct the integration object. */
@@ -85,22 +89,22 @@ class BounderInterface {
     //! of \f$\dt{x}=f(x)\f$ starting in \f$dom\f$  for time step \f$h\leq h_{sug}\f$.
     //! <br>
     //! Arguments: \f$f\f$ is the \a vector_field, \f$dom\f$ is the \a state_domain and \f$h_{sug}\f$ is the suggested time step.
-    virtual Pair<StepSizeType,UpperBoxType> compute(ValidatedVectorMultivariateFunction const& f, BoxDomainType const& D, Suggestion<StepSizeType> const& hsug) const = 0;
+    virtual Pair<StepSizeType, UpperBoxType> compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const Suggestion<StepSizeType>& hsug) const = 0;
 
     //! \brief Compute a pair \f$(h,B)\f$ consisting of a bound \a B for the flow
     //! of \f$\dt{x}=f(x,t)\f$ starting in \f$dom\f$  for time step \f$h\leq h_{sug}\f$.
-    virtual Pair<StepSizeType,UpperBoxType> compute(ValidatedVectorMultivariateFunction const& differential_equation, BoxDomainType const& state_domain, StepSizeType const& initial_time, Suggestion<StepSizeType> const& suggested_time_step) const = 0;
+    virtual Pair<StepSizeType, UpperBoxType> compute(const ValidatedVectorMultivariateFunction& differential_equation, const BoxDomainType& state_domain, const StepSizeType& initial_time, const Suggestion<StepSizeType>& suggested_time_step) const = 0;
 
     //! \brief Compute a pair \f$(h,B)\f$ consisting of a bound \a B for the flow
     //! of \f$\dt{x}=f(x,a)\f$ starting in \f$D\f$ with \f$a\in A\f$ for time step \f$h\leq h_{sug}\f$.
     //! <br>
     //! Arguments: \f$f\f$ is the \a vector_field, \f$D\f$ is the \a state_domain and \f$h_{sug}\f$ is the suggested time step.
-    virtual Pair<StepSizeType,UpperBoxType> compute(ValidatedVectorMultivariateFunction const& vector_field, BoxDomainType const& state_domain, BoxDomainType const& parameter_domain, Suggestion<StepSizeType> const& suggested_time_step) const = 0;
+    virtual Pair<StepSizeType, UpperBoxType> compute(const ValidatedVectorMultivariateFunction& vector_field, const BoxDomainType& state_domain, const BoxDomainType& parameter_domain, const Suggestion<StepSizeType>& suggested_time_step) const = 0;
 
     //! \brief Compute a pair \f$(h,B)\f$ consisting of a bound \a B for the flow
     //! of \f$\dt{x}=f(x,t,a)\f$ starting in \f$D\f$ with \f$a\in A\f$ for time step \f$h\leq h_{sug}\f$.
     //! Arguments: \f$f\f$ is the \a vector_field, \f$dom\f$ is the \a state_domain and \f$h_{sug}\f$ is the suggested time step.
-    virtual Pair<StepSizeType,UpperBoxType> compute(ValidatedVectorMultivariateFunction const& differential_equation, BoxDomainType const& state_domain, StepSizeType const& initial_time, BoxDomainType const& parameter_domain, Suggestion<StepSizeType> const& suggested_time_step) const = 0;
+    virtual Pair<StepSizeType, UpperBoxType> compute(const ValidatedVectorMultivariateFunction& differential_equation, const BoxDomainType& state_domain, const StepSizeType& initial_time, const BoxDomainType& parameter_domain, const Suggestion<StepSizeType>& suggested_time_step) const = 0;
 
   public:
     /** @brief Perform the integration operation. */
@@ -109,8 +113,10 @@ class BounderInterface {
     virtual BounderInterface* clone() const = 0;
 
     /** @brief Apply the corresponding integration operator. */
-    friend inline OutputStream& operator<<(OutputStream& os, BounderInterface const& bounder) {
-        bounder._write(os); return os; }
+    friend inline OutputStream& operator<<(OutputStream& os, const BounderInterface& bounder) {
+        bounder._write(os);
+        return os;
+    }
 
     virtual ~BounderInterface() = default;
 };
@@ -121,13 +127,14 @@ class BounderBase : public BounderInterface {
     /** @brief Construct the integration object. */
     BounderBase(LipschitzTolerance lipschitz, MinimumStepSize minimum_step);
     /** @brief Compute the requested flow, enclosure, or integration step. */
-    virtual Pair<StepSizeType,UpperBoxType> compute(ValidatedVectorMultivariateFunction const& f, BoxDomainType const& D, Suggestion<StepSizeType> const& hsug) const override;
+    virtual Pair<StepSizeType, UpperBoxType> compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const Suggestion<StepSizeType>& hsug) const override;
     /** @brief Compute the requested flow, enclosure, or integration step. */
-    virtual Pair<StepSizeType,UpperBoxType> compute(ValidatedVectorMultivariateFunction const& f, BoxDomainType const& D, StepSizeType const& t, Suggestion<StepSizeType> const& hsug) const override;
+    virtual Pair<StepSizeType, UpperBoxType> compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const StepSizeType& t, const Suggestion<StepSizeType>& hsug) const override;
     /** @brief Compute the requested flow, enclosure, or integration step. */
-    virtual Pair<StepSizeType,UpperBoxType> compute(ValidatedVectorMultivariateFunction const& f, BoxDomainType const& D, BoxDomainType const& A, Suggestion<StepSizeType> const& hsug) const override = 0;
+    virtual Pair<StepSizeType, UpperBoxType> compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const BoxDomainType& A, const Suggestion<StepSizeType>& hsug) const override = 0;
     /** @brief Compute the requested flow, enclosure, or integration step. */
-    virtual Pair<StepSizeType,UpperBoxType> compute(ValidatedVectorMultivariateFunction const& f, BoxDomainType const& D, StepSizeType const& t, BoxDomainType const& A, Suggestion<StepSizeType> const& hsug) const override = 0;
+    virtual Pair<StepSizeType, UpperBoxType> compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const StepSizeType& t, const BoxDomainType& A, const Suggestion<StepSizeType>& hsug) const override = 0;
+
   protected:
     const LipschitzTolerance _lipschitz_tolerance;
     const MinimumStepSize _minimum_step_size;
@@ -141,60 +148,62 @@ class EulerBounder final : public BounderBase {
     EulerBounder(LipschitzTolerance lipschitz = DEFAULT_LIPSCHITZ_TOLERANCE, MinimumStepSize = DEFAULT_MINIMUM_STEP_SIZE);
     using BounderBase::compute;
     /** @brief Compute the requested flow, enclosure, or integration step. */
-    virtual Pair<StepSizeType,UpperBoxType> compute(ValidatedVectorMultivariateFunction const& f, BoxDomainType const& D, BoxDomainType const& A, Suggestion<StepSizeType> const& hsug) const override;
+    virtual Pair<StepSizeType, UpperBoxType> compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const BoxDomainType& A, const Suggestion<StepSizeType>& hsug) const override;
     /** @brief Compute the requested flow, enclosure, or integration step. */
-    virtual Pair<StepSizeType,UpperBoxType> compute(ValidatedVectorMultivariateFunction const& f, BoxDomainType const& D, StepSizeType const& t, BoxDomainType const& A, Suggestion<StepSizeType> const& hsug) const override;
+    virtual Pair<StepSizeType, UpperBoxType> compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const StepSizeType& t, const BoxDomainType& A, const Suggestion<StepSizeType>& hsug) const override;
     virtual Void _write(OutputStream& os) const override { os << "EulerBounder"; }
     virtual EulerBounder* clone() const override { return new EulerBounder(*this); }
+
   private:
     // Compute the bounds on the reach set of dx/dt = f(x,t,a) starting at time t, for a suggested step size of h.
     /** @brief Perform the integration operation. */
-    Pair<StepSizeType,UpperBoxType> _compute(ValidatedVectorMultivariateFunction const& f, BoxDomainType const& D, StepSizeType const& t, BoxDomainType const& A, Suggestion<StepSizeType> const& hsug) const;
+    Pair<StepSizeType, UpperBoxType> _compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const StepSizeType& t, const BoxDomainType& A, const Suggestion<StepSizeType>& hsug) const;
     // Compute a bounding box for the flow of f starting in D at T.lower() to time T.upper() with parameters A, assuming flow remains in B,
     // but widening D by INITIAL_WIDENING and the flow vectors by VECTOR_WIDENING.
     /** @brief Perform the integration operation. */
-    UpperBoxType _formula(ValidatedVectorMultivariateFunction const& f, BoxDomainType const& D, IntervalDomainType const& T, BoxDomainType const& A, UpperBoxType const& B, PositiveFloatDP INITIAL_WIDENING, PositiveFloatDP VECTOR_WIDENING) const;
+    UpperBoxType _formula(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const IntervalDomainType& T, const BoxDomainType& A, const UpperBoxType& B, PositiveFloatDP INITIAL_WIDENING, PositiveFloatDP VECTOR_WIDENING) const;
     /** @brief Perform the integration operation. */
-    UpperBoxType _refinement(ValidatedVectorMultivariateFunction const& f, BoxDomainType const& D, IntervalDomainType const& T, BoxDomainType const& A, UpperBoxType const& B) const;
+    UpperBoxType _refinement(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const IntervalDomainType& T, const BoxDomainType& A, const UpperBoxType& B) const;
 };
 
 /** @brief Type representing bounder handle in integration algorithms. */
 class BounderHandle {
   private:
     SharedPointer<BounderInterface> _impl;
-  public:
-    BounderHandle(BounderInterface const& bounder) : _impl(bounder.clone()) { }
-    BounderHandle(BounderHandle const& other) : _impl(other._impl) { }
-    BounderHandle& operator=(BounderHandle const& other) { _impl = other._impl; return *this; }
 
-    operator BounderInterface const& () const { return *_impl; }
+  public:
+    BounderHandle(const BounderInterface& bounder) : _impl(bounder.clone()) {}
+    BounderHandle(const BounderHandle& other) : _impl(other._impl) {}
+    BounderHandle& operator=(const BounderHandle& other) {
+        _impl = other._impl;
+        return *this;
+    }
+
+    operator const BounderInterface&() const { return *_impl; }
 
     Void _write(OutputStream& os) const { _impl->_write(os); }
     BounderHandle* clone() const { return new BounderHandle(*this); }
 
     /** @brief Compute the requested flow, enclosure, or integration step. */
-    Pair<StepSizeType,UpperBoxType> compute(ValidatedVectorMultivariateFunction const& f, BoxDomainType const& D, Suggestion<StepSizeType> const& hsug) const {
-        return _impl->compute(f,D,hsug);
+    Pair<StepSizeType, UpperBoxType> compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const Suggestion<StepSizeType>& hsug) const {
+        return _impl->compute(f, D, hsug);
     }
 
     /** @brief Compute the requested flow, enclosure, or integration step. */
-    Pair<StepSizeType,UpperBoxType> compute(ValidatedVectorMultivariateFunction const& f, BoxDomainType const& D, BoxDomainType const& A, Suggestion<StepSizeType> const& hsug) const {
-        return _impl->compute(f,D,A,hsug);
+    Pair<StepSizeType, UpperBoxType> compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const BoxDomainType& A, const Suggestion<StepSizeType>& hsug) const {
+        return _impl->compute(f, D, A, hsug);
     }
 
     /** @brief Compute the requested flow, enclosure, or integration step. */
-    Pair<StepSizeType,UpperBoxType> compute(ValidatedVectorMultivariateFunction const& f, BoxDomainType const& D, StepSizeType const& t, Suggestion<StepSizeType> const& hsug) const {
-        return _impl->compute(f,D,t,hsug);
+    Pair<StepSizeType, UpperBoxType> compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const StepSizeType& t, const Suggestion<StepSizeType>& hsug) const {
+        return _impl->compute(f, D, t, hsug);
     }
 
     /** @brief Compute the requested flow, enclosure, or integration step. */
-    Pair<StepSizeType,UpperBoxType> compute(ValidatedVectorMultivariateFunction const& f, BoxDomainType const& D, StepSizeType const& t, BoxDomainType const& A, Suggestion<StepSizeType> const& hsug) const {
-        return _impl->compute(f,D,t,A,hsug);
+    Pair<StepSizeType, UpperBoxType> compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const StepSizeType& t, const BoxDomainType& A, const Suggestion<StepSizeType>& hsug) const {
+        return _impl->compute(f, D, t, A, hsug);
     }
-
 };
-
-
 
 } // namespace Ariadne
 

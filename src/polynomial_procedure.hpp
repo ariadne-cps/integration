@@ -29,20 +29,20 @@
 #ifndef ARIADNE_INTEGRATION_POLYNOMIAL_PROCEDURE_HPP
 #define ARIADNE_INTEGRATION_POLYNOMIAL_PROCEDURE_HPP
 
-#include "numeric/numeric.hpp"
 #include "algebra/differential.hpp"
 #include "function/procedure.hpp"
 #include "function/taylor_function.hpp"
+#include "numeric/numeric.hpp"
 
 namespace Ariadne::IntegrationDetail {
 // Internal polynomial diagnostics, shared by the recurrence and its unit tests.
 // DIV requires a constant denominator; POW and non-polynomial operations are
 // deliberately excluded from the degree analyser.
 /** @brief Perform the integration operation. */
-Bool polynomial_procedure_degree(Vector<ValidatedProcedure> const& p, DegreeType& degree);
-Bool evaluate_polynomial_procedure(Vector<ValidatedProcedure> const& p,
-    Vector<Differential<FloatDPBounds>> const& x,
-    Vector<Differential<FloatDPBounds>>& result);
+Bool polynomial_procedure_degree(const Vector<ValidatedProcedure>& p, DegreeType& degree);
+Bool evaluate_polynomial_procedure(const Vector<ValidatedProcedure>& p,
+                                   const Vector<Differential<FloatDPBounds>>& x,
+                                   Vector<Differential<FloatDPBounds>>& result);
 
 // A centre-series candidate and residual diagnostics. The candidate receives
 // a validated remainder only in the caller after separate certification.
@@ -56,10 +56,10 @@ struct CentrePolynomialRecurrenceResult {
     Vector<FloatDPBounds> exact_polynomial_defect_range;
 };
 CentrePolynomialRecurrenceResult graded_series_centre_polynomial_step(
-    Vector<ValidatedProcedure> const& p, ExactBoxType const& domain,
-    ExactIntervalType const& time, Sweeper<FloatDP> const& sweeper,
+    const Vector<ValidatedProcedure>& p, const ExactBoxType& domain,
+    const ExactIntervalType& time, const Sweeper<FloatDP>& sweeper,
     DegreeType spatial_order, DegreeType temporal_order, Bool exact_diagnostics);
 
-}
+} // namespace Ariadne::IntegrationDetail
 
 #endif
