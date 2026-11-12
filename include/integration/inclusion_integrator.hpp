@@ -67,7 +67,6 @@ inline TimeStepType lower_bound(Real const& t) {
 inline Vector<FloatDP> cast_exact(Vector<ErrorType> const& v) {
     // Vector specializations need not share a layout. Extract the exact values
     // into independent storage instead of aliasing the error vector.
-    /** @brief Return the requested integration parameter or result. */
     Vector<FloatDP> result(v.size(),v.zero_element().raw());
     for(SizeType i=0u; i<v.size(); ++i) { result[i]=v[i].raw(); }
     return result;
@@ -284,7 +283,6 @@ template<class A> ErrorType wstar_multiplier();
 template<class A> ErrorType wstar(BoxDomainType const& inputs) {
     typedef typename ErrorType::PrecisionType PR;
     PR pr;
-    /** @brief Return the requested integration parameter or result. */
     ErrorType result(0u,pr);
     for (auto i : range(0,inputs.size()))
         result = max(result,wstar_multiplier<A>()*ErrorType(abs(inputs[i]).upper_bound()));
