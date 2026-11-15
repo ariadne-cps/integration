@@ -33,6 +33,7 @@
 
 #include "function/taylor_function.hpp"
 #include "integration/integrator.hpp"
+#include "logging/test_runner.hpp"
 
 #include "ariadne-testing.hpp"
 
@@ -275,5 +276,5 @@ int main(int argc, char** argv) {
     ARIADNE_TESTING_ADD_TEST(TestIntegratorConfiguration, test_partial_flow_payload_and_flow_tube_printing);
     ARIADNE_TESTING_ADD_TEST(TestIntegratorConfiguration, test_flow_dimension_contracts);
     ARIADNE_TESTING_ADD_TEST(TestIntegratorConfiguration, test_stationary_point_flow);
-    return ARIADNE_TESTING_RUN_TESTS_WITH_ARGS(argc, argv);
+    return Ariadne::Testing::run_logging_suite(ariadne_test_suite, argc, argv);
 }

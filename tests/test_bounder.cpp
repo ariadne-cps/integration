@@ -34,6 +34,7 @@
 #include "function/formula.hpp"
 #include "function/taylor_model.hpp"
 #include "integration/bounder.hpp"
+#include "logging/test_runner.hpp"
 
 #include "ariadne-testing.hpp"
 
@@ -281,5 +282,5 @@ int main(int argc, char** argv) {
     ARIADNE_TESTING_ADD_VARIANT_TEST(bounder_v3, test_time_variant_with_parameter);
     ARIADNE_TESTING_ADD_VARIANT_TEST(bounder_v3, test_handle_forwarding);
     ARIADNE_TESTING_ADD_VARIANT_TEST(bounder_v3, test_time_variant_dimension_errors);
-    return ARIADNE_TESTING_RUN_TESTS_WITH_ARGS(argc, argv);
+    return Ariadne::Testing::run_logging_suite(ariadne_test_suite, argc, argv);
 }

@@ -35,6 +35,7 @@
 #include "function/taylor_function.hpp"
 #include "integration/inclusion_integrator.hpp"
 #include "integration/integrator.hpp"
+#include "logging/test_runner.hpp"
 
 #include "ariadne-testing.hpp"
 
@@ -340,5 +341,5 @@ int main(int argc, char** argv) {
     auto verbosity_3 = Ariadne::Testing::fixture_variant<TestInclusionIntegrator>(ariadne_test_suite, "verbosity=3", [](Ariadne::Testing::Context& ctx) { return TestInclusionIntegrator(ctx, 3u); });
     ARIADNE_TESTING_ADD_VARIANT_TEST(verbosity_3, test_error_processor_relations);
     ARIADNE_TESTING_ADD_VARIANT_TEST(verbosity_3, test_nominal_solution_in_reach_and_evolve);
-    return ARIADNE_TESTING_RUN_TESTS_WITH_ARGS(argc, argv);
+    return Ariadne::Testing::run_logging_suite(ariadne_test_suite, argc, argv);
 }

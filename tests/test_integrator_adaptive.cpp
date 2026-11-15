@@ -31,6 +31,7 @@
 #include "function/taylor_function.hpp"
 #include "integration/integrator.hpp"
 #include "logging/logging.hpp"
+#include "logging/test_runner.hpp"
 
 #include "ariadne-testing.hpp"
 
@@ -187,5 +188,5 @@ int main(int argc, char** argv) {
     ARIADNE_TESTING_ADD_VARIANT_TEST(verbosity_12, test_suggested_base_step_reduction);
     ARIADNE_TESTING_ADD_VARIANT_TEST(verbosity_12, test_picard_rejections_and_refinement_limit);
     ARIADNE_TESTING_ADD_VARIANT_TEST(verbosity_12, test_bounder_rejects_a_step_through_blowup);
-    return ARIADNE_TESTING_RUN_TESTS_WITH_ARGS(argc, argv);
+    return Ariadne::Testing::run_logging_suite(ariadne_test_suite, argc, argv);
 }

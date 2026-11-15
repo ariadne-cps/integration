@@ -27,6 +27,7 @@
  */
 
 #include "function/formula.hpp"
+#include "logging/test_runner.hpp"
 #include "numeric/numeric.hpp"
 #include "polynomial_procedure.hpp"
 
@@ -103,5 +104,5 @@ int main(int argc, char** argv) {
     ARIADNE_TESTING_ADD_TEST(TestPolynomialProcedure, test_polynomial_operators);
     ARIADNE_TESTING_ADD_TEST(TestPolynomialProcedure, test_unsupported_polynomial_diagnostics);
     ARIADNE_TESTING_ADD_TEST(TestPolynomialProcedure, test_non_polynomial_recurrence_diagnostics);
-    return ARIADNE_TESTING_RUN_TESTS_WITH_ARGS(argc, argv);
+    return Ariadne::Testing::run_logging_suite(ariadne_test_suite, argc, argv);
 }

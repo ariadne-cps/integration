@@ -15,13 +15,13 @@ set(UNIT_TESTS
 foreach(TEST ${UNIT_TESTS})
     add_executable(${TEST} ${TEST}.cpp)
     target_link_libraries(${TEST} PRIVATE ariadne-integration integration ariadne-testing)
-    add_test(NAME ${TEST} COMMAND $<TARGET_FILE:${TEST}> --concise)
+    add_test(NAME ${TEST} COMMAND $<TARGET_FILE:${TEST}> --concise --logtonull)
     set_property(TEST ${TEST} PROPERTY LABELS "integration")
 endforeach()
 
 target_include_directories(test_polynomial_procedure PRIVATE "${PROJECT_SOURCE_DIR}/src")
 
-add_test(NAME test_integrator_verbose COMMAND $<TARGET_FILE:test_integrator> --verbosity 12)
+add_test(NAME test_integrator_verbose COMMAND $<TARGET_FILE:test_integrator> --concise --logtonull --verbosity 12)
 set_property(TEST test_integrator_verbose PROPERTY LABELS "integration")
 
 add_custom_target(tests)

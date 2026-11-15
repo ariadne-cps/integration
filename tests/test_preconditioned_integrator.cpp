@@ -33,6 +33,7 @@
 #include "function/taylor_function.hpp"
 #include "integration/integrator.hpp"
 #include "logging/logging.hpp"
+#include "logging/test_runner.hpp"
 
 #include "ariadne-testing.hpp"
 
@@ -288,5 +289,5 @@ int main(int argc, char** argv) {
     ARIADNE_TESTING_ADD_TEST(TestPreconditionedIntegrator, test_step_dimension_contracts);
     ARIADNE_TESTING_ADD_TEST(TestPreconditionedIntegrator, test_stationary_zero_order_step);
     ARIADNE_TESTING_ADD_TEST(TestPreconditionedIntegrator, test_adaptive_orders_and_step_rejection);
-    return ARIADNE_TESTING_RUN_TESTS_WITH_ARGS(argc, argv);
+    return Ariadne::Testing::run_logging_suite(ariadne_test_suite, argc, argv);
 }
