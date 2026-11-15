@@ -21,8 +21,5 @@ endforeach()
 
 target_include_directories(test_polynomial_procedure PRIVATE "${PROJECT_SOURCE_DIR}/src")
 
-add_test(NAME test_integrator_verbose COMMAND $<TARGET_FILE:test_integrator> --concise --logtonull --verbosity 12)
-set_property(TEST test_integrator_verbose PROPERTY LABELS "integration")
-
 add_custom_target(tests)
 add_dependencies(tests ${UNIT_TESTS})

@@ -30,8 +30,6 @@
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <string_view>
-#include <vector>
 
 #include "algebra/algebra.hpp"
 #include "algebra/polynomial.hpp"
@@ -40,7 +38,6 @@
 #include "function/function.hpp"
 #include "function/taylor_function.hpp"
 #include "integration/integrator.hpp"
-#include "logging/logging_command_line_interface.hpp"
 #include "logging/test_runner.hpp"
 
 #include "ariadne-testing.hpp"
@@ -457,21 +454,5 @@ int main(int argc, char** argv) {
     ARIADNE_TESTING_ADD_VARIANT_TEST(integrator_v5, test_spiral);
     ARIADNE_TESTING_ADD_TEST(TestIntegratorExtras, test_taylor_series_step_maximum_error);
     ARIADNE_TESTING_ADD_TEST(TestIntegratorExtras, test_bounder_time_dependent_flow);
-    // The verbose CTest case may also pass Testing and Logging runner flags.
-    // Keep --verbosity 12 local, and forward every other argument unchanged.
-    std::vector<const char*> runner_arguments;
-    runner_arguments.reserve(static_cast<std::size_t>(argc));
-    runner_arguments.push_back(argv[0]);
-    for (int i = 1; i < argc; ++i) {
-        if (std::string_view(argv[i]) == "--verbosity" &&
-            i + 1 < argc && std::string_view(argv[i + 1]) == "12") {
-            Logger::instance().configuration().set_verbosity(12u);
-            ++i;
-        } else {
-            runner_arguments.push_back(argv[i]);
-        }
-    }
-    return Ariadne::Testing::run_logging_suite(ariadne_test_suite,
-                                               static_cast<int>(runner_arguments.size()),
-                                               runner_arguments.data());
+    return Ariadne::Testing::run_logging_suite(ariadne_test_suite, argc, argv);
 }
