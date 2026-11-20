@@ -5,6 +5,7 @@ set(UNIT_TESTS
     test_integrator
     test_runge_kutta_integrator
     test_inclusion_integrator
+    test_multifunction_integrator
     test_preconditioned_integrator
     test_integrator_configuration
     test_affine_integrator
