@@ -97,6 +97,21 @@ jobs:
       working-directory: ${{ runner.workspace }}/build
       run: cmake --build . --parallel $NPROC --target tests bindings
 
+    - name: Capture first selected-inclusion test failure
+      if: matrix.build_type == 'Debug'
+      working-directory: ${{ runner.workspace }}/build
+      id: selected_inclusion_test_probe
+      run: |
+        ctest -R "^test_selected_inclusion_integrator$" --output-on-failure > selected_inclusion_test.txt 2>&1 || true
+        tail -n 32 selected_inclusion_test.txt
+        REPORT=$(grep -Ei -m 1 'failed|fail|exception|error|inconclusive|assert|expect' selected_inclusion_test.txt | sed 's/^[[:space:]]*//' | cut -c1-170 || true)
+        REPORT=${REPORT:-no-failure-marker}
+        echo "detail=$REPORT" >> "$GITHUB_OUTPUT"
+
+    - name: "Selected inclusion failure ${{ steps.selected_inclusion_test_probe.outputs.detail }}"
+      if: matrix.build_type == 'Debug'
+      run: echo "CTest diagnostic captured"
+
     - name: Test C++
       id: cpp_tests
       if: matrix.build_type == 'Debug'
