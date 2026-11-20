@@ -331,6 +331,110 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         ARIADNE_TESTING_PROVE(definitely(subset(switching_input, cast_exact_box(step.reach))));
     }
 
+
+    Void test_multidimensional_interval_taylor_conversion() {
+        // The converted parametric field must enclose the interval Taylor
+        // model on boxes with both signs and mixed state dependencies.
+        BoxDomainType domain({{-1.0_x, 1.0_x}, {-1.0_x, 1.0_x}});
+        ThresholdSweeper<FloatDP> sweeper(dp, 1e-10);
+        using Scalar = ValidatedIntervalTaylorFunctionModel<FloatDP>;
+        using Model = ValidatedVectorIntervalTaylorFunctionModel<FloatDP>;
+        Scalar x = Scalar::coordinate(domain, 0u, sweeper);
+        Scalar y = Scalar::coordinate(domain, 1u, sweeper);
+        Scalar first = Interval<FloatDPUpperBound>(-1, 1, dp) * x +
+                       Interval<FloatDPUpperBound>(0, 2, dp) * y;
+        Scalar second = Interval<FloatDPUpperBound>(-1, 1, dp) * y - x;
+        ValidatedIntervalTaylorBoxMultifunctionDP field(Model({first, second}));
+        const auto form = field.parametric_form();
+        ARIADNE_TESTING_PROVE(form.has_value());
+        ARIADNE_TESTING_EXPECT_EQUAL(form->field.result_size(), 2u);
+        ARIADNE_TESTING_EXPECT_EQUAL(form->field.argument_size(),
+                                     2u + form->inputs.dimension());
+
+        for (const auto& states: {
+                UpperBoxType({{0.5_x, 0.75_x}, {0.25_x, 0.5_x}}),
+                UpperBoxType({{-0.75_x, -0.5_x}, {-0.5_x, -0.25_x}}),
+                UpperBoxType({{-0.5_x, 0.5_x}, {-0.5_x, 0.5_x}}),
+                UpperBoxType({{0.0_x, 0.0_x}, {0.0_x, 0.0_x}})}) {
+            const auto original = field.evaluate(states);
+            const Vector<FloatDPBounds> arguments(
+                2u + form->inputs.dimension(), [&](SizeType j) {
+                    if (j < 2u) {
+                        return FloatDPBounds(states[j].lower_bound(), states[j].upper_bound());
+                    }
+                    const auto& input = form->inputs[j - 2u];
+                    return FloatDPBounds(input.lower_bound(), input.upper_bound());
+                });
+            const Vector<FloatDPBounds> expanded_values = form->field(arguments);
+            const UpperBoxType expanded(expanded_values.size(), [&](SizeType j) {
+                return UpperIntervalType(expanded_values[j].lower(), expanded_values[j].upper());
+            });
+            ARIADNE_TESTING_EXPECT_EQUAL(original.dimension(), 2u);
+            ARIADNE_TESTING_EXPECT_EQUAL(expanded.dimension(), 2u);
+            ARIADNE_TESTING_PROVE(definitely(subset(original, cast_exact_box(expanded))));
+        }
+    }
+
+    Void test_shared_input_correlation_is_explicit() {
+        // The structured field (u,-u) has ONE shared time-varying input.
+        // A pair of interval Taylor coefficient ranges alone cannot encode
+        // this anticorrelation; conversion must conservatively keep the
+        // component coefficients independent instead of inventing a link.
+        const BoxDomainType domain({{-1.0_x, 1.0_x}, {-1.0_x, 1.0_x}});
+        const BoxDomainType input_domain({{-1.0_x, 1.0_x}});
+        const auto u = EffectiveFormula::coordinate(2u);
+        const EffectiveVectorMultivariateFunction correlated =
+            EffectiveVectorMultivariateFormulaFunction(
+                3u, Vector<EffectiveFormula>{u, -u});
+        ValidatedParametricBoxMultifunctionDP structured(correlated, input_domain, domain);
+        const auto shared = structured.parametric_form();
+        ARIADNE_TESTING_PROVE(shared.has_value());
+        ARIADNE_TESTING_EXPECT_EQUAL(shared->inputs.dimension(), 1u);
+        const Vector<FloatDPBounds> same_input({
+            FloatDPBounds(0.0_x, dp),
+            FloatDPBounds(0.0_x, dp),
+            FloatDPBounds(1.0_x, dp)});
+        const Vector<FloatDPBounds> correlated_values = shared->field(same_input);
+        const UpperBoxType correlated_image(correlated_values.size(), [&](SizeType j) {
+            return UpperIntervalType(correlated_values[j].lower(), correlated_values[j].upper());
+        });
+        ARIADNE_TESTING_PROVE(definitely(subset(
+            ExactBoxType({{1.0_x, 1.0_x}, {-1.0_x, -1.0_x}}),
+            cast_exact_box(correlated_image))));
+
+        ThresholdSweeper<FloatDP> sweeper(dp, 1e-10);
+        using Scalar = ValidatedIntervalTaylorFunctionModel<FloatDP>;
+        using Model = ValidatedVectorIntervalTaylorFunctionModel<FloatDP>;
+        Scalar uncertain = Scalar::constant(
+            domain, Interval<FloatDPUpperBound>(-1, 1, dp), sweeper);
+        ValidatedIntervalTaylorBoxMultifunctionDP uncorrelated(Model({uncertain, uncertain}));
+        const auto independent = uncorrelated.parametric_form();
+        ARIADNE_TESTING_PROVE(independent.has_value());
+        ARIADNE_TESTING_EXPECT_EQUAL(independent->field.result_size(), 2u);
+        ARIADNE_TESTING_PROVE(independent->inputs.dimension() >= 2u);
+        ARIADNE_TESTING_EXPECT_EQUAL(independent->field.argument_size(),
+                                     2u + independent->inputs.dimension());
+        const UpperBoxType state({{0.0_x, 0.0_x}, {0.0_x, 0.0_x}});
+        const auto original = uncorrelated.evaluate(state);
+        const Vector<FloatDPBounds> arguments(
+            2u + independent->inputs.dimension(), [&](SizeType j) {
+                if (j < 2u) {
+                    return FloatDPBounds(0.0_x, dp);
+                }
+                const auto& input = independent->inputs[j - 2u];
+                return FloatDPBounds(input.lower_bound(), input.upper_bound());
+            });
+        const auto expanded_values = independent->field(arguments);
+        const UpperBoxType expanded(expanded_values.size(), [&](SizeType j) {
+            return UpperIntervalType(expanded_values[j].lower(), expanded_values[j].upper());
+        });
+        ARIADNE_TESTING_PROVE(definitely(subset(original, cast_exact_box(expanded))));
+        // (1,1) is allowed by the independent interval-coefficient box,
+        // whereas the shared-input representation (u,-u) forbids it.
+        ARIADNE_TESTING_PROVE(definitely(subset(
+            ExactBoxType({{1.0_x, 1.0_x}, {1.0_x, 1.0_x}}), cast_exact_box(expanded))));
+    }
+
     Void test_invalid_time_step() {
         TaylorSeriesIntegrator base(step_maximum_error = 1e-6, order = 8);
         InclusionIntegratorFactory factory(base);
@@ -358,5 +462,7 @@ int main(int argc, char** argv) {
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_high_order_interval_taylor_via_parametric_conversion);
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_interval_taylor_conversion_of_state_dependent_input);
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_interval_taylor_conversion_preserves_switching_endpoints);
+    ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_multidimensional_interval_taylor_conversion);
+    ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_shared_input_correlation_is_explicit);
     return Ariadne::Testing::run_logging_suite(ariadne_test_suite, argc, argv);
 }
