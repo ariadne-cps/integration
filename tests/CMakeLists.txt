@@ -8,6 +8,7 @@ set(UNIT_TESTS
     test_selected_inclusion_integrator
     test_multifunction_integrator
     test_validated_integration_step
+    test_validated_step_integrator
     test_preconditioned_integrator
     test_integrator_configuration
     test_affine_integrator
