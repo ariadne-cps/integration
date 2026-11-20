@@ -151,20 +151,20 @@ class SelectedInclusionIntegrator {
 };
 
 
-/** @brief A validated box view of the structural inclusion F(x)={f(x,u):u in U}.
+/** @brief Numerical box-evaluation adapter for f(x,u), with input box U.
  *
  *  The structured function and U are retained by value. The interval
  *  evaluation encloses every allowed instantaneous value; u may change
  *  arbitrarily between times, rather than being fixed for the whole step.
  *  The supplied state domain bounds where this box extension may be used.
  */
-class ValidatedParametricBoxMultifunctionDP : public ValidatedBoxMultifunctionInterface {
+class ValidatedInputFieldBoxAdapterDP : public ValidatedBoxMultifunctionInterface {
     EffectiveVectorMultivariateFunction _field;
     BoxDomainType _inputs;
     BoxDomainType _state_domain;
 
   public:
-    ValidatedParametricBoxMultifunctionDP(const EffectiveVectorMultivariateFunction& field,
+    ValidatedInputFieldBoxAdapterDP(const EffectiveVectorMultivariateFunction& field,
                                          const BoxDomainType& inputs,
                                          const BoxDomainType& state_domain)
         : _field(field), _inputs(inputs), _state_domain(state_domain) {
@@ -183,8 +183,8 @@ class ValidatedParametricBoxMultifunctionDP : public ValidatedBoxMultifunctionIn
     /** @brief Independent admissible input box, without freezing inputs in time. */
     const BoxDomainType& inputs() const { return _inputs; }
 
-    std::optional<ParametricMultifunctionForm> parametric_form() const override {
-        return ParametricMultifunctionForm{_field, _inputs};
+    std::optional<InclusionIntegratorFieldData> inclusion_integrator_field() const override {
+        return InclusionIntegratorFieldData{_field, _inputs};
     }
 
     UpperBoxType evaluate(const UpperBoxType& box) const override {
@@ -209,9 +209,9 @@ class ValidatedParametricBoxMultifunctionDP : public ValidatedBoxMultifunctionIn
 
 /** @brief High-order inclusion integrator implementing the common box interface.
  *
- *  Higher-order integration requires a certified parametric representation.
+ *  Higher-order integration requires explicitly supplied solver field data.
  *  Either a structured f(x,u) input or a Taylor model with interval coefficients
- *  can provide one, via ValidatedBoxMultifunctionInterface::parametric_form().
+ *  can provide this data through an optional numerical capability.
  *  A solver must reject fields that do not provide this capability rather than
  *  inventing unsupported correlations.
  *
@@ -254,7 +254,7 @@ class SelectedParametricMultifunctionIntegrator : public MultifunctionIntegrator
             throw std::invalid_argument("High-order integration requires the initial and bounding boxes inside the state domain");
         }
 
-        const auto form = field.parametric_form();
+        const auto form = field.inclusion_integrator_field();
         if (not form.has_value()) {
             throw std::invalid_argument("This multifunction does not provide a validated parametric representation");
         }

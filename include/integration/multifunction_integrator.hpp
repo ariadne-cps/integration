@@ -44,16 +44,17 @@
 namespace Ariadne {
 
 
-/** @brief Validated structural representation of a multifunction.
+/** @brief Field data expected by the legacy high-order inclusion solver.
  *
- *  The formula has state coordinates first and independent input coordinates
- *  afterwards. Each input may vary freely with time; this is the differential
- *  inclusion semantics, not a fixed uncertain-parameter ODE.
+ *  This is a numerical adapter payload, not a dynamical-system declaration.
+ *  The field arguments are ordered as state coordinates followed by freely
+ *  time-varying inputs. Trajectory-constant parameters are NOT supported here.
  *
- *  A conversion may overapproximate the original multifunction. In particular,
- *  independent interval coefficients can discard cross-coefficient correlation.
+ *  A conversion may conservatively enlarge the inclusion; independent interval
+ *  coefficients may lose correlations, but must never remove trajectories.
+ *  Availability of this payload does not select any integration algorithm.
  */
-struct ParametricMultifunctionForm {
+struct InclusionIntegratorFieldData {
     EffectiveVectorMultivariateFunction field;
     BoxDomainType inputs;
 };
@@ -73,11 +74,11 @@ class ValidatedBoxMultifunctionInterface {
     virtual BoxDomainType domain() const = 0;
     virtual UpperBoxType evaluate(const UpperBoxType& box) const = 0;
 
-    /** @brief Optional certified structural form for a high-order inclusion
-     *  solver. An unavailable representation is not an integration failure:
-     *  another solver may still support this field natively.
+    /** @brief Optional solver-specific field data for high-order integration.
+     *  This capability does not declare a system, nor choose the solver.
+     *  A field can be integrated by another method without implementing it.
      */
-    virtual std::optional<ParametricMultifunctionForm> parametric_form() const {
+    virtual std::optional<InclusionIntegratorFieldData> inclusion_integrator_field() const {
         return std::nullopt;
     }
 };
@@ -104,7 +105,7 @@ class ValidatedIntervalTaylorBoxMultifunctionDP : public ValidatedBoxMultifuncti
         return _model(arguments);
     }
 
-    /** @brief Convert an interval Taylor polynomial to a structural inclusion.
+    /** @brief Supply high-order solver data from an interval Taylor polynomial.
      *
      *  The public polynomials() method includes the Taylor remainder as an
      *  interval constant and applies the original-domain scaling. For every
@@ -117,7 +118,7 @@ class ValidatedIntervalTaylorBoxMultifunctionDP : public ValidatedBoxMultifuncti
      *  polynomial may widen bounds, and shared coefficient correlations
      *  are not reconstructed.
      */
-    std::optional<ParametricMultifunctionForm> parametric_form() const override {
+    std::optional<InclusionIntegratorFieldData> inclusion_integrator_field() const override {
         const auto polynomials = _model.polynomials();
         const SizeType n = _model.argument_size();
         List<IntervalDomainType> input_bounds;
@@ -146,7 +147,7 @@ class ValidatedIntervalTaylorBoxMultifunctionDP : public ValidatedBoxMultifuncti
         }
         BoxDomainType inputs{Vector<IntervalDomainType>(input_bounds)};
         const SizeType arguments = n + inputs.dimension();
-        return ParametricMultifunctionForm{
+        return InclusionIntegratorFieldData{
             EffectiveVectorMultivariateFunction(
                 EffectiveVectorMultivariateFormulaFunction(arguments, expressions)),
             inputs
