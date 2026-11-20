@@ -254,9 +254,33 @@ class SelectedParametricMultifunctionIntegrator : public MultifunctionIntegrator
     Nat reach_index() const { return _reach_approximation.reference().index(); }
     Nat evolve_index() const { return _evolve_approximation.reference().index(); }
 
-    /** @brief Compute high-order reach/evolve patches with parameter structure. */
+    /** @brief Start a validated structured inclusion step at time zero. */
     SelectedInclusionStep structured_step(const ValidatedBoxMultifunctionInterface& field,
                                           const ExactBoxType& initial,
+                                          const StepSizeType& time_step,
+                                          const UpperBoxType& state_bound) const {
+        return this->structured_step(field, initial, TimeStepType(0u),
+                                     time_step, state_bound);
+    }
+
+    /** @brief Start from a fresh initial-state identity at an absolute time. */
+    SelectedInclusionStep structured_step(const ValidatedBoxMultifunctionInterface& field,
+                                          const ExactBoxType& initial,
+                                          const TimeStepType& initial_time,
+                                          const StepSizeType& time_step,
+                                          const UpperBoxType& state_bound) const {
+        const auto identity = _function_factory.create_identity(initial);
+        return this->structured_step(field, initial, identity,
+                                     initial_time, time_step, state_bound);
+    }
+
+    /** @brief Continue a prior validated endpoint map without resetting
+     *  its original state coordinates or previously introduced input parameters.
+     */
+    SelectedInclusionStep structured_step(const ValidatedBoxMultifunctionInterface& field,
+                                          const ExactBoxType& initial,
+                                          const ValidatedVectorMultivariateFunctionPatch& initial_mapping,
+                                          const TimeStepType& initial_time,
                                           const StepSizeType& time_step,
                                           const UpperBoxType& state_bound) const {
         if (initial.dimension() != field.argument_size() ||
@@ -282,10 +306,20 @@ class SelectedParametricMultifunctionIntegrator : public MultifunctionIntegrator
             throw std::invalid_argument("The inclusion solver field data has incompatible dimensions");
         }
 
-        const auto initial_mapping = _function_factory.create_identity(initial);
+        // The original initial domain is retained even when the current
+        // endpoint map has additional independent input parameters.
+        if (initial_mapping.result_size() != initial.dimension() ||
+            initial_mapping.argument_size() < initial.dimension() ||
+            not (initial_mapping.domain()[range(0u, initial.dimension())] == initial)) {
+            throw std::invalid_argument("Structured continuation has incompatible mapping coordinates");
+        }
+        if (not definitely(subset(UpperBoxType(initial_mapping.range()),
+                                  cast_exact_box(state_bound)))) {
+            throw std::invalid_argument("Structured continuation endpoint is outside the certified state bound");
+        }
         SelectedInclusionIntegrator selected(_factory, form.field, form.inputs,
                                             _reach_approximation, _evolve_approximation);
-        return selected.step(initial, initial_mapping, state_bound, TimeStepType(0u), time_step);
+        return selected.step(initial, initial_mapping, state_bound, initial_time, time_step);
     }
 
     /** @brief Compute certified boxes through the common integrator contract. */

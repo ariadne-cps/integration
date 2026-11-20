@@ -42,7 +42,8 @@ namespace Ariadne {
  */
 inline ValidatedIntegrationStep validated_integration_step(
     const FlowStepModelType& flow,
-    const Interval<StepSizeType>& time_domain) {
+    const Interval<StepSizeType>& time_domain,
+    const StepSizeType& initial_time = StepSizeType(0u)) {
     const SizeType n = flow.result_size();
     if (flow.argument_size() < n + 1u ||
         not (flow.domain()[n] ==
@@ -55,22 +56,27 @@ inline ValidatedIntegrationStep validated_integration_step(
     reach_models.append(flow);
     return ValidatedIntegrationStep(duration, UpperBoxType(flow.range()),
                                     UpperBoxType(endpoint.range()), std::any(flow),
-                                    std::move(reach_models), endpoint);
+                                    std::move(reach_models), endpoint, initial_time);
 }
 
 /** @brief Preserve the full structured inclusion result, including all
  *  reach patches and the parametrized endpoint map.
  */
-inline ValidatedIntegrationStep validated_integration_step(const SelectedInclusionStep& step) {
+inline ValidatedIntegrationStep validated_integration_step(
+    const SelectedInclusionStep& step,
+    const StepSizeType& initial_time = StepSizeType(0u)) {
     const auto bounds = step.bounding_step();
     return ValidatedIntegrationStep(bounds.time_step, bounds.reach,
                                     bounds.evolve, std::any(step),
-                                    step.reach_models, step.evolve_model);
+                                    step.reach_models, step.evolve_model, initial_time);
 }
 
 /** @brief Box-only algorithms still satisfy the common result contract. */
-inline ValidatedIntegrationStep validated_integration_step(const ValidatedMultiflowStep& step) {
-    return ValidatedIntegrationStep(step.time_step, step.reach, step.evolve);
+inline ValidatedIntegrationStep validated_integration_step(
+    const ValidatedMultiflowStep& step,
+    const StepSizeType& initial_time = StepSizeType(0u)) {
+    return ValidatedIntegrationStep(step.time_step, step.reach, step.evolve,
+                                    {}, {}, std::nullopt, initial_time);
 }
 
 } // namespace Ariadne

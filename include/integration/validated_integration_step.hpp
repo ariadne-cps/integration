@@ -55,6 +55,7 @@ namespace Ariadne {
  */
 class ValidatedIntegrationStep {
     StepSizeType _time_step;
+    StepSizeType _initial_time;
     UpperBoxType _reach;
     UpperBoxType _evolve;
     List<ValidatedVectorMultivariateFunctionPatch> _reach_models;
@@ -67,8 +68,9 @@ class ValidatedIntegrationStep {
                              const UpperBoxType& evolve,
                              std::any representation = {},
                              List<ValidatedVectorMultivariateFunctionPatch> reach_models = {},
-                             std::optional<ValidatedVectorMultivariateFunctionPatch> evolve_model = std::nullopt)
-        : _time_step(time_step), _reach(reach), _evolve(evolve),
+                             std::optional<ValidatedVectorMultivariateFunctionPatch> evolve_model = std::nullopt,
+                             const StepSizeType& initial_time = StepSizeType(0u))
+        : _time_step(time_step), _initial_time(initial_time), _reach(reach), _evolve(evolve),
           _reach_models(std::move(reach_models)),
           _evolve_model(std::move(evolve_model)),
           _representation(std::move(representation)) {
@@ -87,6 +89,8 @@ class ValidatedIntegrationStep {
     }
 
     const StepSizeType& time_step() const { return _time_step; }
+    const StepSizeType& initial_time() const { return _initial_time; }
+    StepSizeType final_time() const { return _initial_time + _time_step; }
     const UpperBoxType& reach() const { return _reach; }
     const UpperBoxType& evolve() const { return _evolve; }
 
