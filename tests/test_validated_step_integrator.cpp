@@ -536,9 +536,29 @@ class TestValidatedStepIntegrator : public Ariadne::Testing::ContextFixture {
                 IntervalDomainType(0.53125_x, 0.546875_x));
         }
 
-        // Exact endpoint of x'=t+p+u(t), |u|<=1/8, p in [1/8,1/4]
-        // after total H=3/64 starting from t0=1/2:
-        // [H*t0+H^2/2, H*t0+H^2/2+3H/8].
+        // Exact first endpoint: [33/2048,57/2048].
+        // Exact second endpoint: [201/8192,345/8192].
+        // Keep the full analytical enclosure assertion below; these
+        // recorded values localize failures without weakening coverage.
+        ARIADNE_TESTING_NOTE("timed high-order first endpoint box=" << first.evolve()
+            << "; first model range=" << first.evolve_model().range());
+        ARIADNE_TESTING_NOTE("timed high-order second endpoint box=" << second.evolve()
+            << "; second model range=" << second.evolve_model().range());
+        ARIADNE_TESTING_NOTE("time t0=" << t0 << "; first h=" << h1
+            << "; second h=" << h2 << "; parameters=" << parameters);
+        ARIADNE_TESTING_PROVE(definitely(subset(
+            ExactBoxType({{0.01611328125_x, 0.02783203125_x}}),
+            cast_exact_box(first.evolve()))));
+        // Check the two exact extrema separately to distinguish missing
+        // low trajectories from missing high trajectories.
+        ARIADNE_TESTING_PROVE(definitely(subset(
+            ExactBoxType({{0.0245361328125_x, 0.0245361328125_x}}),
+            cast_exact_box(second.evolve()))));
+        ARIADNE_TESTING_PROVE(definitely(subset(
+            ExactBoxType({{0.0421142578125_x, 0.0421142578125_x}}),
+            cast_exact_box(second.evolve()))));
+        // Exact endpoint x'=t+p+u(t), |u|<=1/8, p in[1/8,1/4]
+        // after total H=3/64: [201/8192,345/8192].
         ARIADNE_TESTING_PROVE(definitely(subset(
             ExactBoxType({{0.0245361328125_x, 0.0421142578125_x}}),
             cast_exact_box(second.evolve()))));
