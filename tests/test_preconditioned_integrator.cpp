@@ -330,15 +330,15 @@ class TestPreconditionedIntegrator : public Ariadne::Testing::ContextFixture {
         const auto& actual_model = actual_taylor.model(1u);
         const auto& expected_model = expected_taylor.model(1u);
         ARIADNE_TESTING_EXPECT_EQUAL(actual_model.value().raw(),
-                                    expected_model.value().raw());
+                                     expected_model.value().raw());
         ARIADNE_TESTING_EXPECT_EQUAL(actual_model.error().raw(),
-                                    expected_model.error().raw());
+                                     expected_model.error().raw());
         ARIADNE_TESTING_EXPECT_EQUAL(actual_model.number_of_nonzeros(),
-                                    expected_model.number_of_nonzeros());
+                                     expected_model.number_of_nonzeros());
         for (auto it = expected_model.expansion().begin();
              it != expected_model.expansion().end(); ++it) {
             ARIADNE_TESTING_EXPECT_EQUAL(actual_model[it->index()],
-                                        it->coefficient());
+                                         it->coefficient());
         }
     }
 
@@ -350,7 +350,7 @@ class TestPreconditionedIntegrator : public Ariadne::Testing::ContextFixture {
             EffectiveVectorMultivariateFunction({x + b, zero});
         ExactBoxType parameter_domain = {
             {0.875_x, 1.125_x},
-            {1.25_x, 1.75_x}
+            { 1.25_x,  1.75_x}
         };
         const StepSizeType h(0.03125_x);
 
