@@ -135,11 +135,24 @@ class SelectedInclusionIntegrator {
         if (not (initial_mapping.domain()[range(0u, n)] == state_domain)) {
             throw std::invalid_argument("Inclusion step initial mapping has an incompatible state domain");
         }
+        // The patch domain encodes original state coordinates and all
+        // uncertainty parameters; it is NOT the current state enclosure.
+        // The local flow must instead be certified on the image of the
+        // incoming endpoint mapping. In a continuation these differ, and
+        // reusing the original state box would evaluate the flow outside
+        // its validated domain (or incorrectly discard the previous step).
+        const ExactBoxType current_state = cast_exact_box(
+            UpperBoxType(initial_mapping.range()));
+        if (not definitely(subset(current_state, cast_exact_box(state_bound)))) {
+            throw std::invalid_argument(
+                "Current structured inclusion endpoint exceeds the certified state bound");
+        }
+
         auto reach_method = _factory.create(_field, _inputs, _reach_approximation);
         if (not reach_method.is_reach_rigorous()) {
             throw std::invalid_argument("The selected reach implementation does not certify the whole tube");
         }
-        auto reaches = reach_method.reach(state_domain, initial_mapping, state_bound, initial_time, time_step);
+        auto reaches = reach_method.reach(current_state, initial_mapping, state_bound, initial_time, time_step);
         if (reaches.empty()) {
             throw FlowBoundsException("The selected reach implementation returned no reach model");
         }
@@ -154,7 +167,7 @@ class SelectedInclusionIntegrator {
             return SelectedInclusionStep{time_step, std::move(reaches), std::move(endpoint)};
         }
 
-        auto evolve_reaches = evolve_method.reach(state_domain, initial_mapping, state_bound, initial_time, time_step);
+        auto evolve_reaches = evolve_method.reach(current_state, initial_mapping, state_bound, initial_time, time_step);
         if (evolve_reaches.size() != 1u) {
             throw FlowBoundsException("The selected evolve method did not return exactly one endpoint source");
         }
