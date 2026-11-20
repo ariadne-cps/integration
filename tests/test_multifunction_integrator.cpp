@@ -26,9 +26,7 @@
  *  @brief Tests for validated box integration of differential inclusions.
  */
 
-#include <cstdlib>
 #include <stdexcept>
-#include <string>
 
 #include "function/taylor_multifunction.hpp"
 #include "integration/multifunction_integrator.hpp"
@@ -158,32 +156,12 @@ class TestMultifunctionIntegrator : public Ariadne::Testing::ContextFixture {
 
 int main(int argc, char** argv) {
     ARIADNE_TESTING_SUITE("test_multifunction_integrator");
-    // Diagnostic selection is opt-in; production runs exercise all four cases.
-    const char* requested = std::getenv("ARIADNE_MULTIFUNCTION_CASE");
-    const std::string selected = requested ? requested : "";
-    const auto selected_case = [&](const char* key) {
-        return selected.empty() || ("," + selected + ",").find("," + std::string(key) + ",") != std::string::npos;
-    };
-    if (selected_case("constant_inclusion")) {
-        ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_constant_inclusion);
-    }
-    if (selected_case("time_varying_selection")) {
-        ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_time_varying_selection);
-    }
-    if (selected_case("reject_uncertified_bound")) {
-        ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_reject_uncertified_bound);
-    }
-    if (selected_case("reject_dimension_mismatch")) {
-        ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_reject_dimension_mismatch);
-    }
-    if (selected.empty() || selected == "interior_valid_step") {
-        ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_interior_valid_step);
-    }
-    if (selected.empty() || selected == "boundary_domain_check") {
-        ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_boundary_domain_check);
-    }
-    if (selected.empty() || selected == "boundary_box_evaluation") {
-        ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_boundary_box_evaluation);
-    }
+    ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_constant_inclusion);
+    ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_time_varying_selection);
+    ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_reject_uncertified_bound);
+    ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_reject_dimension_mismatch);
+    ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_interior_valid_step);
+    ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_boundary_domain_check);
+    ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_boundary_box_evaluation);
     return Ariadne::Testing::run_logging_suite(ariadne_test_suite, argc, argv);
 }

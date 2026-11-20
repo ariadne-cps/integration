@@ -81,130 +81,9 @@ jobs:
       working-directory: ${{ runner.workspace }}/build
       run: cmake --build . --parallel $NPROC --target tests bindings
 
-    - name: Multifunction diagnostic constant_inclusion
-      if: always() && matrix.build_type == 'Debug'
-      working-directory: ${{ runner.workspace }}/build
-      env:
-        ARIADNE_MULTIFUNCTION_CASE: constant_inclusion
-      run: ctest -R "^test_multifunction_integrator$" --output-on-failure
-
-    - name: Multifunction diagnostic time_varying_selection
-      if: always() && matrix.build_type == 'Debug'
-      working-directory: ${{ runner.workspace }}/build
-      env:
-        ARIADNE_MULTIFUNCTION_CASE: time_varying_selection
-      run: ctest -R "^test_multifunction_integrator$" --output-on-failure
-
-    - name: Multifunction diagnostic reject_uncertified_bound
-      if: always() && matrix.build_type == 'Debug'
-      working-directory: ${{ runner.workspace }}/build
-      env:
-        ARIADNE_MULTIFUNCTION_CASE: reject_uncertified_bound
-      run: ctest -R "^test_multifunction_integrator$" --output-on-failure
-
-    - name: Multifunction diagnostic reject_dimension_mismatch
-      if: always() && matrix.build_type == 'Debug'
-      working-directory: ${{ runner.workspace }}/build
-      env:
-        ARIADNE_MULTIFUNCTION_CASE: reject_dimension_mismatch
-      run: ctest -R "^test_multifunction_integrator$" --output-on-failure
-
-    - name: Multifunction pair diagnostic constant_then_switch
-      if: always() && matrix.build_type == 'Debug'
-      continue-on-error: true
-      working-directory: ${{ runner.workspace }}/build
-      env:
-        ARIADNE_MULTIFUNCTION_CASE: constant_inclusion,time_varying_selection
-      run: ctest -R "^test_multifunction_integrator$" --output-on-failure
-
-    - name: Multifunction pair diagnostic constant_then_bound
-      if: always() && matrix.build_type == 'Debug'
-      continue-on-error: true
-      working-directory: ${{ runner.workspace }}/build
-      env:
-        ARIADNE_MULTIFUNCTION_CASE: constant_inclusion,reject_uncertified_bound
-      run: ctest -R "^test_multifunction_integrator$" --output-on-failure
-
-    - name: Multifunction pair diagnostic switch_then_bound
-      if: always() && matrix.build_type == 'Debug'
-      continue-on-error: true
-      working-directory: ${{ runner.workspace }}/build
-      env:
-        ARIADNE_MULTIFUNCTION_CASE: time_varying_selection,reject_uncertified_bound
-      run: ctest -R "^test_multifunction_integrator$" --output-on-failure
-
-    - name: Multifunction pair diagnostic constant_then_dim
-      if: always() && matrix.build_type == 'Debug'
-      continue-on-error: true
-      working-directory: ${{ runner.workspace }}/build
-      env:
-        ARIADNE_MULTIFUNCTION_CASE: constant_inclusion,reject_dimension_mismatch
-      run: ctest -R "^test_multifunction_integrator$" --output-on-failure
-
-    - name: Multifunction pair diagnostic first_three
-      if: always() && matrix.build_type == 'Debug'
-      continue-on-error: true
-      working-directory: ${{ runner.workspace }}/build
-      env:
-        ARIADNE_MULTIFUNCTION_CASE: constant_inclusion,time_varying_selection,reject_uncertified_bound
-      run: ctest -R "^test_multifunction_integrator$" --output-on-failure
-
-    - name: Multifunction pair diagnostic last_three
-      if: always() && matrix.build_type == 'Debug'
-      continue-on-error: true
-      working-directory: ${{ runner.workspace }}/build
-      env:
-        ARIADNE_MULTIFUNCTION_CASE: time_varying_selection,reject_uncertified_bound,reject_dimension_mismatch
-      run: ctest -R "^test_multifunction_integrator$" --output-on-failure
-
-    - name: Multifunction diagnostic first_four
-      if: always() && matrix.build_type == 'Debug'
-      continue-on-error: true
-      working-directory: ${{ runner.workspace }}/build
-      env:
-        ARIADNE_MULTIFUNCTION_CASE: constant_inclusion,time_varying_selection,reject_uncertified_bound,reject_dimension_mismatch
-      run: ctest -R "^test_multifunction_integrator$" --output-on-failure
-
-    - name: Capture multiflow full-suite error details
-      if: always() && matrix.build_type == 'Debug'
-      working-directory: ${{ runner.workspace }}/build
-      id: multiflow_failure_details
-      continue-on-error: true
-      run: |
-        ctest -R "^test_multifunction_integrator$" --output-on-failure > multiflow_failure_details.txt 2>&1 || true
-        tail -n 18 multiflow_failure_details.txt
-        REPORT=$(sed -n 's/^.*detail: //p' multiflow_failure_details.txt | head -n 1 | cut -c1-180)
-        REPORT=${REPORT:-none}
-        echo "reason=$REPORT" >> "$GITHUB_OUTPUT"
-
-    - name: "Multiflow observed failure ${{ steps.multiflow_failure_details.outputs.reason }}"
-      if: always() && matrix.build_type == 'Debug'
-      run: echo "Inspected full test result"
-
-    - name: Multifunction diagnostic interior_valid_step
-      if: always() && matrix.build_type == 'Debug'
-      working-directory: ${{ runner.workspace }}/build
-      env:
-        ARIADNE_MULTIFUNCTION_CASE: interior_valid_step
-      run: ctest -R "^test_multifunction_integrator$" --output-on-failure
-
-    - name: Multifunction diagnostic boundary_domain_check
-      if: always() && matrix.build_type == 'Debug'
-      working-directory: ${{ runner.workspace }}/build
-      env:
-        ARIADNE_MULTIFUNCTION_CASE: boundary_domain_check
-      run: ctest -R "^test_multifunction_integrator$" --output-on-failure
-
-    - name: Multifunction diagnostic boundary_box_evaluation
-      if: always() && matrix.build_type == 'Debug'
-      working-directory: ${{ runner.workspace }}/build
-      env:
-        ARIADNE_MULTIFUNCTION_CASE: boundary_box_evaluation
-      run: ctest -R "^test_multifunction_integrator$" --output-on-failure
-
     - name: Test C++
       id: cpp_tests
-      if: always() && matrix.build_type == 'Debug'
+      if: matrix.build_type == 'Debug'
       working-directory: ${{ runner.workspace }}/build
       run: ctest -j $NPROC -LE python --output-on-failure
 
@@ -228,7 +107,7 @@ jobs:
         if-no-files-found: error
 
     - name: Test Python
-      if: always() && matrix.build_type == 'Debug'
+      if: matrix.build_type == 'Debug'
       working-directory: ${{ runner.workspace }}/build
       run: ctest -L python -V --output-on-failure
 
