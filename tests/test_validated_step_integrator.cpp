@@ -482,6 +482,102 @@ class TestValidatedStepIntegrator : public Ariadne::Testing::ContextFixture {
                 StepSizeType(0.0625_x), parameters, bound)));
     }
 
+    Void test_timed_high_order_inclusion_preserves_constant_parameters_and_inputs() {
+        // Lift (x,t,p)'=(t+p+u(t),1,0) to the historical autonomous
+        // inclusion solver. After two steps, old input coefficients
+        // and the fixed parameter p must retain their original domains.
+        const auto t = EffectiveScalarMultivariateFunction::coordinate(4u, 1u);
+        const auto p = EffectiveScalarMultivariateFunction::coordinate(4u, 2u);
+        const auto u = EffectiveScalarMultivariateFunction::coordinate(4u, 3u);
+        const EffectiveVectorMultivariateFunction f = {t + p + u};
+        ValidatedTimedInputFieldBoxAdapterDP field(
+            f, BoxDomainType({{-1.0_x, 1.0_x}}),
+            IntervalDomainType(0.0_x, 1.0_x),
+            BoxDomainType({{0.0_x, 1.0_x}}),
+            BoxDomainType({{-0.125_x, 0.125_x}}));
+        const ExactBoxType initial({{0.0_x, 0.0_x}});
+        const ExactBoxType parameters({{0.125_x, 0.25_x}});
+        const UpperBoxType bound({{-1.0_x, 1.0_x}});
+        const StepSizeType t0(0.5_x);
+        const StepSizeType h1(0.03125_x);
+        const StepSizeType h2(0.015625_x);
+
+        TaylorSeriesIntegrator taylor(ThresholdSweeper<FloatDP>(dp, 1e-10),
+                                      lipschitz_tolerance = 0.5_x, order = 8);
+        SelectedParametricMultifunctionIntegrator high(
+            taylor, InputApproximation(ZeroApproximation()),
+            InputApproximation(ConstantApproximation()));
+        const StructuredInclusionStepIntegratorAdapter adapter(high);
+        const ValidatedStepIntegratorInterface& integrator = adapter;
+        const auto first = integrator.step(ValidatedIntegrationRequest(
+            field, initial, t0, h1, parameters, bound));
+        const auto second = integrator.step(ValidatedIntegrationRequest(
+            field, first, h2, bound));
+
+        ARIADNE_TESTING_PROVE(first.has_evolve_model());
+        ARIADNE_TESTING_PROVE(first.has_reach_models());
+        ARIADNE_TESTING_PROVE(second.has_evolve_model());
+        ARIADNE_TESTING_PROVE(second.has_reach_models());
+        ARIADNE_TESTING_EXPECT_EQUAL(second.initial_time(), StepSizeType(0.53125_x));
+        ARIADNE_TESTING_EXPECT_EQUAL(second.final_time(), StepSizeType(0.546875_x));
+        ARIADNE_TESTING_EXPECT_EQUAL(second.constant_parameter_domain(), parameters);
+        ARIADNE_TESTING_EXPECT_EQUAL(
+            second.evolve_model().domain()[range(0u, 2u)], product(initial, parameters));
+        ARIADNE_TESTING_PROVE(
+            second.evolve_model().argument_size() > first.evolve_model().argument_size());
+        ARIADNE_TESTING_EXPECT_EQUAL(
+            second.evolve_model().domain()[range(0u, first.evolve_model().argument_size())],
+            first.evolve_model().domain());
+        ARIADNE_TESTING_PROVE(second.reach_time_index().has_value());
+        ARIADNE_TESTING_EXPECT_EQUAL(second.reach_time_index().value(), 2u);
+        for (const auto& reach_patch: second.reach_models()) {
+            ARIADNE_TESTING_EXPECT_EQUAL(
+                reach_patch.domain()[2u],
+                IntervalDomainType(0.53125_x, 0.546875_x));
+        }
+
+        // Exact endpoint of x'=t+p+u(t), |u|<=1/8, p in [1/8,1/4]
+        // after total H=3/64 starting from t0=1/2:
+        // [H*t0+H^2/2, H*t0+H^2/2+3H/8].
+        ARIADNE_TESTING_PROVE(definitely(subset(
+            ExactBoxType({{0.0245361328125_x, 0.0421142578125_x}}),
+            cast_exact_box(second.evolve()))));
+    }
+
+    Void test_timed_high_order_rejects_missing_structural_capability() {
+        // Box evaluation alone cannot justify a guessed high-order
+        // representation or selecting a different integrator.
+        class OnlyTimedBoxes final : public ValidatedTimedBoxMultifunctionInterface {
+          public:
+            SizeType argument_size() const override { return 1u; }
+            SizeType result_size() const override { return 1u; }
+            BoxDomainType domain() const override {
+                return BoxDomainType({{-1.0_x, 1.0_x}});
+            }
+            IntervalDomainType time_domain() const override {
+                return IntervalDomainType(0.0_x, 1.0_x);
+            }
+            BoxDomainType parameter_domain() const override {
+                return BoxDomainType({{0.0_x, 1.0_x}});
+            }
+            UpperBoxType evaluate(const UpperBoxType&, const UpperIntervalType&,
+                                  const UpperBoxType&) const override {
+                return UpperBoxType({{-1.0_x, 1.0_x}});
+            }
+        } field;
+        TaylorSeriesIntegrator taylor(ThresholdSweeper<FloatDP>(dp, 1e-10),
+                                      lipschitz_tolerance = 0.5_x, order = 8);
+        SelectedParametricMultifunctionIntegrator high(
+            taylor, InputApproximation(ZeroApproximation()),
+            InputApproximation(ConstantApproximation()));
+        const StructuredInclusionStepIntegratorAdapter adapter(high);
+        ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
+            adapter.step(ValidatedIntegrationRequest(
+                field, ExactBoxType({{0.0_x, 0.0_x}}), StepSizeType(0.5_x),
+                StepSizeType(0.03125_x), ExactBoxType({{0.125_x, 0.25_x}}),
+                UpperBoxType({{-1.0_x, 1.0_x}}))));
+    }
+
     Void test_reject_invalid_request() {
         const ValidatedVectorMultivariateFunction ordinary = {
             ValidatedScalarMultivariateFunction::constant(1u, 1)};
@@ -513,6 +609,8 @@ int main(int argc, char** argv) {
     ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_constant_equation_parameters_are_not_resampled);
     ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_nonautonomous_inclusion_fixed_parameters_and_switching_inputs);
     ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_timed_inclusion_rejects_unsupported_capabilities_and_domains);
+    ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_timed_high_order_inclusion_preserves_constant_parameters_and_inputs);
+    ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_timed_high_order_rejects_missing_structural_capability);
     ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_reject_invalid_request);
     return Ariadne::Testing::run_logging_suite(ariadne_test_suite, argc, argv);
 }
