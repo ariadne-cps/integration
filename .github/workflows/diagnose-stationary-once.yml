@@ -1,0 +1,48 @@
+name: Temporary stationary compile diagnostics
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  diagnose:
+    if: github.head_ref == 'fix/stationary-parameterised-components'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install build tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y cmake ninja-build pkg-config clang-16
+      - name: Configure
+        run: |
+          git submodule update --init -- ss/bui
+          cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER=clang++-16 -DCMAKE_BUILD_TYPE=Debug -DWARNINGS_AS_ERRORS=ON
+      - name: Build and capture diagnostics
+        id: compilation
+        continue-on-error: true
+        run: |
+          set +e
+          cmake --build build --parallel 2 --target tests > /tmp/stationary-build.log 2>&1
+          status=$?
+          grep -n -E 'error:|fatal error:|FAILED:|undefined reference' /tmp/stationary-build.log | head -35 > /tmp/stationary-errors.txt || true
+          test -s /tmp/stationary-errors.txt || tail -n 45 /tmp/stationary-build.log > /tmp/stationary-errors.txt
+          echo "build_exit=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Post compiler errors to PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUILD_EXIT: ${{ steps.compilation.outputs.build_exit }}
+        run: |
+          {
+            echo "Temporary compiler diagnosis for commit \`${{ github.event.pull_request.head.sha }}\` (build exit \`$BUILD_EXIT\`):"
+            echo
+            echo '~~~'
+            cat /tmp/stationary-errors.txt
+            echo '~~~'
+          } > /tmp/stationary-comment.txt
+          gh pr comment "${{ github.event.pull_request.number }}" --body-file /tmp/stationary-comment.txt
