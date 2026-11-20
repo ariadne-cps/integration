@@ -4,6 +4,7 @@ add_library(INTEGRATION_SRC OBJECT
     integration_step_adapters.cpp
     validated_step_integrator.cpp
     multifunction_integrator.cpp
+    selected_inclusion_integrator.cpp
     inclusion_integrator.cpp
     bounder.cpp
     runge_kutta_integrator.cpp
