@@ -363,12 +363,24 @@ class SelectedParametricMultifunctionIntegrator : public MultifunctionIntegrator
             throw std::invalid_argument("Timed structured field has incompatible state, time or input dimensions");
         }
 
-        EffectiveVectorMultivariateFunction lifted_field = join(
-            data.field, EffectiveScalarMultivariateFunction::constant(args, 1));
-        for (SizeType i = 0u; i != np; ++i) {
-            lifted_field = join(lifted_field,
-                EffectiveScalarMultivariateFunction::constant(args, 0));
-        }
+        // The legacy inclusion solver analyses input additivity directly
+        // on EffectiveVectorMultivariateFormulaFunction. Building the
+        // augmented field with join() erases that representation, even when
+        // each original component is symbolic. Evaluate the supplied
+        // structured field over symbolic coordinates and construct one
+        // formula function for all state derivatives, including clock'=1
+        // and parameter'=0. Only actual input coordinates are solver inputs.
+        const Vector<EffectiveFormula> coordinates(args, [&](SizeType i) {
+            return EffectiveFormula::coordinate(i);
+        });
+        const Vector<EffectiveFormula> original = data.field(coordinates);
+        const Vector<EffectiveFormula> derivatives(ns, [&](SizeType i) {
+            return i < n ? original[i] :
+                (i == n ? EffectiveFormula::constant(EffectiveNumber(1u))
+                        : EffectiveFormula::zero());
+        });
+        const EffectiveVectorMultivariateFunction lifted_field =
+            EffectiveVectorMultivariateFormulaFunction(args, derivatives);
 
         const BoxDomainType clock_start(1u,
             IntervalDomainType(initial_time, initial_time));
