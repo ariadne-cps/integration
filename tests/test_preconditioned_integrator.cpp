@@ -248,10 +248,22 @@ class TestPreconditionedIntegrator : public Ariadne::Testing::ContextFixture {
         }
     }
 
-    // A component with exactly zero derivative and a constant initial model
-    // must stay a constant Taylor model, not merely enclose that constant.
-    // The second component evolves, so this also exercises the repeated
-    // coordinate changes and carried Taylor-model composition.
+    // Check the structural Taylor invariant, not merely set inclusion.
+    Void check_stationary_component(
+        const ValidatedVectorMultivariateFunctionPatch& mapping,
+        const FloatDP& constant_value) {
+        const auto& taylor =
+            dynamic_cast<const ValidatedVectorMultivariateTaylorFunctionModelDP&>(
+                mapping.reference());
+        const auto& model = taylor.model(0u);
+        ARIADNE_TESTING_EXPECT_EQUAL(model.value().raw(), constant_value);
+        ARIADNE_TESTING_EXPECT_EQUAL(
+            model.error().raw(), FloatDP(0u, dp));
+        ARIADNE_TESTING_EXPECT_EQUAL(model.number_of_nonzeros(), 1u);
+    }
+
+    // A component with zero derivative and a constant initial Taylor model
+    // must remain structurally constant while another component evolves.
     Void test_stationary_constant_component_in_coupled_flow() {
         auto zero = EffectiveScalarMultivariateFunction::constant(2u, 0);
         auto y = EffectiveScalarMultivariateFunction::coordinate(2u, 1u);
@@ -263,6 +275,9 @@ class TestPreconditionedIntegrator : public Ariadne::Testing::ContextFixture {
 
         for (auto mode: {TaylorSeriesPreconditioning::IDENTITY,
                          TaylorSeriesPreconditioning::QR}) {
+            ARIADNE_TESTING_NOTE(
+                "Constant component with preconditioning="
+                << (mode == TaylorSeriesPreconditioning::QR ? "QR" : "IDENTITY"));
             PreconditionedGradedTaylorSeriesIntegrator integrator(
                 step_maximum_error = 1e-6);
             integrator.set_preconditioning(mode);
@@ -272,37 +287,31 @@ class TestPreconditionedIntegrator : public Ariadne::Testing::ContextFixture {
             initial[0u] = factory.create_constant(
                 parameter_domain, FloatDPBounds(constant_value));
             initial[1u] = factory.create_coordinate(parameter_domain, 1u);
+            check_stationary_component(initial, constant_value);
 
-            auto check_constant_model =
-                [&](const ValidatedVectorMultivariateFunctionPatch& mapping) {
-                    const auto& taylor =
-                        dynamic_cast<const ValidatedVectorMultivariateTaylorFunctionModelDP&>(
-                            mapping.reference());
-                    const auto& model = taylor.model(0u);
-                    ARIADNE_TESTING_EXPECT_EQUAL(model.value().raw(), constant_value);
-                    ARIADNE_TESTING_EXPECT_EQUAL(
-                        model.error(), Error<FloatDP>(0u, dp));
-                    ARIADNE_TESTING_EXPECT_EQUAL(
-                        model.number_of_nonzeros(), 1u);
-                };
-
-            check_constant_model(initial);
             auto state = integrator.precondition(initial);
             ARIADNE_TESTING_EXPECT_EQUAL(state.centre()[0u], constant_value);
 
-            for (SizeType k = 0u; k != 3u; ++k) {
-                ARIADNE_TESTING_NOTE(
-                    "Constant-component preservation: mode="
-                    << (mode == TaylorSeriesPreconditioning::QR ? "QR" : "IDENTITY")
-                    << ", step=" << k);
-                auto step = integrator.step(field, state, suggest(h));
-                ARIADNE_TESTING_EXPECT_EQUAL(step.time_step(), h);
-                check_constant_model(step.flowpipe_mapping());
-                check_constant_model(step.evolved_mapping());
-                ARIADNE_TESTING_EXPECT_EQUAL(
-                    step.final_state().centre()[0u], constant_value);
-                state = step.final_state();
-            }
+            auto first = integrator.step(field, state, suggest(h));
+            ARIADNE_TESTING_EXPECT_EQUAL(first.time_step(), h);
+            check_stationary_component(first.flowpipe_mapping(), constant_value);
+            check_stationary_component(first.evolved_mapping(), constant_value);
+            ARIADNE_TESTING_EXPECT_EQUAL(
+                first.final_state().centre()[0u], constant_value);
+
+            auto second = integrator.step(field, first.final_state(), suggest(h));
+            ARIADNE_TESTING_EXPECT_EQUAL(second.time_step(), h);
+            check_stationary_component(second.flowpipe_mapping(), constant_value);
+            check_stationary_component(second.evolved_mapping(), constant_value);
+            ARIADNE_TESTING_EXPECT_EQUAL(
+                second.final_state().centre()[0u], constant_value);
+
+            auto third = integrator.step(field, second.final_state(), suggest(h));
+            ARIADNE_TESTING_EXPECT_EQUAL(third.time_step(), h);
+            check_stationary_component(third.flowpipe_mapping(), constant_value);
+            check_stationary_component(third.evolved_mapping(), constant_value);
+            ARIADNE_TESTING_EXPECT_EQUAL(
+                third.final_state().centre()[0u], constant_value);
         }
     }
 
