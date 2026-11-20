@@ -112,7 +112,7 @@ jobs:
 
     - name: Prepare C++ Integration Tutorial
       if: matrix.build_type == 'Release'
-      run: cmake -E copy_directory $GITHUB_WORKSPACE/tutorials/tutorial_integration ${{ runner.workspace }}/tutorial_integration
+      run: cmake -E copy_directory $GITHUB_WORKSPACE/tutorial ${{ runner.workspace }}/tutorial_integration
 
     - name: Check C++ Integration Tutorial
       if: matrix.build_type == 'Release'
@@ -127,7 +127,7 @@ jobs:
 
     - name: Check Python Integration Tutorial
       if: matrix.build_type == 'Release'
-      working-directory: ${{ github.workspace }}/python/tutorials
+      working-directory: ${{ github.workspace }}/tutorial
       env:
         PYTHONPATH: ${{ runner.workspace }}/install/lib/python3.13/site-packages
         LD_LIBRARY_PATH: ${{ runner.workspace }}/install/lib

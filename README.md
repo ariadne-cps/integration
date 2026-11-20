@@ -13,7 +13,7 @@ Although independently maintained and usable, this repository is also part of th
 
 ## Layout
 
-Public headers live under `include/integration`, implementations under `src`, C++ tests under `tests`, benchmarks under `benchmarks`, Python bindings and tests under `python`, and standalone examples under `tutorials`.
+Public headers live under `include/integration`, implementations under `src`, C++ tests under `tests`, benchmarks under `benchmarks`, Python bindings and tests under `python`, and standalone C++ and Python examples under `tutorial`.
 
 The umbrella header is `include/ariadne-integration.hpp`.
 

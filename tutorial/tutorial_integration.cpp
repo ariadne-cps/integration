@@ -22,7 +22,7 @@
  *  along with Ariadne Integration. If not, see <https://www.gnu.org/licenses/>.
  */
 
-/** @file tutorials/tutorial_integration/tutorial_integration.cpp
+/** @file tutorial/tutorial_integration.cpp
  *  @brief Demonstrate the Integration module's standalone C++ API.
  */
 
