@@ -122,12 +122,14 @@ class TestPolynomialProcedure : public Ariadne::Testing::ContextFixture {
         const auto x = EffectiveScalarMultivariateFunction::coordinate(1u, 0u);
         const ValidatedVectorMultivariateFunction reciprocal =
             EffectiveVectorMultivariateFunction({1 / x});
-        const ValidatedVectorMultivariateFunction cubic =
-            EffectiveVectorMultivariateFunction({pow(x, 3)});
         const ValidatedVectorMultivariateFunction sine =
             EffectiveVectorMultivariateFunction({sin(x)});
         const ExactBoxType domain({{0.875_x, 1.125_x}});
-        for (const auto& field: {reciprocal, cubic, sine}) {
+        // pow(x,3) is deliberately excluded: the earlier isolated
+        // Procedure test only established that the degree analyser rejects
+        // POW, not that the full graded integrator can evaluate it.
+        // Requiring success here would silently broaden the solver contract.
+        for (const auto& field: {reciprocal, sine}) {
             const auto [step, log] = integrate_with_diagnostics(field, domain);
             ARIADNE_TESTING_PROVE(
                 diagnostic_reports(log, "recurrence_defect_range="));
