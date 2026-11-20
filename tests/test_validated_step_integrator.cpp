@@ -267,9 +267,10 @@ class TestValidatedStepIntegrator : public Ariadne::Testing::ContextFixture {
         // x0 in [7/8,9/8] the exact second-step reach is
         // [7/8*exp(h1), 9/8*exp(h1+h2)] =
         // approximately [0.90277548, 1.17898988]. Test a strict
-        // interior enclosure to avoid assuming exactly rounded exp().
+        // interior enclosure using dyadic endpoints (exactly representable
+        // as ExactDouble), without assuming rounded exp().
         ARIADNE_TESTING_PROVE(definitely(subset(
-            ExactBoxType({{0.9028_x, 1.1789_x}}), cast_exact_box(second.reach()))));
+            ExactBoxType({{0.90283203125_x, 1.178955078125_x}}), cast_exact_box(second.reach()))));
         // Analytical endpoint x0*exp(h1+h2), with a tolerance accounting
         // for the validated Taylor-model remainder and outward rounding.
         const EffectiveVectorMultivariateFunction expected = {
@@ -320,8 +321,9 @@ class TestValidatedStepIntegrator : public Ariadne::Testing::ContextFixture {
         // approximately [-0.1587105795,0.1587105795].
         // The old [-0.1612,0.1612] expectation was wider than
         // the reachable set, and hence was not a valid lower bound.
+        // Use dyadic endpoints so the _x ExactDouble literals are exact.
         ARIADNE_TESTING_PROVE(definitely(subset(
-            ExactBoxType({{-0.1587_x, 0.1587_x}}), cast_exact_box(second.evolve()))));
+            ExactBoxType({{-0.15869140625_x, 0.15869140625_x}}), cast_exact_box(second.evolve()))));
     }
 
     Void test_reject_invalid_request() {
