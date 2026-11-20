@@ -31,6 +31,7 @@
 #include <utility>
 
 #include "function/function.hpp"
+#include "function/taylor_model.hpp"
 #include "integration/integrator.hpp"
 #include "logging/test_runner.hpp"
 
