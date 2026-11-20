@@ -28,7 +28,8 @@
 #include <stdexcept>
 
 #include "function/symbolic_function.hpp"
-#include "integration/validated_step_integrator.hpp"
+// Compile the shared step contract through the public module entry point.
+#include "ariadne-integration.hpp"
 #include "logging/test_runner.hpp"
 
 #include "ariadne-testing.hpp"

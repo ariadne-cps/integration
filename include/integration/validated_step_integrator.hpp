@@ -42,7 +42,8 @@ namespace Ariadne {
  *  This is a numerical request, not a system model. The referenced field must
  *  outlive the call to step(). A continuation request retains the original
  *  state-coordinate domain and all earlier input parameters when a validated
- *  endpoint map is available. These numerical field overloads are autonomous.
+ *  endpoint map is available. Numerical field overloads support both
+ *  autonomous and explicit-time requests, according to solver capability.
  *
  *  A single-valued function can still represent a system with uncertain
  *  parameters: the distinction here is the numerical input capability,
