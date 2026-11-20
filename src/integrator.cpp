@@ -1747,6 +1747,28 @@ Void PreconditionedGradedTaylorSeriesIntegrator::_write(OutputStream& os) const 
        << " )";
 }
 
+namespace {
+
+// An exact constant must have no uncertain remainder and no nonconstant
+// coefficients.  Checking only the value() or range() would not certify this.
+Bool exact_constant_taylor_model_component(
+    const ValidatedTaylorModelDP& model, const FloatDP& value) {
+    if (model.error().raw().get_d() != 0.0 ||
+        model.value().raw().get_d() != value.get_d()) {
+        return false;
+    }
+    for (auto it = model.expansion().begin();
+         it != model.expansion().end(); ++it) {
+        if (it->index().degree() != 0u &&
+            it->coefficient().get_d() != 0.0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+} // namespace
+
 PreconditionedTaylorSeriesState
     PreconditionedGradedTaylorSeriesIntegrator::precondition(
         const ValidatedVectorMultivariateFunctionPatch& state) const {
@@ -1758,11 +1780,20 @@ PreconditionedTaylorSeriesState
     const auto& factory = this->function_factory();
 
     Vector<FloatDP> centre(n, FloatDP(dp));
+    Vector<Bool> exactly_zero_centred(n, false);
     ValidatedVectorMultivariateFunctionPatch centred =
         factory.create_zeros(n, state.domain());
     for (SizeType i = 0u; i != n; ++i) {
         centre[i] = state_taylor.model(i).value().raw();
-        centred[i] = state[i] - FloatDPBounds(centre[i]);
+        exactly_zero_centred[i] =
+            exact_constant_taylor_model_component(state_taylor.model(i), centre[i]);
+        // Subtracting equal constants through general interval arithmetic can
+        // introduce an artificial remainder.  Retain the certified zero.
+        if (exactly_zero_centred[i]) {
+            centred[i] = factory.create_zero(state.domain());
+        } else {
+            centred[i] = state[i] - FloatDPBounds(centre[i]);
+        }
     }
 
     // QR preconditioning follows the linear part of the current local initial
@@ -1849,6 +1880,9 @@ PreconditionedTaylorSeriesState
         factory.create_zeros(n, state.domain());
     for (SizeType i = 0u; i != n; ++i) {
         for (SizeType j = 0u; j != n; ++j) {
+            if (exactly_zero_centred[j]) {
+                continue;
+            }
             rotated[i] = rotated[i] + centred[j] * inverse_rotation[i][j];
         }
     }
@@ -1942,6 +1976,31 @@ PreconditionedTaylorSeriesStep
     // non-diagonal A, so QR preconditioning can later reuse the same core.
     ValidatedVectorMultivariateFunctionPatch physical_vector_field =
         compose(f, x_of_y);
+    // Certify stationary physical components before introducing local Taylor
+    // rounding errors.  x_i = centre_i + sum_j A_ij*y_j(s) is exactly constant
+    // if every nonzero A_ij multiplies an exactly zero Taylor model.  Combined
+    // with f_i == 0 throughout the validated flow box, its entire exact
+    // flowpipe remains the singleton centre_i.
+    const auto& initial_taylor =
+        dynamic_cast<const ValidatedVectorMultivariateTaylorFunctionModelDP&>(
+            state.normalised_mapping().reference());
+    const auto physical_field_ranges = physical_vector_field.range();
+    Vector<Bool> stationary_components(n, false);
+    for (SizeType i = 0u; i != n; ++i) {
+        Bool exact_initial_constant = true;
+        for (SizeType j = 0u; j != n; ++j) {
+            if (A[i][j].get_d() != 0.0 &&
+                !exact_constant_taylor_model_component(
+                    initial_taylor.model(j), FloatDP(0u, dp))) {
+                exact_initial_constant = false;
+                break;
+            }
+        }
+        stationary_components[i] =
+            exact_initial_constant &&
+            definitely(subset(physical_field_ranges[i], ExactIntervalType(0, 0)));
+    }
+
     ValidatedVectorMultivariateFunctionPatch local_vector_field =
         factory.create_zeros(n, local_vector_field_domain);
     for (SizeType i = 0u; i != n; ++i) {
@@ -2309,6 +2368,18 @@ PreconditionedTaylorSeriesStep
                            "PreconditionedGradedTaylorSeriesIntegrator reduced h to " << h);
     }
 
+    // When both certificates hold, a generic reconstructed Taylor flow may
+    // still carry a rounding remainder for this invariant.  Replace it with
+    // the mathematically exact physical constant *before* composing.  This
+    // does not discard an uncertified error: both the initial singleton and
+    // zero derivative on the whole validated flow box have been proven.
+    for (SizeType i = 0u; i != n; ++i) {
+        if (stationary_components[i]) {
+            physical_local_flow[i] =
+                factory.create_constant(physical_local_flow.domain(), centre[i]);
+        }
+    }
+
     // Compose exactly once with the normalised local-initial-set TM y(s).
     // The resulting flowpipe is parameterised by the original enclosure
     // parameters s plus the local time variable.
@@ -2334,6 +2405,17 @@ PreconditionedTaylorSeriesStep
             physical_local_flow.argument_size() - 1u, h);
     ValidatedVectorMultivariateFunctionPatch evolved_mapping =
         compose(local_endpoint, state.normalised_mapping());
+
+    // A constant composed with a Taylor map stays exactly constant.  Avoid
+    // manufacturing an interval remainder in the generic compose pathway.
+    for (SizeType i = 0u; i != n; ++i) {
+        if (stationary_components[i]) {
+            flowpipe_mapping[i] =
+                factory.create_constant(flowpipe_domain, centre[i]);
+            evolved_mapping[i] =
+                factory.create_constant(parameter_domain, centre[i]);
+        }
+    }
 
     // Preserve the two-layer TM representation across steps.  Precondition
     // the fresh local endpoint Phi_l(y,h) first, while its remainder is still
