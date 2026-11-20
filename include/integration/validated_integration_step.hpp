@@ -61,6 +61,8 @@ class ValidatedIntegrationStep {
     List<ValidatedVectorMultivariateFunctionPatch> _reach_models;
     std::optional<ValidatedVectorMultivariateFunctionPatch> _evolve_model;
     std::optional<SizeType> _reach_time_index;
+    bool _equation_has_explicit_time;
+    ExactBoxType _constant_parameter_domain;
     std::any _representation;
 
   public:
@@ -71,12 +73,16 @@ class ValidatedIntegrationStep {
                              List<ValidatedVectorMultivariateFunctionPatch> reach_models = {},
                              std::optional<ValidatedVectorMultivariateFunctionPatch> evolve_model = std::nullopt,
                              const StepSizeType& initial_time = StepSizeType(0u),
-                             std::optional<SizeType> reach_time_index = std::nullopt)
+                             std::optional<SizeType> reach_time_index = std::nullopt,
+                             bool equation_has_explicit_time = false,
+                             ExactBoxType constant_parameter_domain = ExactBoxType(0u))
         : _time_step(time_step), _initial_time(initial_time), _reach(reach), _evolve(evolve),
           _reach_models(std::move(reach_models)),
           _evolve_model(std::move(evolve_model)),
           _reach_time_index(reach_time_index ? reach_time_index
               : (_reach_models.empty() ? std::nullopt : std::optional<SizeType>(reach.dimension()))),
+          _equation_has_explicit_time(equation_has_explicit_time),
+          _constant_parameter_domain(std::move(constant_parameter_domain)),
           _representation(std::move(representation)) {
         if (not (time_step > StepSizeType(0u)) ||
             reach.dimension() != evolve.dimension()) {
@@ -96,6 +102,17 @@ class ValidatedIntegrationStep {
     const StepSizeType& time_step() const { return _time_step; }
     const StepSizeType& initial_time() const { return _initial_time; }
     StepSizeType final_time() const { return _initial_time + _time_step; }
+    /** @brief Whether an equation step uses an explicit time coordinate.
+     *  This is numerical continuation metadata, not a system classification.
+     */
+    bool equation_has_explicit_time() const { return _equation_has_explicit_time; }
+    /** @brief Trajectory-constant parameters shared across equation steps.
+     *  Their coordinates occupy the prefix immediately after original states.
+     *  Later inclusion steps may append independent time-varying inputs.
+     */
+    const ExactBoxType& constant_parameter_domain() const {
+        return _constant_parameter_domain;
+    }
     const UpperBoxType& reach() const { return _reach; }
     const UpperBoxType& evolve() const { return _evolve; }
 
