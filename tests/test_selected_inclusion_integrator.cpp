@@ -233,6 +233,14 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         Scalar field = Interval<FloatDPUpperBound>(-1, 1, dp) * x;
         ValidatedIntervalTaylorBoxMultifunctionDP vector_field(Model({field}));
 
+        // Check model evaluation before any conversion is requested.
+        Vector<FloatDPBounds> scalar_argument({FloatDPBounds(1.0_x, dp)});
+        const auto scalar_image = field(scalar_argument);
+        ARIADNE_TESTING_PROVE(definitely(is_bounded(scalar_image)));
+        const UpperBoxType early_states({{0.9_x, 1.1_x}});
+        const auto early_image = vector_field.evaluate(early_states);
+        ARIADNE_TESTING_EXPECT_EQUAL(early_image.dimension(), 1u);
+
         const auto form = vector_field.parametric_form();
         ARIADNE_TESTING_PROVE(form.has_value());
         ARIADNE_TESTING_EXPECT_EQUAL(form->field.result_size(), 1u);
