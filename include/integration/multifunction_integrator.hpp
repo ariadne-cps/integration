@@ -29,6 +29,7 @@
 #ifndef ARIADNE_MULTIFUNCTION_INTEGRATOR_HPP
 #define ARIADNE_MULTIFUNCTION_INTEGRATOR_HPP
 
+#include <sstream>
 #include <stdexcept>
 
 #include "algebra/vector.hpp"
@@ -142,7 +143,10 @@ class FirstOrderMultifunctionIntegrator : public MultifunctionIntegratorInterfac
             evolve[i] = start + final_time * values[i];
         }
         if (not definitely(inside(reach, state_bound))) {
-            throw FlowBoundsException("Cannot certify the multifunction reach tube inside the supplied state bound");
+            std::ostringstream message;
+            message << "Cannot certify multifunction tube: reach=" << reach << " bound=" << state_bound
+                    << " field_values=" << values << " step=" << time_step;
+            throw FlowBoundsException(message.str());
         }
         return ValidatedMultiflowStep{time_step, reach, evolve};
     }

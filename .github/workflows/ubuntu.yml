@@ -173,7 +173,7 @@ jobs:
       run: |
         ctest -R "^test_multifunction_integrator$" --output-on-failure > multiflow_failure_details.txt 2>&1 || true
         tail -n 18 multiflow_failure_details.txt
-        REPORT=$(awk '/FAILURE SUMMARY/{enabled=1} enabled {print; count++} count == 9 {exit}' multiflow_failure_details.txt | tr '\n' ' ' | cut -c1-180)
+        REPORT=$(sed -n 's/^.*detail: //p' multiflow_failure_details.txt | head -n 1 | cut -c1-180)
         REPORT=${REPORT:-none}
         echo "reason=$REPORT" >> "$GITHUB_OUTPUT"
 
