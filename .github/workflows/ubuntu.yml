@@ -157,6 +157,14 @@ jobs:
         ARIADNE_MULTIFUNCTION_CASE: time_varying_selection,reject_uncertified_bound,reject_dimension_mismatch
       run: ctest -R "^test_multifunction_integrator$" --output-on-failure
 
+    - name: Multifunction diagnostic first_four
+      if: always() && matrix.build_type == 'Debug'
+      continue-on-error: true
+      working-directory: ${{ runner.workspace }}/build
+      env:
+        ARIADNE_MULTIFUNCTION_CASE: constant_inclusion,time_varying_selection,reject_uncertified_bound,reject_dimension_mismatch
+      run: ctest -R "^test_multifunction_integrator$" --output-on-failure
+
     - name: Capture multiflow full-suite error details
       if: always() && matrix.build_type == 'Debug'
       working-directory: ${{ runner.workspace }}/build
@@ -165,7 +173,7 @@ jobs:
       run: |
         ctest -R "^test_multifunction_integrator$" --output-on-failure > multiflow_failure_details.txt 2>&1 || true
         tail -n 18 multiflow_failure_details.txt
-        REPORT=$(grep -Ei 'fail|exception|error|inconclusive|abort' multiflow_failure_details.txt | tail -n 3 | tr '\n' ' ' | cut -c1-180)
+        REPORT=$(awk '/FAILURE SUMMARY/{enabled=1} enabled {print; count++} count == 9 {exit}' multiflow_failure_details.txt | tr '\n' ' ' | cut -c1-180)
         REPORT=${REPORT:-none}
         echo "reason=$REPORT" >> "$GITHUB_OUTPUT"
 
