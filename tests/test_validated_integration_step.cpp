@@ -78,6 +78,12 @@ class TestValidatedIntegrationStep : public Ariadne::Testing::ContextFixture {
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
             validated_integration_step(
                 flow, Interval<StepSizeType>(StepSizeType(0u), StepSizeType(0.0625_x))));
+        // The autonomous model's [0,h] time is local. Nonautonomous models
+        // must not falsely reinterpret that time domain as absolute.
+        ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
+            validated_integration_step(
+                flow, Interval<StepSizeType>(StepSizeType(0u), h),
+                StepSizeType(0.5_x), std::nullopt, true));
     }
 
     Void test_set_valued_box_step_without_forced_structure() {

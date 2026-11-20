@@ -202,6 +202,8 @@ class TestValidatedStepIntegrator : public Ariadne::Testing::ContextFixture {
         ARIADNE_TESTING_PROVE(not first.has_evolve_model());
         ARIADNE_TESTING_PROVE(not second.has_evolve_model());
         ARIADNE_TESTING_PROVE(not second.has_reach_models());
+        ARIADNE_TESTING_EXPECT_THROWS(std::logic_error,
+            second.reach_sections(second.final_time()));
         ARIADNE_TESTING_EXPECT_EQUAL(second.initial_time(), h1);
         ARIADNE_TESTING_EXPECT_EQUAL(second.final_time(), StepSizeType(0.046875_x));
         ARIADNE_TESTING_PROVE(definitely(subset(
@@ -262,6 +264,17 @@ class TestValidatedStepIntegrator : public Ariadne::Testing::ContextFixture {
         ARIADNE_TESTING_EXPECT_EQUAL(second.reach_models().size(), 1u);
         ARIADNE_TESTING_PROVE(second.reach_time_index().has_value());
         ARIADNE_TESTING_EXPECT_EQUAL(second.reach_time_index().value(), initial.dimension());
+        // Autonomous flows keep a local [0,h] patch time although the
+        // physical second step starts at h1.
+        ARIADNE_TESTING_EXPECT_EQUAL(second.reach_time_offset(), h1);
+        const auto local_sections = second.reach_sections(second.final_time());
+        ARIADNE_TESTING_EXPECT_EQUAL(local_sections.size(), 1u);
+        ARIADNE_TESTING_EXPECT_EQUAL(
+            local_sections[0u].domain(), second.evolve_model().domain());
+        ARIADNE_TESTING_EXPECT_LESS(
+            norm(local_sections[0u] - second.evolve_model()), 1e-8_pr);
+        ARIADNE_TESTING_EXPECT_THROWS(std::out_of_range,
+            second.reach_sections(StepSizeType(0u)));
         ARIADNE_TESTING_EXPECT_EQUAL(second.evolve_model().domain(), initial);
         ARIADNE_TESTING_EXPECT_EQUAL(second.evolve_model().argument_size(), initial.dimension());
         // The second tube begins at t=h1, not t=0. For x'=x with
@@ -355,6 +368,13 @@ class TestValidatedStepIntegrator : public Ariadne::Testing::ContextFixture {
         ARIADNE_TESTING_EXPECT_EQUAL(second.final_time(), StepSizeType(0.59375_x));
         ARIADNE_TESTING_PROVE(second.equation_has_explicit_time());
         ARIADNE_TESTING_PROVE(second.has_evolve_model());
+        ARIADNE_TESTING_EXPECT_EQUAL(second.reach_time_offset(), StepSizeType(0u));
+        const auto absolute_sections = second.reach_sections(second.final_time());
+        ARIADNE_TESTING_EXPECT_EQUAL(absolute_sections.size(), 1u);
+        ARIADNE_TESTING_EXPECT_EQUAL(
+            absolute_sections[0u].domain(), second.evolve_model().domain());
+        ARIADNE_TESTING_EXPECT_LESS(
+            norm(absolute_sections[0u] - second.evolve_model()), 1e-8_pr);
         ARIADNE_TESTING_EXPECT_EQUAL(second.evolve_model().domain(), initial);
         ARIADNE_TESTING_EXPECT_LESS(norm(second.evolve_model() - expected), 1e-4_pr);
     }
@@ -535,6 +555,15 @@ class TestValidatedStepIntegrator : public Ariadne::Testing::ContextFixture {
             ARIADNE_TESTING_EXPECT_EQUAL(
                 reach_patch.domain()[2u],
                 IntervalDomainType(0.53125_x, 0.546875_x));
+        }
+        // The lifted inclusion solver already stores absolute time, even
+        // when the time coordinate follows original fixed parameters.
+        ARIADNE_TESTING_EXPECT_EQUAL(second.reach_time_offset(), StepSizeType(0u));
+        const auto inclusion_sections = second.reach_sections(second.final_time());
+        ARIADNE_TESTING_PROVE(not inclusion_sections.empty());
+        for (const auto& section: inclusion_sections) {
+            ARIADNE_TESTING_EXPECT_EQUAL(
+                section.domain(), second.evolve_model().domain());
         }
 
         // A fixed parameter is selected ONCE for the whole trajectory:

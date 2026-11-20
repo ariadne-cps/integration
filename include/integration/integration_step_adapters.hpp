@@ -49,6 +49,9 @@ inline ValidatedIntegrationStep validated_integration_step(
     const ExactBoxType& constant_parameter_domain = ExactBoxType(0u)) {
     const SizeType n = flow.result_size();
     const SizeType time_index = time_coordinate.value_or(n);
+    if (equation_has_explicit_time && initial_time != time_domain.lower_bound()) {
+        throw std::invalid_argument("Explicit-time flow cannot be relabelled with a different absolute start");
+    }
     if (flow.argument_size() <= time_index ||
         not (flow.domain()[time_index] ==
              IntervalDomainType(time_domain.lower_bound(), time_domain.upper_bound()))) {
@@ -62,7 +65,8 @@ inline ValidatedIntegrationStep validated_integration_step(
                                     UpperBoxType(endpoint.range()), std::any(flow),
                                     std::move(reach_models), endpoint, initial_time,
                                     time_index, equation_has_explicit_time,
-                                    constant_parameter_domain);
+                                    constant_parameter_domain,
+                                    initial_time - time_domain.lower_bound());
 }
 
 /** @brief Preserve the full structured inclusion result, including all
