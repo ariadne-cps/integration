@@ -77,6 +77,21 @@ jobs:
       working-directory: ${{ runner.workspace }}/build
       run: cmake --build . --parallel $NPROC --target benchmarks
 
+    - name: Capture first multifunction compile diagnostic
+      if: matrix.build_type == 'Debug'
+      id: multifunction_compile_probe
+      working-directory: ${{ runner.workspace }}/build
+      run: |
+        cmake --build . --parallel 2 --target tests bindings > multifunction_compile.txt 2>&1 || true
+        grep -E -m 4 'error:|fatal error:|undefined reference|C[0-9]{4}:' multifunction_compile.txt || true
+        REPORT=$(grep -E -m 1 'error:|fatal error:|undefined reference|C[0-9]{4}:' multifunction_compile.txt | sed 's/.*error:/error:/' | cut -c1-160 || true)
+        REPORT=${REPORT:-no-error-found}
+        echo "detail=$REPORT" >> "$GITHUB_OUTPUT"
+
+    - name: "Compile diagnostic ${{ steps.multifunction_compile_probe.outputs.detail }}"
+      if: matrix.build_type == 'Debug'
+      run: echo "Diagnostic already captured in GitHub step metadata"
+
     - name: Build Debug tests and bindings
       if: matrix.build_type == 'Debug'
       working-directory: ${{ runner.workspace }}/build
