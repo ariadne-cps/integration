@@ -77,120 +77,43 @@ class ValidatedIntegrationStep {
                              std::optional<SizeType> reach_time_index = std::nullopt,
                              bool equation_has_explicit_time = false,
                              ExactBoxType constant_parameter_domain = ExactBoxType(0u),
-                             const StepSizeType& reach_time_offset = StepSizeType(0u))
-        : _time_step(time_step), _initial_time(initial_time), _reach(reach), _evolve(evolve),
-          _reach_models(std::move(reach_models)),
-          _evolve_model(std::move(evolve_model)),
-          _reach_time_index(reach_time_index ? reach_time_index
-              : (_reach_models.empty() ? std::nullopt : std::optional<SizeType>(reach.dimension()))),
-          _reach_time_offset(reach_time_offset),
-          _equation_has_explicit_time(equation_has_explicit_time),
-          _constant_parameter_domain(std::move(constant_parameter_domain)),
-          _representation(std::move(representation)) {
-        if (not (time_step > StepSizeType(0u)) ||
-            reach.dimension() != evolve.dimension()) {
-            throw std::invalid_argument("Validated integration step has incompatible bounds or duration");
-        }
-        for (const auto& model: _reach_models) {
-            if (model.result_size() != reach.dimension() ||
-                not _reach_time_index || *_reach_time_index >= model.argument_size()) {
-                throw std::invalid_argument("Validated reach model has incompatible state or time coordinates");
-            }
-            // Backend time may be local to the step or already absolute.
-            // Each certified patch must lie within the correctly shifted
-            // step interval; different patches may cover different parts.
-            const IntervalDomainType model_step_time(
-                _initial_time - _reach_time_offset,
-                _initial_time + _time_step - _reach_time_offset);
-            if (not definitely(subset(model.domain()[*_reach_time_index], model_step_time))) {
-                throw std::invalid_argument("Validated reach patch lies outside the step's time interval");
-            }
-            // The common reach box must enclose ALL states certified by
-            // every reach patch. A contradictory box is not a valid
-            // lossy projection of a structured reach certificate.
-            if (not definitely(subset(cast_exact_box(UpperBoxType(model.range())),
-                                      cast_exact_box(_reach)))) {
-                throw std::invalid_argument("Validated reach box does not enclose a reach patch");
-            }
-        }
-        if (not _reach_models.empty()) {
-            // Individual patch intervals may be split, overlap and arrive
-            // unsorted. The structured reach must nonetheless certify a
-            // section throughout the WHOLE step. Otherwise callers could
-            // silently miss trajectories at intermediate physical times.
-            const IntervalDomainType model_step_time(
-                _initial_time - _reach_time_offset,
-                _initial_time + _time_step - _reach_time_offset);
-            auto covered = model_step_time.lower_bound();
-            while (covered < model_step_time.upper_bound()) {
-                auto next = covered;
-                for (const auto& model: _reach_models) {
-                    // domain() returns a box BY VALUE. Retaining a reference
-                    // to one of its elements after this expression would
-                    // dangle, corrupting the time coverage comparison.
-                    const auto domain = model.domain();
-                    const auto& interval = domain[*_reach_time_index];
-                    if (interval.lower_bound() <= covered && interval.upper_bound() > next) {
-                        next = interval.upper_bound();
-                    }
-                }
-                if (not (next > covered)) {
-                    throw std::invalid_argument(
-                        "Validated reach patches do not cover the whole step time interval");
-                }
-                covered = next;
-            }
-        }
-        if (_evolve_model && _evolve_model->result_size() != evolve.dimension()) {
-            throw std::invalid_argument("Validated endpoint model has an incompatible state dimension");
-        }
-        // Reach and endpoint may use different approximations and
-        // different parameter domains. Validate their boxes separately.
-        if (_evolve_model &&
-            not definitely(subset(cast_exact_box(UpperBoxType(_evolve_model->range())),
-                                  cast_exact_box(_evolve)))) {
-            throw std::invalid_argument("Validated endpoint box does not enclose the endpoint model");
-        }
-    }
+                             const StepSizeType& reach_time_offset = StepSizeType(0u));
 
-    const StepSizeType& time_step() const { return _time_step; }
-    const StepSizeType& initial_time() const { return _initial_time; }
-    StepSizeType final_time() const { return _initial_time + _time_step; }
+
+    const StepSizeType& time_step() const;
+    const StepSizeType& initial_time() const;
+    StepSizeType final_time() const;
     /** @brief Whether an equation step uses an explicit time coordinate.
      *  This is numerical continuation metadata, not a system classification.
      */
-    bool has_explicit_time() const { return _equation_has_explicit_time; }
+    bool has_explicit_time() const;
     /** @brief Compatibility alias for earlier equation-only requests. */
-    bool equation_has_explicit_time() const { return has_explicit_time(); }
+    bool equation_has_explicit_time() const;
     /** @brief Trajectory-constant parameters shared across equation steps.
      *  Their coordinates occupy the prefix immediately after original states.
      *  Later inclusion steps may append independent time-varying inputs.
      */
-    const ExactBoxType& constant_parameter_domain() const {
-        return _constant_parameter_domain;
-    }
-    const UpperBoxType& reach() const { return _reach; }
-    const UpperBoxType& evolve() const { return _evolve; }
+    const ExactBoxType& constant_parameter_domain() const;
+    const UpperBoxType& reach() const;
+    const UpperBoxType& evolve() const;
 
     /** @brief Structured reach-tube certificates, if the algorithm provides any.
      *  The list may contain several patches with different parameter domains.
      *  An empty list means the algorithm certified only box enclosures.
      */
-    const List<ValidatedVectorMultivariateFunctionPatch>& reach_models() const {
-        return _reach_models;
-    }
-    bool has_reach_models() const { return not _reach_models.empty(); }
+    const List<ValidatedVectorMultivariateFunctionPatch>& reach_models() const;
+    bool has_reach_models() const;
     /** @brief Time-coordinate index in each reach patch, if maps are provided.
      *  The time coordinate may differ from the state dimension when a prior
      *  structured mapping has additional uncertainty parameters.
      */
-    std::optional<SizeType> reach_time_index() const { return _reach_time_index; }
+    std::optional<SizeType> reach_time_index() const;
 
     /** @brief Add this numerical offset to patch time to obtain absolute time.
      *  Autonomous flow solvers can use step-local time; nonautonomous
      *  flows and inclusion solvers ordinarily use absolute time.
      */
-    const StepSizeType& reach_time_offset() const { return _reach_time_offset; }
+    const StepSizeType& reach_time_offset() const;
 
     /** @brief Validated state sections at an absolute instant inside this step.
      *
@@ -200,40 +123,16 @@ class ValidatedIntegrationStep {
      *  downcast is performed. An empty reach structure is not fabricated.
      */
     List<ValidatedVectorMultivariateFunctionPatch>
-    reach_sections(const StepSizeType& absolute_time) const {
-        if (_reach_models.empty()) {
-            throw std::logic_error("Box-only integration has no structured reach sections");
-        }
-        if (absolute_time < _initial_time || absolute_time > this->final_time()) {
-            throw std::out_of_range("Reach section time lies outside the integration step");
-        }
-        const StepSizeType model_time = absolute_time - _reach_time_offset;
-        const IntervalDomainType point(model_time, model_time);
-        List<ValidatedVectorMultivariateFunctionPatch> sections;
-        for (const auto& model: _reach_models) {
-            if (definitely(subset(point, model.domain()[*_reach_time_index]))) {
-                sections.append(partial_evaluate(model, *_reach_time_index, model_time));
-            }
-        }
-        if (sections.empty()) {
-            throw std::out_of_range("No certified reach patch contains the requested time");
-        }
-        return sections;
-    }
+    reach_sections(const StepSizeType& absolute_time) const;
 
     /** @brief Endpoint mapping suitable for structured continuation.
      *  An integrator computing only box enclosures does not fabricate a map.
      *  Callers may use has_evolve_model() to choose a sound box-based path.
      */
-    bool has_evolve_model() const { return _evolve_model.has_value(); }
-    const ValidatedVectorMultivariateFunctionPatch& evolve_model() const {
-        if (not _evolve_model) {
-            throw std::logic_error("This integration step has no structured endpoint model");
-        }
-        return *_evolve_model;
-    }
+    bool has_evolve_model() const;
+    const ValidatedVectorMultivariateFunctionPatch& evolve_model() const;
 
-    bool has_representation() const { return _representation.has_value(); }
+    bool has_representation() const;
 
     /** @brief Recover an algorithm-specific validated result, when available.
      *  The returned pointer is owned by this step and remains valid for its
