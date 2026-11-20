@@ -76,6 +76,12 @@ class TestValidatedStepIntegrator : public Ariadne::Testing::ContextFixture {
         ARIADNE_TESTING_PROVE(definitely(subset(
             ExactBoxType({{-0.03125_x, 0.15625_x}}),
             cast_exact_box(inclusion_step.evolve()))));
+        ARIADNE_TESTING_PROVE(ordinary_step.has_evolve_model());
+        ARIADNE_TESTING_EXPECT_EQUAL(
+            ordinary_step.evolve_model().argument_size(), initial.dimension());
+        ARIADNE_TESTING_PROVE(ordinary_step.has_reach_models());
+        ARIADNE_TESTING_PROVE(not inclusion_step.has_evolve_model());
+        ARIADNE_TESTING_PROVE(not inclusion_step.has_reach_models());
         ARIADNE_TESTING_PROVE(
             ordinary_step.representation_as<FlowStepModelType>() != nullptr);
         ARIADNE_TESTING_PROVE(not inclusion_step.has_representation());
@@ -111,9 +117,17 @@ class TestValidatedStepIntegrator : public Ariadne::Testing::ContextFixture {
         ARIADNE_TESTING_PROVE(definitely(subset(
             ExactBoxType({{-0.03125_x, 0.15625_x}}),
             cast_exact_box(step.evolve()))));
+        // The future evolver need not inspect the concrete solver result.
+        ARIADNE_TESTING_PROVE(step.has_reach_models());
+        ARIADNE_TESTING_PROVE(step.has_evolve_model());
+        ARIADNE_TESTING_PROVE(step.reach_models().size() >= 1u);
+        ARIADNE_TESTING_PROVE(step.evolve_model().argument_size() > initial.dimension());
+        ARIADNE_TESTING_PROVE(definitely(subset(
+            ExactBoxType({{-0.03125_x, 0.15625_x}}),
+            cast_exact_box(UpperBoxType(step.evolve_model().range())))));
+        // The original algorithm-specific result remains available, if needed.
         const auto* original = step.representation_as<SelectedInclusionStep>();
         ARIADNE_TESTING_PROVE(original != nullptr);
-        ARIADNE_TESTING_PROVE(original->reach_models.size() >= 1u);
         ARIADNE_TESTING_EXPECT_EQUAL(original->time_step, h);
     }
 

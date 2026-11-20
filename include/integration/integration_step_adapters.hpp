@@ -51,8 +51,11 @@ inline ValidatedIntegrationStep validated_integration_step(
     }
     const StepSizeType duration = time_domain.upper_bound() - time_domain.lower_bound();
     const auto endpoint = partial_evaluate(flow, n, time_domain.upper_bound());
+    List<ValidatedVectorMultivariateFunctionPatch> reach_models;
+    reach_models.append(flow);
     return ValidatedIntegrationStep(duration, UpperBoxType(flow.range()),
-                                    UpperBoxType(endpoint.range()), std::any(flow));
+                                    UpperBoxType(endpoint.range()), std::any(flow),
+                                    std::move(reach_models), endpoint);
 }
 
 /** @brief Preserve the full structured inclusion result, including all
@@ -61,7 +64,8 @@ inline ValidatedIntegrationStep validated_integration_step(
 inline ValidatedIntegrationStep validated_integration_step(const SelectedInclusionStep& step) {
     const auto bounds = step.bounding_step();
     return ValidatedIntegrationStep(bounds.time_step, bounds.reach,
-                                    bounds.evolve, std::any(step));
+                                    bounds.evolve, std::any(step),
+                                    step.reach_models, step.evolve_model);
 }
 
 /** @brief Box-only algorithms still satisfy the common result contract. */

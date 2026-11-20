@@ -60,6 +60,14 @@ class TestValidatedIntegrationStep : public Ariadne::Testing::ContextFixture {
             ExactBoxType({{0.0_x, 0.15625_x}}), cast_exact_box(step.reach()))));
         ARIADNE_TESTING_PROVE(definitely(subset(
             ExactBoxType({{0.03125_x, 0.15625_x}}), cast_exact_box(step.evolve()))));
+        ARIADNE_TESTING_PROVE(step.has_reach_models());
+        ARIADNE_TESTING_EXPECT_EQUAL(step.reach_models().size(), 1u);
+        ARIADNE_TESTING_EXPECT_EQUAL(step.reach_models()[0u].domain(), flow.domain());
+        ARIADNE_TESTING_PROVE(step.has_evolve_model());
+        ARIADNE_TESTING_EXPECT_EQUAL(step.evolve_model().argument_size(), initial.dimension());
+        ARIADNE_TESTING_PROVE(definitely(subset(
+            ExactBoxType({{0.03125_x, 0.15625_x}}),
+            cast_exact_box(UpperBoxType(step.evolve_model().range())))));
         ARIADNE_TESTING_PROVE(step.has_representation());
         const auto* restored = step.representation_as<FlowStepModelType>();
         ARIADNE_TESTING_PROVE(restored != nullptr);
@@ -92,6 +100,9 @@ class TestValidatedIntegrationStep : public Ariadne::Testing::ContextFixture {
             ExactBoxType({{-0.03125_x, 0.15625_x}}), cast_exact_box(step.reach()))));
         ARIADNE_TESTING_PROVE(definitely(subset(
             ExactBoxType({{-0.03125_x, 0.15625_x}}), cast_exact_box(step.evolve()))));
+        ARIADNE_TESTING_PROVE(not step.has_reach_models());
+        ARIADNE_TESTING_PROVE(not step.has_evolve_model());
+        ARIADNE_TESTING_EXPECT_THROWS(std::logic_error, step.evolve_model());
         ARIADNE_TESTING_PROVE(not step.has_representation());
     }
 
@@ -119,6 +130,12 @@ class TestValidatedIntegrationStep : public Ariadne::Testing::ContextFixture {
             ExactBoxType({{-0.03125_x, 0.15625_x}}), cast_exact_box(step.reach()))));
         ARIADNE_TESTING_PROVE(definitely(subset(
             ExactBoxType({{-0.03125_x, 0.15625_x}}), cast_exact_box(step.evolve()))));
+        ARIADNE_TESTING_PROVE(step.has_reach_models());
+        ARIADNE_TESTING_EXPECT_EQUAL(step.reach_models().size(), native.reach_models.size());
+        ARIADNE_TESTING_PROVE(step.has_evolve_model());
+        ARIADNE_TESTING_EXPECT_EQUAL(step.evolve_model().domain(), native.evolve_model.domain());
+        ARIADNE_TESTING_EXPECT_EQUAL(
+            step.evolve_model().argument_size(), native.evolve_model.argument_size());
         const auto* restored = step.representation_as<SelectedInclusionStep>();
         ARIADNE_TESTING_PROVE(restored != nullptr);
         ARIADNE_TESTING_EXPECT_EQUAL(restored->time_step, native.time_step);
