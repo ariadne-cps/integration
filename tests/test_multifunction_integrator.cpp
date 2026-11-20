@@ -125,16 +125,19 @@ int main(int argc, char** argv) {
     // Diagnostic selection is opt-in; production runs exercise all four cases.
     const char* requested = std::getenv("ARIADNE_MULTIFUNCTION_CASE");
     const std::string selected = requested ? requested : "";
-    if (selected.empty() || selected == "constant_inclusion") {
+    const auto selected_case = [&](const char* key) {
+        return selected.empty() || ("," + selected + ",").find("," + std::string(key) + ",") != std::string::npos;
+    };
+    if (selected_case("constant_inclusion")) {
         ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_constant_inclusion);
     }
-    if (selected.empty() || selected == "time_varying_selection") {
+    if (selected_case("time_varying_selection")) {
         ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_time_varying_selection);
     }
-    if (selected.empty() || selected == "reject_uncertified_bound") {
+    if (selected_case("reject_uncertified_bound")) {
         ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_reject_uncertified_bound);
     }
-    if (selected.empty() || selected == "reject_dimension_mismatch") {
+    if (selected_case("reject_dimension_mismatch")) {
         ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_reject_dimension_mismatch);
     }
     return Ariadne::Testing::run_logging_suite(ariadne_test_suite, argc, argv);
