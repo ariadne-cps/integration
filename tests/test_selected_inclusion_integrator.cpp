@@ -237,7 +237,7 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         Vector<FloatDPBounds> scalar_argument({FloatDPBounds(1.0_x, dp)});
         const auto scalar_image = field(scalar_argument);
         ARIADNE_TESTING_PROVE(definitely(is_bounded(scalar_image)));
-        const UpperBoxType early_states({{0.9_x, 1.1_x}});
+        const UpperBoxType early_states({{0.875_x, 1.125_x}});
         const auto early_image = vector_field.evaluate(early_states);
         ARIADNE_TESTING_EXPECT_EQUAL(early_image.dimension(), 1u);
 
@@ -248,7 +248,7 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
 
         // For all x and all uncertain coefficients, the converted field
         // must contain the original interval Taylor field value.
-        const UpperBoxType states({{0.9_x, 1.1_x}});
+        const UpperBoxType states({{0.875_x, 1.125_x}});
         const auto interval_image = vector_field.evaluate(states);
         ARIADNE_TESTING_EXPECT_EQUAL(interval_image.dimension(), 1u);
         const Vector<FloatDPBounds> arguments(

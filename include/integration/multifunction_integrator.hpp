@@ -101,13 +101,7 @@ class ValidatedIntervalTaylorBoxMultifunctionDP : public ValidatedBoxMultifuncti
         Vector<FloatDPBounds> arguments(box.dimension(), [&](SizeType i) {
             return FloatDPBounds(box[i].lower_bound(), box[i].upper_bound());
         });
-        // Evaluate each scalar Taylor model independently. This gives
-        // the same componentwise outer enclosure as vector evaluation and
-        // avoids coupling the box-extension contract to vector evaluation
-        // dispatch for interval coefficients.
-        return UpperBoxType(this->result_size(), [&](SizeType i) {
-            return _model.get(i)(arguments);
-        });
+        return _model(arguments);
     }
 
     /** @brief Convert an interval Taylor polynomial to a structural inclusion.
