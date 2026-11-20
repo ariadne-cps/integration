@@ -562,8 +562,19 @@ class TestValidatedStepIntegrator : public Ariadne::Testing::ContextFixture {
         const auto inclusion_sections = second.reach_sections(second.final_time());
         ARIADNE_TESTING_PROVE(not inclusion_sections.empty());
         for (const auto& section: inclusion_sections) {
+            // Reach uses ZeroApproximation and evolve ConstantApproximation.
+            // Their newly introduced input coordinates need not agree:
+            // reach may carry no fresh input coordinate, while evolve
+            // introduces one. Both must retain the ORIGINAL initial-state,
+            // fixed-parameter and earlier input-uncertainty coordinates.
+            const SizeType retained = first.evolve_model().argument_size();
+            ARIADNE_TESTING_PROVE(section.argument_size() >= retained);
             ARIADNE_TESTING_EXPECT_EQUAL(
-                section.domain(), second.evolve_model().domain());
+                section.domain()[range(0u, retained)],
+                first.evolve_model().domain());
+            ARIADNE_TESTING_EXPECT_EQUAL(
+                section.domain()[range(0u, retained)],
+                second.evolve_model().domain()[range(0u, retained)]);
         }
 
         // A fixed parameter is selected ONCE for the whole trajectory:
