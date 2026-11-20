@@ -86,6 +86,68 @@ class TestValidatedIntegrationStep : public Ariadne::Testing::ContextFixture {
                 StepSizeType(0.5_x), std::nullopt, true));
     }
 
+    Void test_piecewise_reach_sections_cover_every_time() {
+        // Two certified restrictions of the SAME numerical flow provide a
+        // multi-patch reach. They deliberately arrive in reverse temporal
+        // order; the common contract must not depend on patch ordering.
+        const EffectiveVectorMultivariateFunction field = {
+            EffectiveScalarMultivariateFunction::constant(1u, 1)};
+        const ExactBoxType initial({{0.0_x, 0.125_x}});
+        const UpperBoxType bound({{-1.0_x, 1.0_x}});
+        const StepSizeType h(0.03125_x);
+        const StepSizeType half(0.015625_x);
+        TaylorSeriesIntegrator solver(step_maximum_error = 1e-6, order = 8);
+        const auto flow = solver.flow_step(field, initial, h, bound);
+        const auto native = validated_integration_step(
+            flow, Interval<StepSizeType>(StepSizeType(0u), h));
+
+        const ValidatedVectorMultivariateFunctionPatch full = flow;
+        const auto first_half = restriction(full, product(
+            BoxDomainType(initial), IntervalDomainType(0.0_x, 0.015625_x)));
+        const auto last_half = restriction(full, product(
+            BoxDomainType(initial), IntervalDomainType(0.015625_x, 0.03125_x)));
+
+        List<ValidatedVectorMultivariateFunctionPatch> pieces;
+        pieces.append(last_half);
+        pieces.append(first_half);
+        const ValidatedIntegrationStep step(
+            h, native.reach(), native.evolve(), {}, pieces,
+            native.evolve_model(), StepSizeType(0u), 1u);
+        ARIADNE_TESTING_EXPECT_EQUAL(step.reach_models().size(), 2u);
+        ARIADNE_TESTING_EXPECT_EQUAL(step.reach_sections(StepSizeType(0u)).size(), 1u);
+        ARIADNE_TESTING_EXPECT_EQUAL(step.reach_sections(half).size(), 2u);
+        ARIADNE_TESTING_EXPECT_EQUAL(step.reach_sections(h).size(), 1u);
+
+        const auto left = step.reach_sections(StepSizeType(0.0078125_x));
+        const auto right = step.reach_sections(StepSizeType(0.0234375_x));
+        ARIADNE_TESTING_EXPECT_EQUAL(left.size(), 1u);
+        ARIADNE_TESTING_EXPECT_EQUAL(right.size(), 1u);
+        ARIADNE_TESTING_EXPECT_EQUAL(left[0u].domain(), BoxDomainType(initial));
+        ARIADNE_TESTING_EXPECT_EQUAL(right[0u].domain(), BoxDomainType(initial));
+        ARIADNE_TESTING_PROVE(definitely(subset(
+            ExactBoxType({{0.0078125_x, 0.1328125_x}}),
+            cast_exact_box(UpperBoxType(left[0u].range())))));
+        ARIADNE_TESTING_PROVE(definitely(subset(
+            ExactBoxType({{0.0234375_x, 0.1484375_x}}),
+            cast_exact_box(UpperBoxType(right[0u].range())))));
+
+        // A partial tube must not pretend to provide certified time
+        // sections for an entire step, even if its overall box is sound.
+        List<ValidatedVectorMultivariateFunctionPatch> incomplete;
+        incomplete.append(first_half);
+        ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
+            ValidatedIntegrationStep(h, native.reach(), native.evolve(),
+                                     {}, incomplete, native.evolve_model(),
+                                     StepSizeType(0u), 1u));
+
+        // The same local-time patch cannot be passed off as a reach
+        // whose time coordinates are absolute around physical t=1/2.
+        ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
+            ValidatedIntegrationStep(h, native.reach(), native.evolve(),
+                                     {}, pieces, native.evolve_model(),
+                                     StepSizeType(0.5_x), 1u));
+    }
+
     Void test_set_valued_box_step_without_forced_structure() {
         const auto u = EffectiveFormula::coordinate(1u);
         const EffectiveVectorMultivariateFunction f =
@@ -169,6 +231,7 @@ class TestValidatedIntegrationStep : public Ariadne::Testing::ContextFixture {
 int main(int argc, char** argv) {
     ARIADNE_TESTING_SUITE("test_validated_integration_step");
     ARIADNE_TESTING_ADD_TEST(TestValidatedIntegrationStep, test_single_valued_flow_preserves_patch);
+    ARIADNE_TESTING_ADD_TEST(TestValidatedIntegrationStep, test_piecewise_reach_sections_cover_every_time);
     ARIADNE_TESTING_ADD_TEST(TestValidatedIntegrationStep, test_set_valued_box_step_without_forced_structure);
     ARIADNE_TESTING_ADD_TEST(TestValidatedIntegrationStep, test_structured_inclusion_retains_parameter_maps);
     ARIADNE_TESTING_ADD_TEST(TestValidatedIntegrationStep, test_reject_inconsistent_basic_result);

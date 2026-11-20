@@ -106,6 +106,30 @@ class ValidatedIntegrationStep {
                 throw std::invalid_argument("Validated reach patch lies outside the step's time interval");
             }
         }
+        if (not _reach_models.empty()) {
+            // Individual patch intervals may be split, overlap and arrive
+            // unsorted. The structured reach must nonetheless certify a
+            // section throughout the WHOLE step. Otherwise callers could
+            // silently miss trajectories at intermediate physical times.
+            const IntervalDomainType model_step_time(
+                _initial_time - _reach_time_offset,
+                _initial_time + _time_step - _reach_time_offset);
+            auto covered = model_step_time.lower_bound();
+            while (covered < model_step_time.upper_bound()) {
+                auto next = covered;
+                for (const auto& model: _reach_models) {
+                    const auto& interval = model.domain()[*_reach_time_index];
+                    if (interval.lower_bound() <= covered && interval.upper_bound() > next) {
+                        next = interval.upper_bound();
+                    }
+                }
+                if (not (next > covered)) {
+                    throw std::invalid_argument(
+                        "Validated reach patches do not cover the whole step time interval");
+                }
+                covered = next;
+            }
+        }
         if (_evolve_model && _evolve_model->result_size() != evolve.dimension()) {
             throw std::invalid_argument("Validated endpoint model has an incompatible state dimension");
         }
