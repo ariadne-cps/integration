@@ -183,6 +183,10 @@ class ValidatedParametricBoxMultifunctionDP : public ValidatedBoxMultifunctionIn
     /** @brief Independent admissible input box, without freezing inputs in time. */
     const BoxDomainType& inputs() const { return _inputs; }
 
+    std::optional<ParametricMultifunctionForm> parametric_form() const override {
+        return ParametricMultifunctionForm{_field, _inputs};
+    }
+
     UpperBoxType evaluate(const UpperBoxType& box) const override {
         if (box.dimension() != this->argument_size() ||
             not definitely(subset(box, _state_domain))) {
@@ -205,10 +209,11 @@ class ValidatedParametricBoxMultifunctionDP : public ValidatedBoxMultifunctionIn
 
 /** @brief High-order inclusion integrator implementing the common box interface.
  *
- *  Higher-order Taylor bounds require the structured parametric representation;
- *  a generic interval Taylor coefficient model supplies only a box extension.
- *  It is accepted by FirstOrderMultifunctionIntegrator, but cannot be silently
- *  interpreted as a structured f(x,u) by this solver. Such input is rejected.
+ *  Higher-order integration requires a certified parametric representation.
+ *  Either a structured f(x,u) input or a Taylor model with interval coefficients
+ *  can provide one, via ValidatedBoxMultifunctionInterface::parametric_form().
+ *  A solver must reject fields that do not provide this capability rather than
+ *  inventing unsupported correlations.
  *
  *  The optional structured step retains parameter correlations for downstream
  *  evolution and reconditioning. flow_step() exposes the common box result.
@@ -236,7 +241,7 @@ class SelectedParametricMultifunctionIntegrator : public MultifunctionIntegrator
     Nat evolve_index() const { return _evolve_approximation.reference().index(); }
 
     /** @brief Compute high-order reach/evolve patches with parameter structure. */
-    SelectedInclusionStep structured_step(const ValidatedParametricBoxMultifunctionDP& field,
+    SelectedInclusionStep structured_step(const ValidatedBoxMultifunctionInterface& field,
                                           const ExactBoxType& initial,
                                           const StepSizeType& time_step,
                                           const UpperBoxType& state_bound) const {
@@ -248,8 +253,19 @@ class SelectedParametricMultifunctionIntegrator : public MultifunctionIntegrator
             not definitely(subset(state_bound, field.domain()))) {
             throw std::invalid_argument("High-order integration requires the initial and bounding boxes inside the state domain");
         }
+
+        const auto form = field.parametric_form();
+        if (not form.has_value()) {
+            throw std::invalid_argument("This multifunction does not provide a validated parametric representation");
+        }
+        if (form->field.result_size() != initial.dimension() ||
+            form->field.argument_size() != initial.dimension() + form->inputs.dimension() ||
+            form->inputs.dimension() == 0u) {
+            throw std::invalid_argument("The multifunction parametric representation has incompatible dimensions");
+        }
+
         const auto initial_mapping = _function_factory.create_identity(initial);
-        SelectedInclusionIntegrator selected(_factory, field.vector_field(), field.inputs(),
+        SelectedInclusionIntegrator selected(_factory, form->field, form->inputs,
                                             _reach_approximation, _evolve_approximation);
         return selected.step(initial, initial_mapping, state_bound, TimeStepType(0u), time_step);
     }
@@ -259,12 +275,7 @@ class SelectedParametricMultifunctionIntegrator : public MultifunctionIntegrator
                                     const ExactBoxType& initial,
                                     const StepSizeType& time_step,
                                     const UpperBoxType& state_bound) const override {
-        const auto* structured = dynamic_cast<const ValidatedParametricBoxMultifunctionDP*>(&field);
-        if (structured == nullptr) {
-            throw std::invalid_argument(
-                "High-order multifunction integration requires a structured f(x,u), U field");
-        }
-        return this->structured_step(*structured, initial, time_step, state_bound).bounding_step(time_step);
+        return this->structured_step(field, initial, time_step, state_bound).bounding_step(time_step);
     }
 };
 

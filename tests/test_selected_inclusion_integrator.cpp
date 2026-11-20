@@ -197,7 +197,7 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
                 InputApproximation(ConstantApproximation())));
     }
 
-    Void test_high_order_rejects_unstructured_interval_field() {
+    Void test_high_order_interval_taylor_via_parametric_conversion() {
         TaylorSeriesIntegrator base(step_maximum_error = 1e-6, order = 8);
         SelectedParametricMultifunctionIntegrator high_order(base,
             InputApproximation(ConstantApproximation()), InputApproximation(ConstantApproximation()));
@@ -208,9 +208,65 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         Scalar uncertain = Scalar::constant(domain, Interval<FloatDPUpperBound>(-1, 1, dp), sweeper);
         ValidatedIntervalTaylorBoxMultifunctionDP unstructured(Model({uncertain}));
         const MultifunctionIntegratorInterface& common = high_order;
-        ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-            common.flow_step(unstructured, ExactBoxType({{0.0_x, 0.125_x}}),
-                             StepSizeType(0.03125_x), UpperBoxType({{-1.0_x, 1.0_x}})));
+        const auto representation = unstructured.parametric_form();
+        ARIADNE_TESTING_PROVE(representation.has_value());
+        ARIADNE_TESTING_EXPECT_EQUAL(representation->field.result_size(), 1u);
+        ARIADNE_TESTING_EXPECT_EQUAL(representation->field.argument_size(),
+                                     1u + representation->inputs.dimension());
+        ARIADNE_TESTING_PROVE(representation->inputs.dimension() > 0u);
+
+        // The same high-order integrator now accepts the interval Taylor
+        // model through the capability interface rather than concrete RTTI.
+        auto step = common.flow_step(unstructured, ExactBoxType({{0.0_x, 0.125_x}}),
+                                     StepSizeType(0.03125_x), UpperBoxType({{-1.0_x, 1.0_x}}));
+        ARIADNE_TESTING_PROVE(definitely(is_bounded(step.reach)));
+        ARIADNE_TESTING_PROVE(definitely(is_bounded(step.evolve)));
+    }
+
+    Void test_interval_taylor_conversion_of_state_dependent_input() {
+        // x' = x*u(t), u(t) in [-1,1] as an interval-coefficient Taylor model.
+        BoxDomainType domain({{0.5_x, 1.5_x}});
+        ThresholdSweeper<FloatDP> sweeper(dp, 1e-10);
+        using Scalar = ValidatedIntervalTaylorFunctionModel<FloatDP>;
+        using Model = ValidatedVectorIntervalTaylorFunctionModel<FloatDP>;
+        Scalar x = Scalar::coordinate(domain, 0u, sweeper);
+        Scalar field = Interval<FloatDPUpperBound>(-1, 1, dp) * x;
+        ValidatedIntervalTaylorBoxMultifunctionDP vector_field(Model({field}));
+
+        const auto form = vector_field.parametric_form();
+        ARIADNE_TESTING_PROVE(form.has_value());
+        ARIADNE_TESTING_EXPECT_EQUAL(form->field.result_size(), 1u);
+        ARIADNE_TESTING_PROVE(form->inputs.dimension() > 0u);
+
+        // For all x and all uncertain coefficients, the converted field
+        // must contain the original interval Taylor field value.
+        const UpperBoxType states({{0.9_x, 1.1_x}});
+        const auto interval_image = vector_field.evaluate(states);
+        const Vector<FloatDPBounds> arguments(
+            1u + form->inputs.dimension(), [&](SizeType j) {
+                if (j == 0u) {
+                    return FloatDPBounds(states[0u].lower_bound(), states[0u].upper_bound());
+                }
+                const auto& input = form->inputs[j - 1u];
+                return FloatDPBounds(input.lower_bound(), input.upper_bound());
+            });
+        const Vector<FloatDPBounds> expanded_image = form->field(arguments);
+        const UpperBoxType expanded(
+            expanded_image.size(), [&](SizeType j) {
+                return UpperIntervalType(expanded_image[j].lower(), expanded_image[j].upper());
+            });
+        ARIADNE_TESTING_PROVE(definitely(subset(interval_image, cast_exact_box(expanded))));
+
+        TaylorSeriesIntegrator base(ThresholdSweeper<FloatDP>(dp, 1e-10),
+                                    lipschitz_tolerance = 0.5_x, order = 8);
+        SelectedParametricMultifunctionIntegrator integrator(base,
+            InputApproximation(ZeroApproximation()), InputApproximation(ConstantApproximation()));
+        const auto step = integrator.flow_step(vector_field, ExactBoxType({{1.0_x, 1.0_x}}),
+                                               StepSizeType(0.03125_x), UpperBoxType({{0.5_x, 1.5_x}}));
+        ARIADNE_TESTING_PROVE(definitely(is_bounded(step.reach)));
+        ARIADNE_TESTING_PROVE(definitely(is_bounded(step.evolve)));
+        ARIADNE_TESTING_PROVE(definitely(subset(ExactBoxType({{1.0_x, 1.0_x}}),
+                                                 cast_exact_box(step.reach))));
     }
 
     Void test_invalid_time_step() {
@@ -237,6 +293,7 @@ int main(int argc, char** argv) {
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_invalid_time_step);
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_parametric_box_extension_and_low_order_bridge);
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_high_order_common_integrator_bridge);
-    ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_high_order_rejects_unstructured_interval_field);
+    ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_high_order_interval_taylor_via_parametric_conversion);
+    ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_interval_taylor_conversion_of_state_dependent_input);
     return Ariadne::Testing::run_logging_suite(ariadne_test_suite, argc, argv);
 }

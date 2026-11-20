@@ -29,16 +29,34 @@
 #ifndef ARIADNE_MULTIFUNCTION_INTEGRATOR_HPP
 #define ARIADNE_MULTIFUNCTION_INTEGRATOR_HPP
 
+#include <optional>
 #include <sstream>
 #include <stdexcept>
 
 #include "algebra/vector.hpp"
+#include "function/function.hpp"
+#include "function/symbolic_function.hpp"
 #include "function/taylor_multifunction.hpp"
 #include "geometry/box.hpp"
 #include "integration/integrator_interface.hpp"
 #include "numeric/numeric.hpp"
 
 namespace Ariadne {
+
+
+/** @brief Validated structural representation of a multifunction.
+ *
+ *  The formula has state coordinates first and independent input coordinates
+ *  afterwards. Each input may vary freely with time; this is the differential
+ *  inclusion semantics, not a fixed uncertain-parameter ODE.
+ *
+ *  A conversion may overapproximate the original multifunction. In particular,
+ *  independent interval coefficients can discard cross-coefficient correlation.
+ */
+struct ParametricMultifunctionForm {
+    EffectiveVectorMultivariateFunction field;
+    BoxDomainType inputs;
+};
 
 /** @brief A validated box extension of a set-valued vector field.
  *
@@ -54,6 +72,14 @@ class ValidatedBoxMultifunctionInterface {
     virtual SizeType result_size() const = 0;
     virtual BoxDomainType domain() const = 0;
     virtual UpperBoxType evaluate(const UpperBoxType& box) const = 0;
+
+    /** @brief Optional certified structural form for a high-order inclusion
+     *  solver. An unavailable representation is not an integration failure:
+     *  another solver may still support this field natively.
+     */
+    virtual std::optional<ParametricMultifunctionForm> parametric_form() const {
+        return std::nullopt;
+    }
 };
 
 /** @brief Box extension of a double-precision interval Taylor vector model. */
@@ -77,6 +103,56 @@ class ValidatedIntervalTaylorBoxMultifunctionDP : public ValidatedBoxMultifuncti
         });
         return _model(arguments);
     }
+
+    /** @brief Convert an interval Taylor polynomial to a structural inclusion.
+     *
+     *  The public polynomials() method includes the Taylor remainder as an
+     *  interval constant and applies the original-domain scaling. For every
+     *  polynomial monomial c_alpha * x^alpha, a fresh input u_alpha in the
+     *  (outward-rounded) coefficient interval is introduced. This gives an
+     *  inclusion of the original pointwise multifunction, allowing u_alpha
+     *  to vary over time, without treating it as a frozen ODE parameter.
+     *
+     *  This representation is conservative: distributing / unscaling the
+     *  polynomial may widen bounds, and shared coefficient correlations
+     *  are not reconstructed.
+     */
+    std::optional<ParametricMultifunctionForm> parametric_form() const override {
+        const auto polynomials = _model.polynomials();
+        const SizeType n = _model.argument_size();
+        List<IntervalDomainType> input_bounds;
+        Vector<EffectiveFormula> expressions(_model.result_size(), EffectiveFormula::zero());
+
+        for (SizeType i = 0u; i != _model.result_size(); ++i) {
+            for (auto it = polynomials[i].begin(); it != polynomials[i].end(); ++it) {
+                const auto& coefficient = it->coefficient();
+                const SizeType parameter_index = n + input_bounds.size();
+                input_bounds.append(IntervalDomainType(coefficient.lower_bound().raw(),
+                                                       coefficient.upper_bound().raw()));
+
+                EffectiveFormula monomial = EffectiveFormula::coordinate(parameter_index);
+                for (SizeType j = 0u; j != n; ++j) {
+                    for (DegreeType p = 0u; p != it->index()[j]; ++p) {
+                        monomial = monomial * EffectiveFormula::coordinate(j);
+                    }
+                }
+                expressions[i] = expressions[i] + monomial;
+            }
+        }
+        if (input_bounds.empty()) {
+            // Keep the structural representation nonempty even for the zero
+            // polynomial, without adding any artificial uncertainty.
+            input_bounds.append(IntervalDomainType(0.0_x, 0.0_x));
+        }
+        BoxDomainType inputs(Vector<IntervalDomainType>(input_bounds));
+        const SizeType arguments = n + inputs.dimension();
+        return ParametricMultifunctionForm{
+            EffectiveVectorMultivariateFunction(
+                EffectiveVectorMultivariateFormulaFunction(arguments, expressions)),
+            inputs
+        };
+    }
+
 };
 
 /** @brief Rigorous reach-tube and endpoint box enclosures for a single step.
