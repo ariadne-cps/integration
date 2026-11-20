@@ -31,6 +31,7 @@
 
 #include <exception>
 #include <limits>
+#include <memory>
 #include <stdexcept>
 #include <string>
 
@@ -530,6 +531,10 @@ class PreconditionedTaylorSeriesState {
     Matrix<FloatDP> _linear_map;
     ExactBoxType _local_domain;
     ValidatedVectorMultivariateFunctionPatch _normalised_mapping;
+    // The original physical parameterisation is retained separately from the
+    // affine local representation: a stationary coordinate must not acquire
+    // rounding drift from repeated changes of preconditioning coordinates.
+    std::shared_ptr<const ValidatedVectorMultivariateFunctionPatch> _physical_mapping;
 
   public:
     PreconditionedTaylorSeriesState(
@@ -542,6 +547,21 @@ class PreconditionedTaylorSeriesState {
           _local_domain(std::move(local_domain)),
           _normalised_mapping(std::move(normalised_mapping)) {}
 
+    PreconditionedTaylorSeriesState(
+        Vector<FloatDP> centre,
+        Matrix<FloatDP> linear_map,
+        ExactBoxType local_domain,
+        ValidatedVectorMultivariateFunctionPatch normalised_mapping,
+        ValidatedVectorMultivariateFunctionPatch physical_mapping)
+        : _centre(std::move(centre)),
+          _linear_map(std::move(linear_map)),
+          _local_domain(std::move(local_domain)),
+          _normalised_mapping(std::move(normalised_mapping)),
+          _physical_mapping(std::make_shared<const ValidatedVectorMultivariateFunctionPatch>(
+              std::move(physical_mapping))) {}
+
+    Bool has_physical_mapping() const { return static_cast<Bool>(_physical_mapping != nullptr); }
+    const ValidatedVectorMultivariateFunctionPatch& physical_mapping() const { return *_physical_mapping; }
     const Vector<FloatDP>& centre() const { return _centre; }
     const Matrix<FloatDP>& linear_map() const { return _linear_map; }
     const ExactBoxType& local_domain() const { return _local_domain; }
