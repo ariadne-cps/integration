@@ -242,6 +242,7 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         // must contain the original interval Taylor field value.
         const UpperBoxType states({{0.9_x, 1.1_x}});
         const auto interval_image = vector_field.evaluate(states);
+        ARIADNE_TESTING_EXPECT_EQUAL(interval_image.dimension(), 1u);
         const Vector<FloatDPBounds> arguments(
             1u + form->inputs.dimension(), [&](SizeType j) {
                 if (j == 0u) {
@@ -251,16 +252,19 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
                 return FloatDPBounds(input.lower_bound(), input.upper_bound());
             });
         const Vector<FloatDPBounds> expanded_image = form->field(arguments);
+        ARIADNE_TESTING_EXPECT_EQUAL(expanded_image.size(), 1u);
         const UpperBoxType expanded(
             expanded_image.size(), [&](SizeType j) {
                 return UpperIntervalType(expanded_image[j].lower(), expanded_image[j].upper());
             });
         ARIADNE_TESTING_PROVE(definitely(subset(interval_image, cast_exact_box(expanded))));
+        ARIADNE_TESTING_PROVE(definitely(is_bounded(expanded)));
 
         TaylorSeriesIntegrator base(ThresholdSweeper<FloatDP>(dp, 1e-10),
                                     lipschitz_tolerance = 0.5_x, order = 8);
         SelectedParametricMultifunctionIntegrator integrator(base,
             InputApproximation(ZeroApproximation()), InputApproximation(ConstantApproximation()));
+        ARIADNE_TESTING_EXPECT_EQUAL(integrator.reach_index(), ZeroApproximation().index());
         const auto step = integrator.flow_step(vector_field, ExactBoxType({{1.0_x, 1.0_x}}),
                                                StepSizeType(0.03125_x), UpperBoxType({{0.5_x, 1.5_x}}));
         ARIADNE_TESTING_PROVE(definitely(is_bounded(step.reach)));
