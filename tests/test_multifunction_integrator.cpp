@@ -65,7 +65,7 @@ class TestMultifunctionIntegrator : public Ariadne::Testing::ContextFixture {
         ARIADNE_TESTING_EXPECT_EQUAL(step.time_step, h);
         ARIADNE_TESTING_PROVE(definitely(subset(ExactBoxType({{-0.25_x, 0.25_x}}), step.reach)));
         ARIADNE_TESTING_PROVE(definitely(subset(ExactBoxType({{-0.25_x, 0.25_x}}), step.evolve)));
-        ARIADNE_TESTING_PROVE(definitely(inside(step.reach, bound)));
+        ARIADNE_TESTING_PROVE(definitely(inside(step.reach, cast_exact_box(bound))));
     }
 
     Void test_time_varying_selection() {
@@ -119,7 +119,7 @@ class TestMultifunctionIntegrator : public Ariadne::Testing::ContextFixture {
         ExactBoxType initial({{0, 0}});
         UpperBoxType interior({{-0.5_x, 0.5_x}});
         const auto step = integrator.flow_step(field, initial, StepSizeType(0.25_x), interior);
-        ARIADNE_TESTING_PROVE(definitely(inside(step.reach, interior)));
+        ARIADNE_TESTING_PROVE(definitely(inside(step.reach, cast_exact_box(interior))));
         ARIADNE_TESTING_PROVE(definitely(subset(ExactBoxType({{-0.25_x, 0.25_x}}), step.evolve)));
     }
 

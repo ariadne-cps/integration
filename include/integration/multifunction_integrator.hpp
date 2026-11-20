@@ -142,7 +142,10 @@ class FirstOrderMultifunctionIntegrator : public MultifunctionIntegratorInterfac
             reach[i] = start + duration * values[i];
             evolve[i] = start + final_time * values[i];
         }
-        if (not definitely(inside(reach, state_bound))) {
+        // The supplied bounding box is defined by its exact floating-point
+        // endpoints. Comparison between two outer-enclosure boxes alone may
+        // be indeterminate even for strictly separated bounds.
+        if (not definitely(inside(reach, cast_exact_box(state_bound)))) {
             std::ostringstream message;
             message << "Cannot certify multifunction tube: reach=" << reach << " bound=" << state_bound
                     << " field_values=" << values << " step=" << time_step;
