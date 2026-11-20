@@ -144,7 +144,7 @@ class ValidatedIntervalTaylorBoxMultifunctionDP : public ValidatedBoxMultifuncti
             // polynomial, without adding any artificial uncertainty.
             input_bounds.append(IntervalDomainType(0.0_x, 0.0_x));
         }
-        BoxDomainType inputs(Vector<IntervalDomainType>(input_bounds));
+        BoxDomainType inputs{Vector<IntervalDomainType>(input_bounds)};
         const SizeType arguments = n + inputs.dimension();
         return ParametricMultifunctionForm{
             EffectiveVectorMultivariateFunction(
