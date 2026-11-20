@@ -160,6 +160,68 @@ class TestValidatedIntegrationStep : public Ariadne::Testing::ContextFixture {
                                      StepSizeType(0.5_x), 1u));
     }
 
+    Void test_overlapping_reach_patches_keep_independent_parameter_domains() {
+        // The same certified flow restricted to overlapping time windows,
+        // with an extra independent parameter in one patch. The parameter
+        // is not a new system state and does not affect the field; embedding
+        // solely exercises preservation of heterogeneous patch domains.
+        const EffectiveVectorMultivariateFunction field = {
+            EffectiveScalarMultivariateFunction::constant(1u, 1)};
+        const ExactBoxType initial({{0.0_x, 0.125_x}});
+        const UpperBoxType bound({{-1.0_x, 1.0_x}});
+        const StepSizeType h(0.03125_x);
+        const StepSizeType t0(0.5_x);
+        TaylorSeriesIntegrator solver(step_maximum_error = 1e-6, order = 8);
+        const auto flow = solver.flow_step(field, initial, h, bound);
+        const auto native = validated_integration_step(
+            flow, Interval<StepSizeType>(StepSizeType(0u), h));
+        const ValidatedVectorMultivariateFunctionPatch full = flow;
+
+        const auto early = restriction(full, product(
+            BoxDomainType(initial), IntervalDomainType(0.0_x, 0.0234375_x)));
+        const BoxDomainType new_parameters({{-0.125_x, 0.125_x}});
+        const auto late = embed(restriction(full, product(
+            BoxDomainType(initial), IntervalDomainType(0.0078125_x, 0.03125_x))),
+            new_parameters);
+
+        // Reversed order, different argument counts, and shared time index
+        // (index 1) despite the extra parameter placed AFTER time.
+        List<ValidatedVectorMultivariateFunctionPatch> pieces;
+        pieces.append(late);
+        pieces.append(early);
+        const ValidatedIntegrationStep step(
+            h, native.reach(), native.evolve(), {}, pieces,
+            native.evolve_model(), t0, 1u, false, ExactBoxType(0u), t0);
+
+        ARIADNE_TESTING_EXPECT_EQUAL(step.initial_time(), t0);
+        ARIADNE_TESTING_EXPECT_EQUAL(step.final_time(), StepSizeType(0.53125_x));
+        ARIADNE_TESTING_EXPECT_EQUAL(step.reach_time_offset(), t0);
+        ARIADNE_TESTING_EXPECT_EQUAL(step.reach_sections(t0).size(), 1u);
+        ARIADNE_TESTING_EXPECT_EQUAL(
+            step.reach_sections(StepSizeType(0.53125_x)).size(), 1u);
+
+        const auto overlap = step.reach_sections(StepSizeType(0.515625_x));
+        ARIADNE_TESTING_EXPECT_EQUAL(overlap.size(), 2u);
+        ARIADNE_TESTING_EXPECT_EQUAL(overlap[0u].argument_size(), 2u);
+        ARIADNE_TESTING_EXPECT_EQUAL(overlap[1u].argument_size(), 1u);
+        ARIADNE_TESTING_EXPECT_EQUAL(
+            overlap[0u].domain(), product(BoxDomainType(initial), new_parameters));
+        ARIADNE_TESTING_EXPECT_EQUAL(overlap[1u].domain(), BoxDomainType(initial));
+        for (const auto& section: overlap) {
+            ARIADNE_TESTING_PROVE(definitely(subset(
+                ExactBoxType({{0.015625_x, 0.140625_x}}),
+                cast_exact_box(UpperBoxType(section.range())))));
+        }
+
+        const auto early_only = step.reach_sections(StepSizeType(0.50390625_x));
+        const auto late_only = step.reach_sections(StepSizeType(0.52734375_x));
+        ARIADNE_TESTING_EXPECT_EQUAL(early_only.size(), 1u);
+        ARIADNE_TESTING_EXPECT_EQUAL(late_only.size(), 1u);
+        ARIADNE_TESTING_EXPECT_EQUAL(early_only[0u].domain(), BoxDomainType(initial));
+        ARIADNE_TESTING_EXPECT_EQUAL(
+            late_only[0u].domain(), product(BoxDomainType(initial), new_parameters));
+    }
+
     Void test_set_valued_box_step_without_forced_structure() {
         const auto u = EffectiveFormula::coordinate(1u);
         const EffectiveVectorMultivariateFunction f =
@@ -244,6 +306,7 @@ int main(int argc, char** argv) {
     ARIADNE_TESTING_SUITE("test_validated_integration_step");
     ARIADNE_TESTING_ADD_TEST(TestValidatedIntegrationStep, test_single_valued_flow_preserves_patch);
     ARIADNE_TESTING_ADD_TEST(TestValidatedIntegrationStep, test_piecewise_reach_sections_cover_every_time);
+    ARIADNE_TESTING_ADD_TEST(TestValidatedIntegrationStep, test_overlapping_reach_patches_keep_independent_parameter_domains);
     ARIADNE_TESTING_ADD_TEST(TestValidatedIntegrationStep, test_set_valued_box_step_without_forced_structure);
     ARIADNE_TESTING_ADD_TEST(TestValidatedIntegrationStep, test_structured_inclusion_retains_parameter_maps);
     ARIADNE_TESTING_ADD_TEST(TestValidatedIntegrationStep, test_reject_inconsistent_basic_result);
