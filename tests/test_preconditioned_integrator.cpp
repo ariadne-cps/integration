@@ -248,6 +248,64 @@ class TestPreconditionedIntegrator : public Ariadne::Testing::ContextFixture {
         }
     }
 
+    // A component with exactly zero derivative and a constant initial model
+    // must stay a constant Taylor model, not merely enclose that constant.
+    // The second component evolves, so this also exercises the repeated
+    // coordinate changes and carried Taylor-model composition.
+    Void test_stationary_constant_component_in_coupled_flow() {
+        auto zero = EffectiveScalarMultivariateFunction::constant(2u, 0);
+        auto y = EffectiveScalarMultivariateFunction::coordinate(2u, 1u);
+        ValidatedVectorMultivariateFunction field =
+            EffectiveVectorMultivariateFunction({zero, y});
+        ExactBoxType parameter_domain(2u, ExactIntervalType(-0.5_x, 0.5_x));
+        const FloatDP constant_value(1.25_x, dp);
+        const StepSizeType h(0.03125_x);
+
+        for (auto mode: {TaylorSeriesPreconditioning::IDENTITY,
+                         TaylorSeriesPreconditioning::QR}) {
+            PreconditionedGradedTaylorSeriesIntegrator integrator(
+                step_maximum_error = 1e-6);
+            integrator.set_preconditioning(mode);
+
+            const auto& factory = integrator.function_factory();
+            auto initial = factory.create_zeros(2u, parameter_domain);
+            initial[0u] = factory.create_constant(
+                parameter_domain, FloatDPBounds(constant_value));
+            initial[1u] = factory.create_coordinate(parameter_domain, 1u);
+
+            auto check_constant_model =
+                [&](const ValidatedVectorMultivariateFunctionPatch& mapping) {
+                    const auto& taylor =
+                        dynamic_cast<const ValidatedVectorMultivariateTaylorFunctionModelDP&>(
+                            mapping.reference());
+                    const auto& model = taylor.model(0u);
+                    ARIADNE_TESTING_EXPECT_EQUAL(model.value().raw(), constant_value);
+                    ARIADNE_TESTING_EXPECT_EQUAL(
+                        model.error(), Error<FloatDP>(0u, dp));
+                    ARIADNE_TESTING_EXPECT_EQUAL(
+                        model.number_of_nonzeros(), 1u);
+                };
+
+            check_constant_model(initial);
+            auto state = integrator.precondition(initial);
+            ARIADNE_TESTING_EXPECT_EQUAL(state.centre()[0u], constant_value);
+
+            for (SizeType k = 0u; k != 3u; ++k) {
+                ARIADNE_TESTING_NOTE(
+                    "Constant-component preservation: mode="
+                    << (mode == TaylorSeriesPreconditioning::QR ? "QR" : "IDENTITY")
+                    << ", step=" << k);
+                auto step = integrator.step(field, state, suggest(h));
+                ARIADNE_TESTING_EXPECT_EQUAL(step.time_step(), h);
+                check_constant_model(step.flowpipe_mapping());
+                check_constant_model(step.evolved_mapping());
+                ARIADNE_TESTING_EXPECT_EQUAL(
+                    step.final_state().centre()[0u], constant_value);
+                state = step.final_state();
+            }
+        }
+    }
+
     Void test_adaptive_orders_and_step_rejection() {
         auto x = EffectiveScalarMultivariateFunction::coordinate(1u, 0u);
         ValidatedVectorMultivariateFunction field = EffectiveVectorMultivariateFunction({x});
@@ -288,6 +346,7 @@ int main(int argc, char** argv) {
     ARIADNE_TESTING_ADD_TEST(TestPreconditionedIntegrator, test_physical_flow_step);
     ARIADNE_TESTING_ADD_TEST(TestPreconditionedIntegrator, test_step_dimension_contracts);
     ARIADNE_TESTING_ADD_TEST(TestPreconditionedIntegrator, test_stationary_zero_order_step);
+    ARIADNE_TESTING_ADD_TEST(TestPreconditionedIntegrator, test_stationary_constant_component_in_coupled_flow);
     ARIADNE_TESTING_ADD_TEST(TestPreconditionedIntegrator, test_adaptive_orders_and_step_rejection);
     return Ariadne::Testing::run_logging_suite(ariadne_test_suite, argc, argv);
 }
