@@ -145,6 +145,29 @@ jobs:
       if: matrix.build_type == 'Debug'
       run: echo "Tail metadata"
 
+    - name: Diagnose selected-inclusion evaluator with gdb
+      if: matrix.build_type == 'Debug' && matrix.config.libstdcxx_debug
+      id: selected_evaluator_gdb
+      working-directory: ${{ runner.workspace }}/build
+      run: |
+        sudo apt-get install -y gdb
+        gdb -batch -ex 'set pagination off' -ex run -ex 'bt 24' --args ./tests/test_selected_inclusion_integrator --concise --logtonull > selected_evaluator_gdb.txt 2>&1 || true
+        grep -E '^#[0-9]+ ' selected_evaluator_gdb.txt | head -n 16 || true
+        FRAME=$(grep -E '^#[0-9]+ ' selected_evaluator_gdb.txt | grep -m 1 'Ariadne::' | cut -c1-185 || true)
+        FRAME=${FRAME:-no-Ariadne-frame}
+        NEXT=$(grep -E '^#[0-9]+ ' selected_evaluator_gdb.txt | grep 'Ariadne::' | sed -n '2p' | cut -c1-185 || true)
+        NEXT=${NEXT:-no-second-Ariadne-frame}
+        echo "frame=$FRAME" >> "$GITHUB_OUTPUT"
+        echo "next=$NEXT" >> "$GITHUB_OUTPUT"
+
+    - name: "GDB frame ${{ steps.selected_evaluator_gdb.outputs.frame }}"
+      if: matrix.build_type == 'Debug' && matrix.config.libstdcxx_debug
+      run: echo "Frame captured"
+
+    - name: "GDB next ${{ steps.selected_evaluator_gdb.outputs.next }}"
+      if: matrix.build_type == 'Debug' && matrix.config.libstdcxx_debug
+      run: echo "Next frame captured"
+
     - name: Test C++
       id: cpp_tests
       if: matrix.build_type == 'Debug'
