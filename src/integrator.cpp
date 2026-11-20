@@ -50,7 +50,7 @@
 #include "interval/interval.hpp"
 #include "logging/logging.hpp"
 #include "numeric/numeric.hpp"
-#include "integration/detail/polynomial_procedure.hpp"
+#include "integration/polynomial_procedure.hpp"
 #include "utility/container.hpp"
 #include "utility/stopwatch.hpp"
 #include "utility/tuple.hpp"

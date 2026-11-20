@@ -1,5 +1,5 @@
 /***************************************************************************
- *            integration/detail/polynomial_procedure.hpp
+ *            integration/polynomial_procedure.hpp
  *
  *  Copyright  2008-20  Pieter Collins
  *
@@ -22,7 +22,7 @@
  *  along with Ariadne Integration. If not, see <https://www.gnu.org/licenses/>.
  */
 
-/** @file integration/detail/polynomial_procedure.hpp
+/** @file integration/polynomial_procedure.hpp
  *  @brief Internal polynomial recurrence and degree-analysis utilities; not part of the stable public API.
  */
 

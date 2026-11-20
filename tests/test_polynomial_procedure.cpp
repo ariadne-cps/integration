@@ -29,7 +29,7 @@
 #include "function/formula.hpp"
 #include "logging/test_runner.hpp"
 #include "numeric/numeric.hpp"
-#include "integration/detail/polynomial_procedure.hpp"
+#include "integration/polynomial_procedure.hpp"
 
 #include "ariadne-testing.hpp"
 
