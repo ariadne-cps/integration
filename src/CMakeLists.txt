@@ -1,5 +1,6 @@
 add_library(INTEGRATION_SRC OBJECT
     integrator.cpp
+    integrator_accessors.cpp
     validated_integration_step.cpp
     integration_step_adapters.cpp
     validated_step_integrator.cpp

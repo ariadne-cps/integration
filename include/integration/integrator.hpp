@@ -76,41 +76,41 @@ typedef SharedPointer<const BounderInterface> BounderPointer;
 
 /** @brief Type representing step maximum error in integration algorithms. */
 struct StepMaximumError : Attribute<ApproximateDouble> {
-    StepMaximumError(ApproximateDouble x) : Attribute<ApproximateDouble>(x) {}
-    StepMaximumError(double x) : Attribute<ApproximateDouble>(x) {}
+StepMaximumError(ApproximateDouble x);
+StepMaximumError(double x);
 };
 
 /** @brief Type representing step sweep threshold in integration algorithms. */
 struct StepSweepThreshold : Attribute<ApproximateDouble> {
-    explicit StepSweepThreshold(const ApproximateDouble& value) : Attribute<ApproximateDouble>(value) {}
+explicit StepSweepThreshold(const ApproximateDouble& value);
 };
 /** @brief Type representing order in integration algorithms. */
 struct Order : Attribute<DegreeType> {
-    Order(DegreeType v) : Attribute<DegreeType>(v) {}
+Order(DegreeType v);
 };
 /** @brief Type representing spacial order in integration algorithms. */
 struct SpacialOrder : Attribute<DegreeType> {
-    SpacialOrder(DegreeType v) : Attribute<DegreeType>(v) {}
+SpacialOrder(DegreeType v);
 };
 /** @brief Type representing temporal order in integration algorithms. */
 struct TemporalOrder : Attribute<DegreeType> {
-    TemporalOrder(DegreeType v) : Attribute<DegreeType>(v) {}
+TemporalOrder(DegreeType v);
 };
 /** @brief Type representing minimum spacial order in integration algorithms. */
 struct MinimumSpacialOrder : Attribute<DegreeType> {
-    MinimumSpacialOrder(DegreeType v) : Attribute<DegreeType>(v) {}
+MinimumSpacialOrder(DegreeType v);
 };
 /** @brief Type representing minimum temporal order in integration algorithms. */
 struct MinimumTemporalOrder : Attribute<DegreeType> {
-    MinimumTemporalOrder(DegreeType v) : Attribute<DegreeType>(v) {}
+MinimumTemporalOrder(DegreeType v);
 };
 /** @brief Type representing maximum spacial order in integration algorithms. */
 struct MaximumSpacialOrder : Attribute<DegreeType> {
-    MaximumSpacialOrder(DegreeType v) : Attribute<DegreeType>(v) {}
+MaximumSpacialOrder(DegreeType v);
 };
 /** @brief Type representing maximum temporal order in integration algorithms. */
 struct MaximumTemporalOrder : Attribute<DegreeType> {
-    MaximumTemporalOrder(DegreeType v) : Attribute<DegreeType>(v) {}
+MaximumTemporalOrder(DegreeType v);
 };
 
 static const Generator<StepMaximumError> step_maximum_error = Generator<StepMaximumError>();
@@ -127,7 +127,7 @@ static const Generator<MaximumTemporalOrder> maximum_temporal_order = Generator<
 class FlowStepModelType : public ValidatedVectorMultivariateFunctionPatch {
   public:
     using ValidatedVectorMultivariateFunctionPatch::ValidatedVectorMultivariateFunctionPatch;
-    FlowStepModelType(const ValidatedVectorMultivariateFunctionPatch& fsmt) : ValidatedVectorMultivariateFunctionPatch(fsmt) {}
+FlowStepModelType(const ValidatedVectorMultivariateFunctionPatch& fsmt);
     /** @brief Apply the corresponding integration operator. */
     friend OutputStream& operator<<(OutputStream& os, const FlowStepModelType& flwstpm);
 };
@@ -248,23 +248,17 @@ class TaylorPicardIntegrator
                            MinimumTemporalOrder minto, MaximumTemporalOrder maxto);
 
     //! \brief The order of the method in time.
-    DegreeType minimum_temporal_order() const { return this->_minimum_temporal_order; }
-    Void set_minimum_temporal_order(Nat m) {
-        ARIADNE_PRECONDITION(m <= std::numeric_limits<DegreeType>::max());
-        this->_minimum_temporal_order = static_cast<DegreeType>(m);
-    }
-    DegreeType maximum_temporal_order() const { return this->_maximum_temporal_order; }
-    Void set_maximum_temporal_order(Nat m) {
-        ARIADNE_PRECONDITION(m <= std::numeric_limits<DegreeType>::max());
-        this->_maximum_temporal_order = static_cast<DegreeType>(m);
-    }
+    DegreeType minimum_temporal_order() const;
+    Void set_minimum_temporal_order(Nat m);
+    DegreeType maximum_temporal_order() const;
+    Void set_maximum_temporal_order(Nat m);
     //! \brief  Set the sweep threshold of the Taylor model.
-    const Sweeper<FloatDP>& sweeper() const { return this->_sweeper; }
+    const Sweeper<FloatDP>& sweeper() const;
     //! \brief  Set the maximum error of a single step.
-    ExactDouble step_maximum_error() const { return this->_step_maximum_error; }
-    Void set_step_maximum_error(ApproximateDouble e) { _step_maximum_error = cast_exact(e); }
+    ExactDouble step_maximum_error() const;
+    Void set_step_maximum_error(ApproximateDouble e);
 
-    virtual TaylorPicardIntegrator* clone() const { return new TaylorPicardIntegrator(*this); }
+    virtual TaylorPicardIntegrator* clone() const;
     /** @brief Perform the integration operation. */
     virtual Void _write(OutputStream& os) const;
 
@@ -310,27 +304,20 @@ class GradedTaylorPicardIntegrator
     GradedTaylorPicardIntegrator(StepMaximumError err, Order order, StepSweepThreshold sweep_threshold);
 
     //! \brief The order of the method.
-    DegreeType order() const { return this->_order; }
+    DegreeType order() const;
     /** @brief Configure or reset the integration state. */
-    Void set_order(Nat m) {
-        /** @brief Construct the integration object. */
-        ARIADNE_PRECONDITION(m <= std::numeric_limits<DegreeType>::max());
-        const DegreeType order = static_cast<DegreeType>(m);
-        this->_order = order;
-        this->_sweeper = GradedThresholdSweeper<FloatDP>(DoublePrecision(), order, FloatDP(cast_exact(this->_sweep_threshold), DoublePrecision()));
-        this->set_function_factory(ValidatedFunctionPatchFactory(make_taylor_function_patch_factory(this->_sweeper)));
-    }
+    Void set_order(Nat m);
     //! \brief  Set the maximum error of a single step.
-    ExactDouble step_maximum_error() const { return this->_step_maximum_error; }
-    Void set_step_maximum_error(ApproximateDouble e) { _step_maximum_error = cast_exact(e); }
-    ExactDouble error_refinement_minimum_improvement_percentage() const { return this->_error_refinement_minimum_improvement_percentage; }
-    Void set_error_refinement_minimum_improvement_percentage(ApproximateDouble e) { _error_refinement_minimum_improvement_percentage = cast_exact(e); }
+    ExactDouble step_maximum_error() const;
+    Void set_step_maximum_error(ApproximateDouble e);
+    ExactDouble error_refinement_minimum_improvement_percentage() const;
+    Void set_error_refinement_minimum_improvement_percentage(ApproximateDouble e);
     //! \brief Limit error-refinement iterations; zero preserves the historical unlimited behaviour.
-    Void set_maximum_error_refinement_iterations(Nat n) { _maximum_error_refinement_iterations = n; }
-    Nat maximum_error_refinement_iterations() const { return _maximum_error_refinement_iterations; }
-    Void set_diagnostics(Bool diagnostics) { _diagnostics = diagnostics; }
+    Void set_maximum_error_refinement_iterations(Nat n);
+    Nat maximum_error_refinement_iterations() const;
+    Void set_diagnostics(Bool diagnostics);
 
-    virtual GradedTaylorPicardIntegrator* clone() const { return new GradedTaylorPicardIntegrator(*this); }
+    virtual GradedTaylorPicardIntegrator* clone() const;
     /** @brief Perform the integration operation. */
     virtual Void _write(OutputStream& os) const;
 
@@ -376,30 +363,20 @@ class TaylorSeriesIntegrator
     TaylorSeriesIntegrator(const Sweeper<FloatDP>& sweeper, LipschitzTolerance lip, Order order);
 
     //! \brief The order of the method in space and time.
-    DegreeType order() const { return this->_order; }
-    Void set_order(DegreeType n) { this->_order = n; }
+    DegreeType order() const;
+    Void set_order(DegreeType n);
     //! \brief Whether a maximum single-step error is configured.
-    Bool has_step_maximum_error() const { return this->_has_step_maximum_error; }
+    Bool has_step_maximum_error() const;
     //! \brief The maximum permissible error of a single step.
-    ExactDouble step_maximum_error() const {
-        /** @brief Construct the integration object. */
-        ARIADNE_PRECONDITION(this->has_step_maximum_error());
-        return this->_step_maximum_error;
-    }
+    ExactDouble step_maximum_error() const;
     //! \brief Set the maximum permissible error of a single step.
-    Void set_step_maximum_error(ApproximateDouble e) {
-        this->_step_maximum_error = cast_exact(e);
-        this->_has_step_maximum_error = true;
-    }
+    Void set_step_maximum_error(ApproximateDouble e);
     //! \brief  Set the sweep threshold of the Taylor model.
-    const Sweeper<FloatDP>& sweeper() const { return this->_sweeper; }
+    const Sweeper<FloatDP>& sweeper() const;
     /** @brief Configure or reset the integration state. */
-    Void set_sweeper(const Sweeper<FloatDP>& sweeper) {
-        _sweeper = sweeper;
-        this->set_function_factory(ValidatedFunctionPatchFactory(make_taylor_function_patch_factory(_sweeper)));
-    }
+    Void set_sweeper(const Sweeper<FloatDP>& sweeper);
 
-    virtual TaylorSeriesIntegrator* clone() const { return new TaylorSeriesIntegrator(*this); }
+    virtual TaylorSeriesIntegrator* clone() const;
     /** @brief Perform the integration operation. */
     virtual Void _write(OutputStream& os) const;
 
@@ -433,7 +410,7 @@ class TaylorSeriesBounderIntegrator
     TaylorSeriesBounderIntegrator(StepMaximumError err, const Sweeper<FloatDP>& sweeper, LipschitzTolerance lip,
                                   Order order);
 
-    virtual TaylorSeriesBounderIntegrator* clone() const { return new TaylorSeriesBounderIntegrator(*this); }
+    virtual TaylorSeriesBounderIntegrator* clone() const;
     /** @brief Perform the integration operation. */
     virtual Void _write(OutputStream& os) const;
 
@@ -477,29 +454,26 @@ class GradedTaylorSeriesIntegrator
                                  MaximumSpacialOrder maxso, MaximumTemporalOrder maxto);
 
     //! \brief The order of the method in space.
-    DegreeType minimum_spacial_order() const { return this->_minimum_spacial_order; }
-    Void set_minimum_spacial_order(DegreeType n) { this->_minimum_spacial_order = n; }
+    DegreeType minimum_spacial_order() const;
+    Void set_minimum_spacial_order(DegreeType n);
     //! \brief The order of the method in space.
-    DegreeType minimum_temporal_order() const { return this->_minimum_temporal_order; }
-    Void set_minimum_temporal_order(DegreeType m) { this->_minimum_temporal_order = m; }
+    DegreeType minimum_temporal_order() const;
+    Void set_minimum_temporal_order(DegreeType m);
     //! \brief The maximum order of the method in time.
-    DegreeType maximum_spacial_order() const { return this->_maximum_spacial_order; }
-    Void set_maximum_spacial_order(DegreeType n) { this->_maximum_spacial_order = n; }
+    DegreeType maximum_spacial_order() const;
+    Void set_maximum_spacial_order(DegreeType n);
     //! \brief The maximum order of the method in time.
-    DegreeType maximum_temporal_order() const { return this->_maximum_temporal_order; }
-    Void set_maximum_temporal_order(DegreeType m) { this->_maximum_temporal_order = m; }
+    DegreeType maximum_temporal_order() const;
+    Void set_maximum_temporal_order(DegreeType m);
     //! \brief  Set the sweep threshold of the Taylor model.
-    const Sweeper<FloatDP>& sweeper() const { return this->_sweeper; }
+    const Sweeper<FloatDP>& sweeper() const;
     /** @brief Configure or reset the integration state. */
-    Void set_sweeper(const Sweeper<FloatDP>& sweeper) {
-        _sweeper = sweeper;
-        this->set_function_factory(ValidatedFunctionPatchFactory(make_taylor_function_patch_factory(_sweeper)));
-    }
+    Void set_sweeper(const Sweeper<FloatDP>& sweeper);
     //! \brief  Set the sweep threshold of the Taylor model.
-    ExactDouble step_maximum_error() const { return this->_step_maximum_error; }
-    Void set_step_maximum_error(ApproximateDouble e) { _step_maximum_error = cast_exact(e); }
+    ExactDouble step_maximum_error() const;
+    Void set_step_maximum_error(ApproximateDouble e);
 
-    virtual GradedTaylorSeriesIntegrator* clone() const { return new GradedTaylorSeriesIntegrator(*this); }
+    virtual GradedTaylorSeriesIntegrator* clone() const;
     /** @brief Perform the integration operation. */
     virtual Void _write(OutputStream& os) const;
 
@@ -537,36 +511,26 @@ class PreconditionedTaylorSeriesState {
     std::shared_ptr<const ValidatedVectorMultivariateFunctionPatch> _physical_mapping;
 
   public:
-    PreconditionedTaylorSeriesState(
+PreconditionedTaylorSeriesState(
         Vector<FloatDP> centre,
         Matrix<FloatDP> linear_map,
         ExactBoxType local_domain,
-        ValidatedVectorMultivariateFunctionPatch normalised_mapping)
-        : _centre(std::move(centre)),
-          _linear_map(std::move(linear_map)),
-          _local_domain(std::move(local_domain)),
-          _normalised_mapping(std::move(normalised_mapping)) {}
+        ValidatedVectorMultivariateFunctionPatch normalised_mapping);
 
-    PreconditionedTaylorSeriesState(
+PreconditionedTaylorSeriesState(
         Vector<FloatDP> centre,
         Matrix<FloatDP> linear_map,
         ExactBoxType local_domain,
         ValidatedVectorMultivariateFunctionPatch normalised_mapping,
-        ValidatedVectorMultivariateFunctionPatch physical_mapping)
-        : _centre(std::move(centre)),
-          _linear_map(std::move(linear_map)),
-          _local_domain(std::move(local_domain)),
-          _normalised_mapping(std::move(normalised_mapping)),
-          _physical_mapping(std::make_shared<const ValidatedVectorMultivariateFunctionPatch>(
-              std::move(physical_mapping))) {}
+        ValidatedVectorMultivariateFunctionPatch physical_mapping);
 
-    Bool has_physical_mapping() const { return static_cast<Bool>(_physical_mapping != nullptr); }
-    const ValidatedVectorMultivariateFunctionPatch& physical_mapping() const { return *_physical_mapping; }
-    const Vector<FloatDP>& centre() const { return _centre; }
-    const Matrix<FloatDP>& linear_map() const { return _linear_map; }
-    const ExactBoxType& local_domain() const { return _local_domain; }
-    const ValidatedVectorMultivariateFunctionPatch& normalised_mapping() const { return _normalised_mapping; }
-    const ExactBoxType parameter_domain() const { return _normalised_mapping.domain(); }
+    Bool has_physical_mapping() const;
+    const ValidatedVectorMultivariateFunctionPatch& physical_mapping() const;
+    const Vector<FloatDP>& centre() const;
+    const Matrix<FloatDP>& linear_map() const;
+    const ExactBoxType& local_domain() const;
+    const ValidatedVectorMultivariateFunctionPatch& normalised_mapping() const;
+    const ExactBoxType parameter_domain() const;
 };
 
 //! \brief Result of one preconditioned graded Taylor-series step.
@@ -578,20 +542,16 @@ class PreconditionedTaylorSeriesStep {
     PreconditionedTaylorSeriesState _final_state;
 
   public:
-    PreconditionedTaylorSeriesStep(
+PreconditionedTaylorSeriesStep(
         StepSizeType time_step,
         ValidatedVectorMultivariateFunctionPatch flowpipe_mapping,
         ValidatedVectorMultivariateFunctionPatch evolved_mapping,
-        PreconditionedTaylorSeriesState final_state)
-        : _time_step(time_step),
-          _flowpipe_mapping(std::move(flowpipe_mapping)),
-          _evolved_mapping(std::move(evolved_mapping)),
-          _final_state(std::move(final_state)) {}
+        PreconditionedTaylorSeriesState final_state);
 
-    const StepSizeType& time_step() const { return _time_step; }
-    const ValidatedVectorMultivariateFunctionPatch& flowpipe_mapping() const { return _flowpipe_mapping; }
-    const ValidatedVectorMultivariateFunctionPatch& evolved_mapping() const { return _evolved_mapping; }
-    const PreconditionedTaylorSeriesState& final_state() const { return _final_state; }
+    const StepSizeType& time_step() const;
+    const ValidatedVectorMultivariateFunctionPatch& flowpipe_mapping() const;
+    const ValidatedVectorMultivariateFunctionPatch& evolved_mapping() const;
+    const PreconditionedTaylorSeriesState& final_state() const;
 };
 
 /** @brief Type representing taylor series preconditioning in integration algorithms. */
@@ -613,17 +573,15 @@ class PreconditionedGradedTaylorSeriesIntegrator
     using GradedTaylorSeriesIntegrator::flow_step;
     using GradedTaylorSeriesIntegrator::GradedTaylorSeriesIntegrator;
 
-    TaylorSeriesPreconditioning preconditioning() const { return _preconditioning; }
-    Void set_preconditioning(TaylorSeriesPreconditioning value) { _preconditioning = value; }
-    Bool diagnostics() const { return _diagnostics; }
-    Void set_diagnostics(Bool value) { _diagnostics = value; }
-    Bool carried_expansion_diagnostics() const { return _carried_expansion_diagnostics; }
-    Void set_carried_expansion_diagnostics(Bool value) { _carried_expansion_diagnostics = value; }
+    TaylorSeriesPreconditioning preconditioning() const;
+    Void set_preconditioning(TaylorSeriesPreconditioning value);
+    Bool diagnostics() const;
+    Void set_diagnostics(Bool value);
+    Bool carried_expansion_diagnostics() const;
+    Void set_carried_expansion_diagnostics(Bool value);
 
     /** @brief Perform the integration operation. */
-    virtual PreconditionedGradedTaylorSeriesIntegrator* clone() const override {
-        return new PreconditionedGradedTaylorSeriesIntegrator(*this);
-    }
+    virtual PreconditionedGradedTaylorSeriesIntegrator* clone() const override;
     /** @brief Perform the integration operation. */
     virtual Void _write(OutputStream& os) const override;
 
@@ -665,10 +623,10 @@ class AffineIntegrator
     AffineIntegrator(SpacialOrder spacial_order, TemporalOrder temporal_order);
 
     //! \brief The order of the method in space.
-    DegreeType spacial_order() const { return this->_spacial_order; }
+    DegreeType spacial_order() const;
     //! \brief The order of the method in time.
-    DegreeType temporal_order() const { return this->_temporal_order; }
-    virtual AffineIntegrator* clone() const { return new AffineIntegrator(*this); }
+    DegreeType temporal_order() const;
+    virtual AffineIntegrator* clone() const;
     /** @brief Perform the integration operation. */
     virtual Void _write(OutputStream& os) const;
 
