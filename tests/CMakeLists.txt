@@ -23,7 +23,5 @@ foreach(TEST ${UNIT_TESTS})
     set_property(TEST ${TEST} PROPERTY LABELS "integration")
 endforeach()
 
-target_include_directories(test_polynomial_procedure PRIVATE "${PROJECT_SOURCE_DIR}/src")
-
 add_custom_target(tests)
 add_dependencies(tests ${UNIT_TESTS})
