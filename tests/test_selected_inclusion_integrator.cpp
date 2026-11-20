@@ -136,6 +136,44 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
     }
 
 
+    Void test_every_endpoint_strategy_encloses_full_input_range() {
+        // x' = u(t), u(t) in [-1,1], x(0) in [-1/8,1/8].
+        // For any measurable input, the entire endpoint set at h=1/32 is
+        // [-5/32,5/32]. No evolve strategy may freeze or discard inputs.
+        auto u = EffectiveFormula::coordinate(1u);
+        const EffectiveVectorMultivariateFunction f =
+            EffectiveVectorMultivariateFormulaFunction(
+                2u, Vector<EffectiveFormula>{u});
+        const BoxDomainType U({{-1.0_x, 1.0_x}});
+        const BoxDomainType initial_domain({{-0.125_x, 0.125_x}});
+        const UpperBoxType bound({{-1.0_x, 1.0_x}});
+        const StepSizeType h(0.03125_x);
+        const ExactBoxType analytical_endpoint({{-0.15625_x, 0.15625_x}});
+
+        TaylorSeriesIntegrator base(ThresholdSweeper<FloatDP>(dp, 1e-10),
+                                    lipschitz_tolerance = 0.5_x, order = 8);
+        InclusionIntegratorFactory factory(base);
+        const auto initial = base.function_factory().create_identity(initial_domain);
+        const InputApproximation rigorous_reach(ZeroApproximation());
+        for (const auto& endpoint: {InputApproximation(ZeroApproximation()),
+                                   InputApproximation(ConstantApproximation()),
+                                   InputApproximation(AffineApproximation()),
+                                   InputApproximation(SinusoidalApproximation()),
+                                   InputApproximation(PiecewiseApproximation())}) {
+            SelectedInclusionIntegrator selected(
+                factory, f, U, rigorous_reach, endpoint);
+            ARIADNE_TESTING_EXPECT_EQUAL(selected.reach_index(), rigorous_reach.reference().index());
+            ARIADNE_TESTING_EXPECT_EQUAL(selected.evolve_index(), endpoint.reference().index());
+            const auto step = selected.step(
+                initial_domain, initial, bound, TimeStepType(0u), h);
+            const auto boxes = step.bounding_step(h);
+            ARIADNE_TESTING_PROVE(definitely(subset(
+                analytical_endpoint, cast_exact_box(boxes.evolve))));
+            ARIADNE_TESTING_PROVE(definitely(subset(
+                analytical_endpoint, cast_exact_box(boxes.reach))));
+        }
+    }
+
     Void test_parametric_box_extension_and_low_order_bridge() {
         BoxDomainType state_domain({{-1.0_x, 1.0_x}});
         // The owned structural representation outlives these temporaries.
@@ -490,6 +528,7 @@ int main(int argc, char** argv) {
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_valid_and_invalid_strategy_pairs);
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_distinct_approximations_and_endpoint);
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_same_method_and_nonrigorous_endpoint_strategy);
+    ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_every_endpoint_strategy_encloses_full_input_range);
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_invalid_time_step);
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_parametric_box_extension_and_low_order_bridge);
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_high_order_common_integrator_bridge);
