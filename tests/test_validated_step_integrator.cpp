@@ -536,6 +536,21 @@ class TestValidatedStepIntegrator : public Ariadne::Testing::ContextFixture {
                 IntervalDomainType(0.53125_x, 0.546875_x));
         }
 
+        // A fixed parameter is selected ONCE for the whole trajectory:
+        // after H=1/32+1/64=3/64, changing p from 1/8 to 1/4
+        // must change the endpoint by H*(1/4-1/8)=3/512.
+        // Slice the SAME validated endpoint map while retaining all
+        // original state and independently selected input coordinates.
+        const auto fixed_low = partial_evaluate(second.evolve_model(), 1u, 0.125_x);
+        const auto fixed_high = partial_evaluate(second.evolve_model(), 1u, 0.25_x);
+        ARIADNE_TESTING_EXPECT_EQUAL(fixed_low.domain(), fixed_high.domain());
+        const auto parameter_effect = fixed_high - fixed_low;
+        ARIADNE_TESTING_NOTE("fixed-parameter endpoint difference="
+            << parameter_effect.range() << "; expected=" << 0.005859375_x);
+        ARIADNE_TESTING_PROVE(definitely(subset(
+            ExactBoxType({{0.005859375_x, 0.005859375_x}}),
+            cast_exact_box(UpperBoxType(parameter_effect.range())))));
+
         // Exact first endpoint: [33/2048,57/2048].
         // Exact second endpoint: [201/8192,345/8192].
         // Keep the full analytical enclosure assertion below; these
