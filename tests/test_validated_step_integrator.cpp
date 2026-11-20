@@ -395,6 +395,93 @@ class TestValidatedStepIntegrator : public Ariadne::Testing::ContextFixture {
         ARIADNE_TESTING_EXPECT_LESS(norm(second.evolve_model() - expected), 1e-4_pr);
     }
 
+    Void test_nonautonomous_inclusion_fixed_parameters_and_switching_inputs() {
+        // x'=t+p+u(t), p chosen once in [1/8,1/4] and
+        // u(t) independently selectable from [-1/8,1/8].
+        // From t=1/2 over h1=1/16,h2=1/32, exact final reachable set:
+        // [105/2048,177/2048] = [0.05126953125,0.08642578125].
+        // The box solver may be wider; it must enclose every trajectory.
+        const auto t = EffectiveScalarMultivariateFunction::coordinate(4u, 1u);
+        const auto p = EffectiveScalarMultivariateFunction::coordinate(4u, 2u);
+        const auto u = EffectiveScalarMultivariateFunction::coordinate(4u, 3u);
+        const EffectiveVectorMultivariateFunction field_function = {t + p + u};
+        ValidatedTimedInputFieldBoxAdapterDP field(
+            field_function, BoxDomainType({{-1.0_x, 1.0_x}}),
+            IntervalDomainType(0.5_x, 0.75_x),
+            BoxDomainType({{0.125_x, 0.25_x}}),
+            BoxDomainType({{-0.125_x, 0.125_x}}));
+        const ExactBoxType initial({{0.0_x, 0.0_x}});
+        const ExactBoxType parameters({{0.125_x, 0.25_x}});
+        const UpperBoxType bound({{-1.0_x, 1.0_x}});
+        const StepSizeType t0(0.5_x);
+        const StepSizeType h1(0.0625_x);
+        const StepSizeType h2(0.03125_x);
+        const FirstOrderMultifunctionIntegrator numerical_solver;
+        const MultiflowStepIntegratorAdapter adapter(numerical_solver);
+        const ValidatedStepIntegratorInterface& solver = adapter;
+
+        const auto first = solver.step(ValidatedIntegrationRequest(
+            field, initial, t0, h1, parameters, bound));
+        const auto second = solver.step(ValidatedIntegrationRequest(
+            field, first, h2, bound));
+
+        ARIADNE_TESTING_EXPECT_EQUAL(first.initial_time(), t0);
+        ARIADNE_TESTING_EXPECT_EQUAL(first.final_time(), StepSizeType(0.5625_x));
+        ARIADNE_TESTING_EXPECT_EQUAL(second.initial_time(), StepSizeType(0.5625_x));
+        ARIADNE_TESTING_EXPECT_EQUAL(second.final_time(), StepSizeType(0.59375_x));
+        ARIADNE_TESTING_PROVE(second.has_explicit_time());
+        ARIADNE_TESTING_EXPECT_EQUAL(second.constant_parameter_domain(), parameters);
+        ARIADNE_TESTING_PROVE(not second.has_evolve_model());
+        ARIADNE_TESTING_PROVE(not second.has_reach_models());
+        ARIADNE_TESTING_PROVE(definitely(subset(
+            ExactBoxType({{0.05126953125_x, 0.08642578125_x}}),
+            cast_exact_box(second.evolve()))));
+    }
+
+    Void test_timed_inclusion_rejects_unsupported_capabilities_and_domains() {
+        const auto t = EffectiveScalarMultivariateFunction::coordinate(4u, 1u);
+        const auto p = EffectiveScalarMultivariateFunction::coordinate(4u, 2u);
+        const auto u = EffectiveScalarMultivariateFunction::coordinate(4u, 3u);
+        ValidatedTimedInputFieldBoxAdapterDP field(
+            EffectiveVectorMultivariateFunction({t + p + u}),
+            BoxDomainType({{-1.0_x, 1.0_x}}),
+            IntervalDomainType(0.5_x, 0.75_x),
+            BoxDomainType({{0.125_x, 0.25_x}}),
+            BoxDomainType({{-0.125_x, 0.125_x}}));
+        const ExactBoxType initial({{0.0_x, 0.0_x}});
+        const ExactBoxType parameters({{0.125_x, 0.25_x}});
+        const UpperBoxType bound({{-1.0_x, 1.0_x}});
+        FirstOrderMultifunctionIntegrator first_order;
+        MultiflowStepIntegratorAdapter first_order_adapter(first_order);
+        ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
+            first_order_adapter.step(ValidatedIntegrationRequest(
+                field, initial, StepSizeType(0.71875_x),
+                StepSizeType(0.0625_x), parameters, bound)));
+        ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
+            first_order_adapter.step(ValidatedIntegrationRequest(
+                field, initial, StepSizeType(0.5_x),
+                StepSizeType(0.0625_x),
+                ExactBoxType({{0.5_x, 0.75_x}}), bound)));
+        ARIADNE_TESTING_EXPECT_THROWS(FlowBoundsException,
+            first_order_adapter.step(ValidatedIntegrationRequest(
+                field, initial, StepSizeType(0.5_x),
+                StepSizeType(0.0625_x), parameters,
+                UpperBoxType({{-0.0078125_x, 0.0078125_x}}))));
+
+        // The high-order legacy solver has not been extended to time-dependent
+        // inclusions, and must not be silently substituted by first order.
+        TaylorSeriesIntegrator taylor(ThresholdSweeper<FloatDP>(dp, 1e-10),
+                                      lipschitz_tolerance = 0.5_x, order = 8);
+        SelectedParametricMultifunctionIntegrator high(
+            taylor, InputApproximation(ZeroApproximation()),
+            InputApproximation(ConstantApproximation()));
+        MultiflowStepIntegratorAdapter unsupported(high);
+        ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
+            unsupported.step(ValidatedIntegrationRequest(
+                field, initial, StepSizeType(0.5_x),
+                StepSizeType(0.0625_x), parameters, bound)));
+    }
+
     Void test_reject_invalid_request() {
         const ValidatedVectorMultivariateFunction ordinary = {
             ValidatedScalarMultivariateFunction::constant(1u, 1)};
@@ -424,6 +511,8 @@ int main(int argc, char** argv) {
     ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_equation_continuation_retains_prior_input_parameters);
     ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_nonautonomous_equation_continuation_uses_absolute_time);
     ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_constant_equation_parameters_are_not_resampled);
+    ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_nonautonomous_inclusion_fixed_parameters_and_switching_inputs);
+    ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_timed_inclusion_rejects_unsupported_capabilities_and_domains);
     ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_reject_invalid_request);
     return Ariadne::Testing::run_logging_suite(ariadne_test_suite, argc, argv);
 }

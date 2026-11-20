@@ -105,7 +105,9 @@ class ValidatedIntegrationStep {
     /** @brief Whether an equation step uses an explicit time coordinate.
      *  This is numerical continuation metadata, not a system classification.
      */
-    bool equation_has_explicit_time() const { return _equation_has_explicit_time; }
+    bool has_explicit_time() const { return _equation_has_explicit_time; }
+    /** @brief Compatibility alias for earlier equation-only requests. */
+    bool equation_has_explicit_time() const { return has_explicit_time(); }
     /** @brief Trajectory-constant parameters shared across equation steps.
      *  Their coordinates occupy the prefix immediately after original states.
      *  Later inclusion steps may append independent time-varying inputs.

@@ -185,6 +185,117 @@ class MultifunctionIntegratorInterface {
                                              const UpperBoxType& state_bound) const = 0;
 };
 
+
+/** @brief Certified box extension for a time-dependent set-valued field.
+ *
+ *  The numerical field has state x, absolute time t and trajectory-constant
+ *  parameters p, with arbitrary time-varying selections u(t) handled by
+ *  evaluate(). For X, T and P, evaluate(X,T,P) must enclose every admissible
+ *  instantaneous field value F(x,t,p), x in X, t in T, p in P.
+ *
+ *  This contract is weaker than a structure-preserving solver: it may lose
+ *  dependence on p and time across steps, but may never exclude a trajectory.
+ *  It does not introduce a dynamical-system declaration into integration.
+ */
+class ValidatedTimedBoxMultifunctionInterface {
+  public:
+    virtual ~ValidatedTimedBoxMultifunctionInterface() = default;
+    virtual SizeType argument_size() const = 0;
+    virtual SizeType result_size() const = 0;
+    virtual BoxDomainType domain() const = 0;
+    virtual IntervalDomainType time_domain() const = 0;
+    virtual BoxDomainType parameter_domain() const = 0;
+    virtual UpperBoxType evaluate(const UpperBoxType& states,
+                                  const UpperIntervalType& time,
+                                  const UpperBoxType& parameters) const = 0;
+};
+
+/** @brief Validated numerical adapter for f(x,t,p,u), with time-varying u.
+ *
+ *  Argument order is state, absolute time, fixed parameters, free inputs.
+ *  The original function and domains are retained by value. Values of p stay
+ *  constant along each admissible trajectory; interval box evaluation is
+ *  intentionally conservative and does not encode their time correlation.
+ *  Every u(t) in the input box remains admissible at each instant.
+ *  This adapter does not supply high-order inclusion solver data.
+ */
+class ValidatedTimedInputFieldBoxAdapterDP : public ValidatedTimedBoxMultifunctionInterface {
+    EffectiveVectorMultivariateFunction _field;
+    BoxDomainType _states;
+    IntervalDomainType _time;
+    BoxDomainType _parameters;
+    BoxDomainType _inputs;
+
+  public:
+    ValidatedTimedInputFieldBoxAdapterDP(const EffectiveVectorMultivariateFunction& field,
+                                         const BoxDomainType& states,
+                                         const IntervalDomainType& time,
+                                         const BoxDomainType& parameters,
+                                         const BoxDomainType& inputs)
+        : _field(field), _states(states), _time(time),
+          _parameters(parameters), _inputs(inputs) {
+        if (field.result_size() != states.dimension() ||
+            field.argument_size() != states.dimension() + 1u +
+                                     parameters.dimension() + inputs.dimension()) {
+            throw std::invalid_argument("Timed multifunction field arguments must be [state,time,parameters,inputs]");
+        }
+    }
+
+    SizeType argument_size() const override { return _states.dimension(); }
+    SizeType result_size() const override { return _field.result_size(); }
+    BoxDomainType domain() const override { return _states; }
+    IntervalDomainType time_domain() const override { return _time; }
+    BoxDomainType parameter_domain() const override { return _parameters; }
+
+    UpperBoxType evaluate(const UpperBoxType& states, const UpperIntervalType& time,
+                          const UpperBoxType& parameters) const override {
+        if (states.dimension() != _states.dimension() ||
+            parameters.dimension() != _parameters.dimension() ||
+            not definitely(subset(states, _states)) ||
+            not definitely(subset(time, _time)) ||
+            not definitely(subset(parameters, _parameters))) {
+            throw std::invalid_argument("Timed multifunction evaluation outside its state, time or parameter domain");
+        }
+        const SizeType n = _states.dimension();
+        const SizeType p = _parameters.dimension();
+        Vector<FloatDPBounds> arguments(_field.argument_size(), [&](SizeType i) {
+            if (i < n) {
+                return FloatDPBounds(states[i].lower_bound(), states[i].upper_bound());
+            }
+            if (i == n) {
+                return FloatDPBounds(time.lower_bound(), time.upper_bound());
+            }
+            if (i < n + 1u + p) {
+                const auto& param = parameters[i - n - 1u];
+                return FloatDPBounds(param.lower_bound(), param.upper_bound());
+            }
+            const auto& input = _inputs[i - n - 1u - p];
+            return FloatDPBounds(input.lower_bound(), input.upper_bound());
+        });
+        const Vector<FloatDPBounds> values = _field(arguments);
+        return UpperBoxType(values.size(), [&](SizeType i) {
+            return UpperIntervalType(values[i].lower(), values[i].upper());
+        });
+    }
+};
+
+/** @brief Optional numerical solver capability for nonautonomous inclusions.
+ *
+ *  Integrators that only accept autonomous fields do not expose this method.
+ *  The interface keeps each algorithm's applicability explicit.
+ */
+class TimedMultifunctionIntegratorInterface {
+  public:
+    virtual ~TimedMultifunctionIntegratorInterface() = default;
+    virtual ValidatedMultiflowStep flow_step(
+        const ValidatedTimedBoxMultifunctionInterface& field,
+        const ExactBoxType& initial,
+        const StepSizeType& initial_time,
+        const StepSizeType& time_step,
+        const ExactBoxType& parameters,
+        const UpperBoxType& state_bound) const = 0;
+};
+
 /** @brief First-order validated enclosure for x'(t) in F(x(t)).
  *
  *  Given B with X0 + [0,h] F(B) strictly inside B, continuity/continuation
@@ -193,7 +304,8 @@ class MultifunctionIntegratorInterface {
  *  The selection of uncertain coefficients is allowed to vary with time.
  *  No enclosure is returned when the strict continuation test fails.
  */
-class FirstOrderMultifunctionIntegrator : public MultifunctionIntegratorInterface {
+class FirstOrderMultifunctionIntegrator : public MultifunctionIntegratorInterface,
+                                           public TimedMultifunctionIntegratorInterface {
   public:
     virtual ValidatedMultiflowStep flow_step(const ValidatedBoxMultifunctionInterface& field,
                                              const ExactBoxType& initial,
@@ -232,6 +344,61 @@ class FirstOrderMultifunctionIntegrator : public MultifunctionIntegratorInterfac
             std::ostringstream message;
             message << "Cannot certify multifunction tube: reach=" << reach << " bound=" << state_bound
                     << " field_values=" << values << " step=" << time_step;
+            throw FlowBoundsException(message.str());
+        }
+        return ValidatedMultiflowStep{time_step, reach, evolve};
+    }
+
+    /** @brief Validate an entire absolute-time step of x'(t) in F(x,t,p).
+     *
+     *  Evaluating over [t0,t0+h] and the entire fixed-parameter domain
+     *  deliberately yields an outer enclosure. The strict tube-in-bound
+     *  check gives a continuation certificate; it does not freeze u(t).
+     */
+    ValidatedMultiflowStep flow_step(
+        const ValidatedTimedBoxMultifunctionInterface& field,
+        const ExactBoxType& initial,
+        const StepSizeType& initial_time,
+        const StepSizeType& time_step,
+        const ExactBoxType& parameters,
+        const UpperBoxType& state_bound) const override {
+        if (not (time_step > StepSizeType(0u))) {
+            throw std::invalid_argument("Timed multifunction integration requires a positive time step");
+        }
+        if (field.argument_size() != field.result_size() ||
+            initial.dimension() != field.argument_size() ||
+            state_bound.dimension() != field.argument_size() ||
+            parameters.dimension() != field.parameter_domain().dimension()) {
+            throw std::invalid_argument("Timed multifunction integration has incompatible state or parameter dimensions");
+        }
+        const IntervalDomainType times(initial_time, initial_time + time_step);
+        if (not definitely(subset(state_bound, field.domain())) ||
+            not definitely(subset(times, field.time_domain())) ||
+            not definitely(subset(parameters, field.parameter_domain()))) {
+            throw std::invalid_argument("Timed multifunction step is outside its numerical field domain");
+        }
+
+        const UpperBoxType values = field.evaluate(
+            state_bound, UpperIntervalType(initial_time, initial_time + time_step),
+            UpperBoxType(parameters));
+        if (values.dimension() != field.result_size()) {
+            throw std::invalid_argument("Invalid timed multifunction box extension result dimension");
+        }
+
+        const UpperIntervalType duration(0u, time_step);
+        const UpperIntervalType final_duration(time_step);
+        UpperBoxType reach(initial.dimension());
+        UpperBoxType evolve(initial.dimension());
+        for (SizeType i = 0u; i != initial.dimension(); ++i) {
+            const UpperIntervalType start(initial[i]);
+            reach[i] = start + duration * values[i];
+            evolve[i] = start + final_duration * values[i];
+        }
+        if (not definitely(inside(reach, cast_exact_box(state_bound)))) {
+            std::ostringstream message;
+            message << "Cannot certify timed multifunction tube: reach=" << reach
+                    << " bound=" << state_bound << " field_values=" << values
+                    << " time=[" << initial_time << "," << initial_time + time_step << "]";
             throw FlowBoundsException(message.str());
         }
         return ValidatedMultiflowStep{time_step, reach, evolve};

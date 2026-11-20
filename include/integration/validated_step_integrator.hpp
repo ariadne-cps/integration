@@ -52,7 +52,8 @@ class ValidatedIntegrationRequest {
   public:
     using Field = std::variant<
         std::reference_wrapper<const ValidatedVectorMultivariateFunction>,
-        std::reference_wrapper<const ValidatedBoxMultifunctionInterface>>;
+        std::reference_wrapper<const ValidatedBoxMultifunctionInterface>,
+        std::reference_wrapper<const ValidatedTimedBoxMultifunctionInterface>>;
 
   private:
     Field _field;
@@ -88,6 +89,22 @@ class ValidatedIntegrationRequest {
      *  A zero-dimensional parameter domain is permitted.
      */
     ValidatedIntegrationRequest(const ValidatedVectorMultivariateFunction& field,
+                                const ExactBoxType& initial,
+                                const StepSizeType& initial_time,
+                                const StepSizeType& time_step,
+                                const ExactBoxType& constant_parameters,
+                                const UpperBoxType& bounding_box)
+        : _field(std::cref(field)), _initial(initial), _time_step(time_step),
+          _initial_time(initial_time), _bounding_box(bounding_box),
+          _equation_has_explicit_time(true),
+          _constant_parameter_domain(constant_parameters) {
+        this->validate();
+    }
+
+    /** @brief Fresh timed inclusion step with fixed parameter coordinates.
+     *  Input uncertainty is represented by the numerical field itself.
+     */
+    ValidatedIntegrationRequest(const ValidatedTimedBoxMultifunctionInterface& field,
                                 const ExactBoxType& initial,
                                 const StepSizeType& initial_time,
                                 const StepSizeType& time_step,
@@ -149,12 +166,34 @@ class ValidatedIntegrationRequest {
         this->validate();
     }
 
+    /** @brief Continue a timed inclusion from the previous common result.
+     *  Its parameter domain is retained, not independently reselected.
+     *  A box-only algorithm still cannot accept a structured endpoint map.
+     */
+    ValidatedIntegrationRequest(const ValidatedTimedBoxMultifunctionInterface& field,
+                                const ValidatedIntegrationStep& previous,
+                                const StepSizeType& time_step,
+                                const UpperBoxType& bounding_box)
+        : _field(std::cref(field)), _initial(continuation_domain(previous)),
+          _time_step(time_step), _initial_time(previous.final_time()),
+          _bounding_box(bounding_box),
+          _initial_mapping(previous.has_evolve_model()
+                               ? std::optional<ValidatedVectorMultivariateFunctionPatch>(previous.evolve_model())
+                               : std::nullopt),
+          _equation_has_explicit_time(true),
+          _constant_parameter_domain(previous.constant_parameter_domain()) {
+        this->validate();
+    }
+
     const Field& field() const { return _field; }
     const ExactBoxType& initial() const { return _initial; }
     const StepSizeType& time_step() const { return _time_step; }
     const StepSizeType& initial_time() const { return _initial_time; }
     const UpperBoxType& bounding_box() const { return _bounding_box; }
-    bool equation_has_explicit_time() const { return _equation_has_explicit_time; }
+    /** @brief Generic numerical metadata, also valid for timed inclusions. */
+    bool has_explicit_time() const { return _equation_has_explicit_time; }
+    /** @brief Kept for compatibility with existing equation tests. */
+    bool equation_has_explicit_time() const { return has_explicit_time(); }
     const ExactBoxType& constant_parameter_domain() const {
         return _constant_parameter_domain;
     }
@@ -289,16 +328,29 @@ class MultiflowStepIntegratorAdapter : public ValidatedStepIntegratorInterface {
         : _integrator(integrator) {}
 
     ValidatedIntegrationStep step(const ValidatedIntegrationRequest& request) const override {
+        if (request.has_initial_mapping()) {
+            throw std::invalid_argument("Box-only integration cannot discard a structured endpoint map");
+        }
+        if (const auto* timed = request.field_as<ValidatedTimedBoxMultifunctionInterface>()) {
+            const auto* solver = dynamic_cast<const TimedMultifunctionIntegratorInterface*>(&_integrator);
+            if (solver == nullptr) {
+                throw std::invalid_argument("The configured inclusion integrator lacks timed-field capability");
+            }
+            return validated_integration_step(solver->flow_step(
+                *timed, request.initial(), request.initial_time(), request.time_step(),
+                request.constant_parameter_domain(), request.bounding_box()),
+                request.initial_time(), true, request.constant_parameter_domain());
+        }
         const auto* field = request.field_as<ValidatedBoxMultifunctionInterface>();
         if (field == nullptr) {
             throw std::invalid_argument("This inclusion integrator requires a validated box multifunction");
         }
-        if (request.has_initial_mapping()) {
-            throw std::invalid_argument("Box-only integration cannot discard a structured endpoint map");
+        if (request.constant_parameter_domain().dimension() != 0u) {
+            throw std::invalid_argument("Autonomous box field cannot consume fixed equation parameters");
         }
         return validated_integration_step(_integrator.flow_step(
             *field, request.initial(), request.time_step(), request.bounding_box()),
-            request.initial_time(), request.equation_has_explicit_time(),
+            request.initial_time(), request.has_explicit_time(),
             request.constant_parameter_domain());
     }
 };
