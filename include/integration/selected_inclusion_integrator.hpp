@@ -46,13 +46,15 @@ namespace Ariadne {
  *  input approximation. It must not be used as a reach-tube certificate.
  */
 struct SelectedInclusionStep {
+    StepSizeType time_step;
     List<ValidatedVectorMultivariateFunctionPatch> reach_models;
     ValidatedVectorMultivariateFunctionPatch evolve_model;
 
     /** @brief Discard patch structure to obtain the common validated box result.
      *  All reach patches are included in the hull, not selected by volume.
+     *  The step duration is captured by the integrator, not relabelled by the caller.
      */
-    ValidatedMultiflowStep bounding_step(const StepSizeType& time_step) const {
+    ValidatedMultiflowStep bounding_step() const {
         if (reach_models.empty()) {
             throw FlowBoundsException("The selected reach method did not return a reach model");
         }
@@ -149,7 +151,7 @@ class SelectedInclusionIntegrator {
                 throw FlowBoundsException("Endpoint evolution requires one model from the selected method");
             }
             auto endpoint = evolve_method.evolve(reaches[0u], final_time);
-            return SelectedInclusionStep{std::move(reaches), std::move(endpoint)};
+            return SelectedInclusionStep{time_step, std::move(reaches), std::move(endpoint)};
         }
 
         auto evolve_reaches = evolve_method.reach(state_domain, initial_mapping, state_bound, initial_time, time_step);
@@ -157,7 +159,7 @@ class SelectedInclusionIntegrator {
             throw FlowBoundsException("The selected evolve method did not return exactly one endpoint source");
         }
         auto endpoint = evolve_method.evolve(evolve_reaches[0u], final_time);
-        return SelectedInclusionStep{std::move(reaches), std::move(endpoint)};
+        return SelectedInclusionStep{time_step, std::move(reaches), std::move(endpoint)};
     }
 };
 
@@ -291,7 +293,7 @@ class SelectedParametricMultifunctionIntegrator : public MultifunctionIntegrator
                                     const ExactBoxType& initial,
                                     const StepSizeType& time_step,
                                     const UpperBoxType& state_bound) const override {
-        return this->structured_step(field, initial, time_step, state_bound).bounding_step(time_step);
+        return this->structured_step(field, initial, time_step, state_bound).bounding_step();
     }
 };
 

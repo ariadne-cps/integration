@@ -102,7 +102,7 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         auto expected = FloatDPBounds(0.0625_x, dp) * exp(FloatDPBounds(h, dp));
         UpperIntervalType expected_interval(expected.lower(), expected.upper());
         ARIADNE_TESTING_PROVE(refines(expected_interval, step.evolve_model.range()[0u]));
-        const auto boxes = step.bounding_step(h);
+        const auto boxes = step.bounding_step();
         ARIADNE_TESTING_EXPECT_EQUAL(boxes.time_step, h);
         ARIADNE_TESTING_PROVE(definitely(is_bounded(boxes.reach)));
         ARIADNE_TESTING_PROVE(definitely(is_bounded(boxes.evolve)));
@@ -121,8 +121,8 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
             SelectedInclusionIntegrator selected(factory, field(), inputs(), approximation, approximation);
             auto step = selected.step(domain, initial, bound, TimeStepType(0u), h);
             ARIADNE_TESTING_EXPECT_EQUAL(step.reach_models.size(), 1u);
-            ARIADNE_TESTING_PROVE(definitely(is_bounded(step.bounding_step(h).reach)));
-            ARIADNE_TESTING_PROVE(definitely(is_bounded(step.bounding_step(h).evolve)));
+            ARIADNE_TESTING_PROVE(definitely(is_bounded(step.bounding_step().reach)));
+            ARIADNE_TESTING_PROVE(definitely(is_bounded(step.bounding_step().evolve)));
         }
         for (const auto& approximation: {InputApproximation(SinusoidalApproximation()),
                                          InputApproximation(PiecewiseApproximation())}) {
@@ -166,7 +166,7 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
             ARIADNE_TESTING_EXPECT_EQUAL(selected.evolve_index(), endpoint.reference().index());
             const auto step = selected.step(
                 initial_domain, initial, bound, TimeStepType(0u), h);
-            const auto boxes = step.bounding_step(h);
+            const auto boxes = step.bounding_step();
             ARIADNE_TESTING_PROVE(definitely(subset(
                 analytical_endpoint, cast_exact_box(boxes.evolve))));
             ARIADNE_TESTING_PROVE(definitely(subset(
@@ -205,7 +205,9 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
             SelectedInclusionIntegrator selected(factory, f, U, reach, evolve);
             const auto first = selected.step(
                 initial_domain, identity, bound, TimeStepType(0u), h);
-            const auto first_boxes = first.bounding_step(h);
+            const auto first_boxes = first.bounding_step();
+            ARIADNE_TESTING_EXPECT_EQUAL(first.time_step, h);
+            ARIADNE_TESTING_EXPECT_EQUAL(first_boxes.time_step, h);
             ARIADNE_TESTING_PROVE(definitely(subset(
                 one_step, cast_exact_box(first_boxes.evolve))));
 
@@ -214,7 +216,9 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
             const auto second = selected.step(
                 initial_domain, first.evolve_model, bound,
                 TimeStepType(0.03125_x), h);
-            const auto second_boxes = second.bounding_step(h);
+            const auto second_boxes = second.bounding_step();
+            ARIADNE_TESTING_EXPECT_EQUAL(second.time_step, h);
+            ARIADNE_TESTING_EXPECT_EQUAL(second_boxes.time_step, h);
             // A second step appends its input parameters; it cannot replace
             // the initial-state coordinates or the first step's parameters.
             ARIADNE_TESTING_EXPECT_EQUAL(
@@ -243,6 +247,50 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
                 one_step, cast_exact_box(second_boxes.reach))));
             ARIADNE_TESTING_PROVE(definitely(subset(
                 two_steps, cast_exact_box(second_boxes.reach))));
+        }
+    }
+
+    Void test_unequal_step_durations_remain_bound_to_results() {
+        // Two consecutive steps have different lengths. The endpoint map
+        // retains the first-step inputs, and the box result keeps its own
+        // validated duration rather than accepting a caller-supplied label.
+        const auto u = EffectiveFormula::coordinate(1u);
+        const EffectiveVectorMultivariateFunction f =
+            EffectiveVectorMultivariateFormulaFunction(2u, Vector<EffectiveFormula>{u});
+        const BoxDomainType U({{-1.0_x, 1.0_x}});
+        const BoxDomainType X({{-0.125_x, 0.125_x}});
+        const UpperBoxType B({{-1.0_x, 1.0_x}});
+        const StepSizeType h1(0.03125_x);
+        const StepSizeType h2(0.015625_x);
+        TaylorSeriesIntegrator base(ThresholdSweeper<FloatDP>(dp, 1e-10),
+                                    lipschitz_tolerance = 0.5_x, order = 8);
+        InclusionIntegratorFactory factory(base);
+        SelectedInclusionIntegrator selected(
+            factory, f, U, InputApproximation(ZeroApproximation()),
+            InputApproximation(ConstantApproximation()));
+        const auto identity = base.function_factory().create_identity(X);
+        const auto first = selected.step(X, identity, B, TimeStepType(0u), h1);
+        const auto second = selected.step(X, first.evolve_model, B,
+                                          TimeStepType(0.03125_x), h2);
+        const auto first_box = first.bounding_step();
+        const auto second_box = second.bounding_step();
+        ARIADNE_TESTING_EXPECT_EQUAL(first.time_step, h1);
+        ARIADNE_TESTING_EXPECT_EQUAL(second.time_step, h2);
+        ARIADNE_TESTING_EXPECT_EQUAL(first_box.time_step, h1);
+        ARIADNE_TESTING_EXPECT_EQUAL(second_box.time_step, h2);
+        ARIADNE_TESTING_PROVE(definitely(subset(
+            ExactBoxType({{-0.15625_x, 0.15625_x}}),
+            cast_exact_box(first_box.evolve))));
+        ARIADNE_TESTING_PROVE(definitely(subset(
+            ExactBoxType({{-0.171875_x, 0.171875_x}}),
+            cast_exact_box(second_box.evolve))));
+        ARIADNE_TESTING_EXPECT_EQUAL(
+            second.evolve_model.domain()[range(0u, first.evolve_model.argument_size())],
+            first.evolve_model.domain());
+        for (const auto& reach_patch: second.reach_models) {
+            ARIADNE_TESTING_EXPECT_EQUAL(
+                reach_patch.domain()[X.dimension()],
+                IntervalDomainType(0.03125_x, 0.046875_x));
         }
     }
 
@@ -284,7 +332,7 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
                           TimeStepType(0u), h));
         const auto valid = selected.step(
             initial_domain, identity, bound, TimeStepType(0u), h);
-        ARIADNE_TESTING_PROVE(definitely(is_bounded(valid.bounding_step(h).evolve)));
+        ARIADNE_TESTING_PROVE(definitely(is_bounded(valid.bounding_step().evolve)));
     }
 
     Void test_parametric_box_extension_and_low_order_bridge() {
@@ -333,7 +381,7 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         const auto patch_step = high_order.structured_step(structural, initial, h, bound);
         ARIADNE_TESTING_EXPECT_EQUAL(patch_step.reach_models.size(), 1u);
         ARIADNE_TESTING_EXPECT_EQUAL(patch_step.evolve_model.argument_size(), 3u);
-        ARIADNE_TESTING_PROVE(same(cast_exact_box(patch_step.bounding_step(h).reach),
+        ARIADNE_TESTING_PROVE(same(cast_exact_box(patch_step.bounding_step().reach),
                                   cast_exact_box(box_step.reach)));
 
         const auto expected = FloatDPBounds(0.0625_x, dp) * exp(FloatDPBounds(h, dp));
@@ -643,6 +691,7 @@ int main(int argc, char** argv) {
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_same_method_and_nonrigorous_endpoint_strategy);
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_every_endpoint_strategy_encloses_full_input_range);
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_two_steps_preserve_independent_input_choices);
+    ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_unequal_step_durations_remain_bound_to_results);
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_reject_incompatible_step_mapping_domains);
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_invalid_time_step);
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_parametric_box_extension_and_low_order_bridge);
