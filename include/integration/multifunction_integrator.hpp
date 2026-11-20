@@ -29,7 +29,6 @@
 #ifndef ARIADNE_MULTIFUNCTION_INTEGRATOR_HPP
 #define ARIADNE_MULTIFUNCTION_INTEGRATOR_HPP
 
-#include <optional>
 #include <sstream>
 #include <stdexcept>
 
@@ -74,17 +73,24 @@ class ValidatedBoxMultifunctionInterface {
     virtual BoxDomainType domain() const = 0;
     virtual UpperBoxType evaluate(const UpperBoxType& box) const = 0;
 
-    /** @brief Optional solver-specific field data for high-order integration.
-     *  This capability does not declare a system, nor choose the solver.
-     *  A field can be integrated by another method without implementing it.
-     */
-    virtual std::optional<InclusionIntegratorFieldData> inclusion_integrator_field() const {
-        return std::nullopt;
-    }
+};
+
+/** @brief Optional, solver-specific capability, independent of box evaluation.
+ *
+ *  This interface is implemented only by adapters that can produce certified
+ *  f(x,u),U data for the legacy inclusion solver. It is not part of the base
+ *  validated multifunction contract, does not declare a dynamical system and
+ *  does not select an algorithm. Exposing the capability never freezes u(t).
+ */
+class InclusionIntegratorFieldProvider {
+  public:
+    virtual ~InclusionIntegratorFieldProvider() = default;
+    virtual InclusionIntegratorFieldData inclusion_integrator_field() const = 0;
 };
 
 /** @brief Box extension of a double-precision interval Taylor vector model. */
-class ValidatedIntervalTaylorBoxMultifunctionDP : public ValidatedBoxMultifunctionInterface {
+class ValidatedIntervalTaylorBoxMultifunctionDP : public ValidatedBoxMultifunctionInterface,
+                                                  public InclusionIntegratorFieldProvider {
     ValidatedVectorIntervalTaylorFunctionModel<FloatDP> _model;
 
   public:
@@ -118,7 +124,7 @@ class ValidatedIntervalTaylorBoxMultifunctionDP : public ValidatedBoxMultifuncti
      *  polynomial may widen bounds, and shared coefficient correlations
      *  are not reconstructed.
      */
-    std::optional<InclusionIntegratorFieldData> inclusion_integrator_field() const override {
+    InclusionIntegratorFieldData inclusion_integrator_field() const override {
         const auto polynomials = _model.polynomials();
         const SizeType n = _model.argument_size();
         List<IntervalDomainType> input_bounds;

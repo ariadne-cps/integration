@@ -158,7 +158,8 @@ class SelectedInclusionIntegrator {
  *  arbitrarily between times, rather than being fixed for the whole step.
  *  The supplied state domain bounds where this box extension may be used.
  */
-class ValidatedInputFieldBoxAdapterDP : public ValidatedBoxMultifunctionInterface {
+class ValidatedInputFieldBoxAdapterDP : public ValidatedBoxMultifunctionInterface,
+                                        public InclusionIntegratorFieldProvider {
     EffectiveVectorMultivariateFunction _field;
     BoxDomainType _inputs;
     BoxDomainType _state_domain;
@@ -183,7 +184,7 @@ class ValidatedInputFieldBoxAdapterDP : public ValidatedBoxMultifunctionInterfac
     /** @brief Independent admissible input box, without freezing inputs in time. */
     const BoxDomainType& inputs() const { return _inputs; }
 
-    std::optional<InclusionIntegratorFieldData> inclusion_integrator_field() const override {
+    InclusionIntegratorFieldData inclusion_integrator_field() const override {
         return InclusionIntegratorFieldData{_field, _inputs};
     }
 
@@ -211,7 +212,7 @@ class ValidatedInputFieldBoxAdapterDP : public ValidatedBoxMultifunctionInterfac
  *
  *  Higher-order integration requires explicitly supplied solver field data.
  *  Either a structured f(x,u) input or a Taylor model with interval coefficients
- *  can provide this data through an optional numerical capability.
+ *  can provide this data by implementing a separate numerical capability.
  *  A solver must reject fields that do not provide this capability rather than
  *  inventing unsupported correlations.
  *
@@ -254,18 +255,22 @@ class SelectedParametricMultifunctionIntegrator : public MultifunctionIntegrator
             throw std::invalid_argument("High-order integration requires the initial and bounding boxes inside the state domain");
         }
 
-        const auto form = field.inclusion_integrator_field();
-        if (not form.has_value()) {
-            throw std::invalid_argument("This multifunction does not provide a validated parametric representation");
+        // Query a separate numerical capability, never a concrete field type.
+        // A box-only field remains valid for other algorithms but cannot be
+        // silently converted or dispatched to a different solver.
+        const auto* provider = dynamic_cast<const InclusionIntegratorFieldProvider*>(&field);
+        if (provider == nullptr) {
+            throw std::invalid_argument("This multifunction does not provide high-order inclusion solver field data");
         }
-        if (form->field.result_size() != initial.dimension() ||
-            form->field.argument_size() != initial.dimension() + form->inputs.dimension() ||
-            form->inputs.dimension() == 0u) {
-            throw std::invalid_argument("The multifunction parametric representation has incompatible dimensions");
+        const auto form = provider->inclusion_integrator_field();
+        if (form.field.result_size() != initial.dimension() ||
+            form.field.argument_size() != initial.dimension() + form.inputs.dimension() ||
+            form.inputs.dimension() == 0u) {
+            throw std::invalid_argument("The inclusion solver field data has incompatible dimensions");
         }
 
         const auto initial_mapping = _function_factory.create_identity(initial);
-        SelectedInclusionIntegrator selected(_factory, form->field, form->inputs,
+        SelectedInclusionIntegrator selected(_factory, form.field, form.inputs,
                                             _reach_approximation, _evolve_approximation);
         return selected.step(initial, initial_mapping, state_bound, TimeStepType(0u), time_step);
     }

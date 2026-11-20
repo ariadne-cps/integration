@@ -209,11 +209,10 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         ValidatedIntervalTaylorBoxMultifunctionDP unstructured(Model({uncertain}));
         const MultifunctionIntegratorInterface& common = high_order;
         const auto representation = unstructured.inclusion_integrator_field();
-        ARIADNE_TESTING_PROVE(representation.has_value());
-        ARIADNE_TESTING_EXPECT_EQUAL(representation->field.result_size(), 1u);
-        ARIADNE_TESTING_EXPECT_EQUAL(representation->field.argument_size(),
-                                     1u + representation->inputs.dimension());
-        ARIADNE_TESTING_PROVE(representation->inputs.dimension() > 0u);
+        ARIADNE_TESTING_EXPECT_EQUAL(representation.field.result_size(), 1u);
+        ARIADNE_TESTING_EXPECT_EQUAL(representation.field.argument_size(),
+                                     1u + representation.inputs.dimension());
+        ARIADNE_TESTING_PROVE(representation.inputs.dimension() > 0u);
 
         // The same high-order integrator now accepts the interval Taylor
         // model through the capability interface rather than concrete RTTI.
@@ -242,9 +241,8 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         ARIADNE_TESTING_EXPECT_EQUAL(early_image.dimension(), 1u);
 
         const auto form = vector_field.inclusion_integrator_field();
-        ARIADNE_TESTING_PROVE(form.has_value());
-        ARIADNE_TESTING_EXPECT_EQUAL(form->field.result_size(), 1u);
-        ARIADNE_TESTING_PROVE(form->inputs.dimension() > 0u);
+        ARIADNE_TESTING_EXPECT_EQUAL(form.field.result_size(), 1u);
+        ARIADNE_TESTING_PROVE(form.inputs.dimension() > 0u);
 
         // For all x and all uncertain coefficients, the converted field
         // must contain the original interval Taylor field value.
@@ -252,14 +250,14 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         const auto interval_image = vector_field.evaluate(states);
         ARIADNE_TESTING_EXPECT_EQUAL(interval_image.dimension(), 1u);
         const Vector<FloatDPBounds> arguments(
-            1u + form->inputs.dimension(), [&](SizeType j) {
+            1u + form.inputs.dimension(), [&](SizeType j) {
                 if (j == 0u) {
                     return FloatDPBounds(states[0u].lower_bound(), states[0u].upper_bound());
                 }
-                const auto& input = form->inputs[j - 1u];
+                const auto& input = form.inputs[j - 1u];
                 return FloatDPBounds(input.lower_bound(), input.upper_bound());
             });
-        const Vector<FloatDPBounds> expanded_image = form->field(arguments);
+        const Vector<FloatDPBounds> expanded_image = form.field(arguments);
         ARIADNE_TESTING_EXPECT_EQUAL(expanded_image.size(), 1u);
         const UpperBoxType expanded(
             expanded_image.size(), [&](SizeType j) {
@@ -302,9 +300,8 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         ValidatedIntervalTaylorBoxMultifunctionDP field(Model({uncertain, x}));
 
         const auto form = field.inclusion_integrator_field();
-        ARIADNE_TESTING_PROVE(form.has_value());
-        ARIADNE_TESTING_EXPECT_EQUAL(form->field.result_size(), 2u);
-        ARIADNE_TESTING_EXPECT_EQUAL(form->field.argument_size(), 2u + form->inputs.dimension());
+        ARIADNE_TESTING_EXPECT_EQUAL(form.field.result_size(), 2u);
+        ARIADNE_TESTING_EXPECT_EQUAL(form.field.argument_size(), 2u + form.inputs.dimension());
 
         TaylorSeriesIntegrator base(ThresholdSweeper<FloatDP>(dp, 1e-10),
                                     lipschitz_tolerance = 0.5_x, order = 8);
@@ -346,10 +343,9 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         Scalar second = Interval<FloatDPUpperBound>(-1, 1, dp) * y - x;
         ValidatedIntervalTaylorBoxMultifunctionDP field(Model({first, second}));
         const auto form = field.inclusion_integrator_field();
-        ARIADNE_TESTING_PROVE(form.has_value());
-        ARIADNE_TESTING_EXPECT_EQUAL(form->field.result_size(), 2u);
-        ARIADNE_TESTING_EXPECT_EQUAL(form->field.argument_size(),
-                                     2u + form->inputs.dimension());
+        ARIADNE_TESTING_EXPECT_EQUAL(form.field.result_size(), 2u);
+        ARIADNE_TESTING_EXPECT_EQUAL(form.field.argument_size(),
+                                     2u + form.inputs.dimension());
 
         for (const auto& states: {
                 UpperBoxType({{0.5_x, 0.75_x}, {0.25_x, 0.5_x}}),
@@ -358,14 +354,14 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
                 UpperBoxType({{0.0_x, 0.0_x}, {0.0_x, 0.0_x}})}) {
             const auto original = field.evaluate(states);
             const Vector<FloatDPBounds> arguments(
-                2u + form->inputs.dimension(), [&](SizeType j) {
+                2u + form.inputs.dimension(), [&](SizeType j) {
                     if (j < 2u) {
                         return FloatDPBounds(states[j].lower_bound(), states[j].upper_bound());
                     }
-                    const auto& input = form->inputs[j - 2u];
+                    const auto& input = form.inputs[j - 2u];
                     return FloatDPBounds(input.lower_bound(), input.upper_bound());
                 });
-            const Vector<FloatDPBounds> expanded_values = form->field(arguments);
+            const Vector<FloatDPBounds> expanded_values = form.field(arguments);
             const UpperBoxType expanded(expanded_values.size(), [&](SizeType j) {
                 return UpperIntervalType(expanded_values[j].lower(), expanded_values[j].upper());
             });
@@ -388,13 +384,12 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
                 3u, Vector<EffectiveFormula>{u, -u});
         ValidatedInputFieldBoxAdapterDP structured(correlated, input_domain, domain);
         const auto shared = structured.inclusion_integrator_field();
-        ARIADNE_TESTING_PROVE(shared.has_value());
-        ARIADNE_TESTING_EXPECT_EQUAL(shared->inputs.dimension(), 1u);
+        ARIADNE_TESTING_EXPECT_EQUAL(shared.inputs.dimension(), 1u);
         const Vector<FloatDPBounds> same_input({
             FloatDPBounds(0.0_x, dp),
             FloatDPBounds(0.0_x, dp),
             FloatDPBounds(1.0_x, dp)});
-        const Vector<FloatDPBounds> correlated_values = shared->field(same_input);
+        const Vector<FloatDPBounds> correlated_values = shared.field(same_input);
         const UpperBoxType correlated_image(correlated_values.size(), [&](SizeType j) {
             return UpperIntervalType(correlated_values[j].lower(), correlated_values[j].upper());
         });
@@ -409,22 +404,21 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
             domain, Interval<FloatDPUpperBound>(-1, 1, dp), sweeper);
         ValidatedIntervalTaylorBoxMultifunctionDP uncorrelated(Model({uncertain, uncertain}));
         const auto independent = uncorrelated.inclusion_integrator_field();
-        ARIADNE_TESTING_PROVE(independent.has_value());
-        ARIADNE_TESTING_EXPECT_EQUAL(independent->field.result_size(), 2u);
-        ARIADNE_TESTING_PROVE(independent->inputs.dimension() >= 2u);
-        ARIADNE_TESTING_EXPECT_EQUAL(independent->field.argument_size(),
-                                     2u + independent->inputs.dimension());
+        ARIADNE_TESTING_EXPECT_EQUAL(independent.field.result_size(), 2u);
+        ARIADNE_TESTING_PROVE(independent.inputs.dimension() >= 2u);
+        ARIADNE_TESTING_EXPECT_EQUAL(independent.field.argument_size(),
+                                     2u + independent.inputs.dimension());
         const UpperBoxType state({{0.0_x, 0.0_x}, {0.0_x, 0.0_x}});
         const auto original = uncorrelated.evaluate(state);
         const Vector<FloatDPBounds> arguments(
-            2u + independent->inputs.dimension(), [&](SizeType j) {
+            2u + independent.inputs.dimension(), [&](SizeType j) {
                 if (j < 2u) {
                     return FloatDPBounds(0.0_x, dp);
                 }
-                const auto& input = independent->inputs[j - 2u];
+                const auto& input = independent.inputs[j - 2u];
                 return FloatDPBounds(input.lower_bound(), input.upper_bound());
             });
-        const auto expanded_values = independent->field(arguments);
+        const auto expanded_values = independent.field(arguments);
         const UpperBoxType expanded(expanded_values.size(), [&](SizeType j) {
             return UpperIntervalType(expanded_values[j].lower(), expanded_values[j].upper());
         });
@@ -454,7 +448,8 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         };
 
         BoxOnlyAdapter field_view(field(), inputs(), BoxDomainType({{-1.0_x, 1.0_x}}));
-        ARIADNE_TESTING_PROVE(not field_view.inclusion_integrator_field().has_value());
+        ARIADNE_TESTING_PROVE(
+            dynamic_cast<const InclusionIntegratorFieldProvider*>(&field_view) == nullptr);
         const ExactBoxType initial({{0.0_x, 0.125_x}});
         const UpperBoxType bound({{-1.0_x, 1.0_x}});
         const StepSizeType h(0.03125_x);
