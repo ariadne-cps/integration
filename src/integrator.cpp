@@ -50,7 +50,6 @@
 #include "interval/interval.hpp"
 #include "logging/logging.hpp"
 #include "numeric/numeric.hpp"
-#include "integration/polynomial_procedure.hpp"
 #include "utility/container.hpp"
 #include "utility/stopwatch.hpp"
 #include "utility/tuple.hpp"
@@ -932,9 +931,20 @@ Void graded_flow_iterate_affine_procedure(
     }
 }
 
-} // namespace
+ } // namespace
 
-namespace IntegrationDetail {
+namespace {
+
+// Implementation-only diagnostics for the fixed-order polynomial recurrence.
+// These types/functions deliberately have translation-unit-local linkage.
+struct CentrePolynomialRecurrenceResult {
+    ValidatedVectorMultivariateTaylorFunctionModelDP polynomial;
+    ValidatedVectorMultivariateTaylorFunctionModelDP defect;
+    Vector<FloatDPBounds> direct_defect_range;
+    Bool exact_polynomial_available;
+    DegreeType exact_polynomial_degree;
+    Vector<FloatDPBounds> exact_polynomial_defect_range;
+};
 
 Bool polynomial_procedure_degree(
     const Vector<ValidatedProcedure>& p,
@@ -1039,9 +1049,9 @@ Bool evaluate_polynomial_procedure(
     return true;
 }
 
-} // namespace IntegrationDetail
+} // namespace
 
-namespace IntegrationDetail {
+namespace {
 
 CentrePolynomialRecurrenceResult
     graded_series_centre_polynomial_step(
@@ -1203,11 +1213,9 @@ CentrePolynomialRecurrenceResult
         std::move(exact_polynomial_defect_range)};
 }
 
-} // namespace IntegrationDetail
+} // namespace
 
 namespace {
-using IntegrationDetail::CentrePolynomialRecurrenceResult;
-using IntegrationDetail::graded_series_centre_polynomial_step;
 
 FlowStepTaylorModelType
     graded_series_flow_step_affine_procedure(
