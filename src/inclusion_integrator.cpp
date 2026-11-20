@@ -86,7 +86,7 @@ std::ostream& operator<<(std::ostream& os, const InputsRelationKind& kind) {
 
 SizeType ErrorConstants::dimension() const { return _dimension; }
 
-PrecisionType ErrorConstants::precision() const { return PrecisionType(); }
+ErrorConstants::PrecisionType ErrorConstants::precision() const { return PrecisionType(); }
 
 bool ZeroApproximation::is_reach_rigorous() const { return true; }
 
@@ -158,7 +158,7 @@ Nat InclusionIntegrator::index() const { return _ptr->index(); }
 
 Nat InclusionIntegrator::num_params_per_input() const { return _ptr->num_params_per_input(); }
 
-operator const InclusionIntegrator::InclusionIntegratorInterface&() const { return *_ptr; }
+InclusionIntegrator::operator const InclusionIntegratorInterface&() const { return *_ptr; }
 
 InclusionIntegrator* InclusionIntegrator::clone() const { return new InclusionIntegrator(*this); }
 
