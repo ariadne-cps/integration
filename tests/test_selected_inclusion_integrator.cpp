@@ -215,6 +215,28 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
                 initial_domain, first.evolve_model, bound,
                 TimeStepType(0.03125_x), h);
             const auto second_boxes = second.bounding_step(h);
+            // A second step appends its input parameters; it cannot replace
+            // the initial-state coordinates or the first step's parameters.
+            ARIADNE_TESTING_EXPECT_EQUAL(
+                first.evolve_model.domain()[range(0u, initial_domain.dimension())],
+                initial_domain);
+            ARIADNE_TESTING_PROVE(
+                second.evolve_model.argument_size() >= first.evolve_model.argument_size());
+            ARIADNE_TESTING_EXPECT_EQUAL(
+                second.evolve_model.domain()[range(0u, first.evolve_model.argument_size())],
+                first.evolve_model.domain());
+            if (evolve.reference().index() != ZeroApproximation().index()) {
+                ARIADNE_TESTING_PROVE(
+                    second.evolve_model.argument_size() > first.evolve_model.argument_size());
+            }
+            for (const auto& reach_patch: second.reach_models) {
+                ARIADNE_TESTING_EXPECT_EQUAL(
+                    reach_patch.domain()[range(0u, initial_domain.dimension())],
+                    initial_domain);
+                ARIADNE_TESTING_EXPECT_EQUAL(
+                    reach_patch.domain()[initial_domain.dimension()],
+                    IntervalDomainType(0.03125_x, 0.0625_x));
+            }
             ARIADNE_TESTING_PROVE(definitely(subset(
                 two_steps, cast_exact_box(second_boxes.evolve))));
             ARIADNE_TESTING_PROVE(definitely(subset(
@@ -222,6 +244,47 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
             ARIADNE_TESTING_PROVE(definitely(subset(
                 two_steps, cast_exact_box(second_boxes.reach))));
         }
+    }
+
+    Void test_reject_incompatible_step_mapping_domains() {
+        // An earlier endpoint patch is a mapping of the ORIGINAL initial
+        // state coordinates and accumulated parameters, not of an arbitrary
+        // current-state box. Reject mismatched coordinate domains early.
+        const auto u = EffectiveFormula::coordinate(1u);
+        const EffectiveVectorMultivariateFunction f =
+            EffectiveVectorMultivariateFormulaFunction(
+                2u, Vector<EffectiveFormula>{u});
+        const BoxDomainType U({{-1.0_x, 1.0_x}});
+        const BoxDomainType initial_domain({{-0.125_x, 0.125_x}});
+        const UpperBoxType bound({{-1.0_x, 1.0_x}});
+        const StepSizeType h(0.03125_x);
+        TaylorSeriesIntegrator base(ThresholdSweeper<FloatDP>(dp, 1e-10),
+                                    lipschitz_tolerance = 0.5_x, order = 8);
+        InclusionIntegratorFactory factory(base);
+        SelectedInclusionIntegrator selected(
+            factory, f, U, InputApproximation(ZeroApproximation()),
+            InputApproximation(ConstantApproximation()));
+
+        const auto incompatible_domain = base.function_factory().create_identity(
+            BoxDomainType({{-0.25_x, 0.25_x}}));
+        ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
+            selected.step(initial_domain, incompatible_domain, bound,
+                          TimeStepType(0u), h));
+
+        const auto incompatible_dimension = base.function_factory().create_identity(
+            BoxDomainType({{-0.125_x, 0.125_x}, {-0.125_x, 0.125_x}}));
+        ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
+            selected.step(initial_domain, incompatible_dimension, bound,
+                          TimeStepType(0u), h));
+
+        const auto identity = base.function_factory().create_identity(initial_domain);
+        ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
+            selected.step(initial_domain, identity,
+                          UpperBoxType({{-1.0_x, 1.0_x}, {-1.0_x, 1.0_x}}),
+                          TimeStepType(0u), h));
+        const auto valid = selected.step(
+            initial_domain, identity, bound, TimeStepType(0u), h);
+        ARIADNE_TESTING_PROVE(definitely(is_bounded(valid.bounding_step(h).evolve)));
     }
 
     Void test_parametric_box_extension_and_low_order_bridge() {
@@ -580,6 +643,7 @@ int main(int argc, char** argv) {
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_same_method_and_nonrigorous_endpoint_strategy);
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_every_endpoint_strategy_encloses_full_input_range);
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_two_steps_preserve_independent_input_choices);
+    ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_reject_incompatible_step_mapping_domains);
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_invalid_time_step);
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_parametric_box_extension_and_low_order_bridge);
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_high_order_common_integrator_bridge);

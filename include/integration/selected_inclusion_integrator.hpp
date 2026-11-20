@@ -122,6 +122,17 @@ class SelectedInclusionIntegrator {
         if (not(time_step > StepSizeType(0u))) {
             throw std::invalid_argument("Inclusion integration requires a positive time step");
         }
+        const SizeType n = _field.result_size();
+        if (state_domain.dimension() != n || state_bound.dimension() != n ||
+            initial_mapping.result_size() != n || initial_mapping.argument_size() < n) {
+            throw std::invalid_argument("Inclusion step state and initial mapping dimensions do not match");
+        }
+        // Coordinates 0..n-1 encode the original state domain. Additional
+        // arguments encode uncertainties retained from earlier steps.
+        // The caller may append new parameters but must not rebase these.
+        if (not (initial_mapping.domain()[range(0u, n)] == state_domain)) {
+            throw std::invalid_argument("Inclusion step initial mapping has an incompatible state domain");
+        }
         auto reach_method = _factory.create(_field, _inputs, _reach_approximation);
         if (not reach_method.is_reach_rigorous()) {
             throw std::invalid_argument("The selected reach implementation does not certify the whole tube");
