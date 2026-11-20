@@ -104,13 +104,27 @@ jobs:
       run: |
         ctest -R "^test_selected_inclusion_integrator$" --output-on-failure > selected_inclusion_test.txt 2>&1 || true
         tail -n 32 selected_inclusion_test.txt
-        REPORT=$(grep -Ei -m 1 'failed|fail|exception|error|inconclusive|assert|expect' selected_inclusion_test.txt | sed 's/^[[:space:]]*//' | cut -c1-170 || true)
-        REPORT=${REPORT:-no-failure-marker}
+        REPORT=$(awk '/\\[FAILURE SUMMARY\\]/{getline; print; exit}' selected_inclusion_test.txt | sed 's/^[[:space:]]*//' | cut -c1-170 || true)
+        REPORT=${REPORT:-no-runner-summary}
+        LASTCHECK=$(grep -m 1 'last check' selected_inclusion_test.txt | sed 's/^[[:space:]]*//' | cut -c1-170 || true)
+        LASTCHECK=${LASTCHECK:-no-check-record}
+        LOCATION=$(grep -m 1 -E 'at .*\\.(cpp|hpp):[0-9]+' selected_inclusion_test.txt | sed 's/^[[:space:]]*//' | cut -c1-170 || true)
+        LOCATION=${LOCATION:-no-location-record}
         echo "detail=$REPORT" >> "$GITHUB_OUTPUT"
+        echo "check=$LASTCHECK" >> "$GITHUB_OUTPUT"
+        echo "location=$LOCATION" >> "$GITHUB_OUTPUT"
 
     - name: "Selected inclusion failure ${{ steps.selected_inclusion_test_probe.outputs.detail }}"
       if: matrix.build_type == 'Debug'
       run: echo "CTest diagnostic captured"
+
+    - name: "Failing check ${{ steps.selected_inclusion_test_probe.outputs.check }}"
+      if: matrix.build_type == 'Debug'
+      run: echo "Runner check captured"
+
+    - name: "Failure location ${{ steps.selected_inclusion_test_probe.outputs.location }}"
+      if: matrix.build_type == 'Debug'
+      run: echo "Runner location captured"
 
     - name: Test C++
       id: cpp_tests
