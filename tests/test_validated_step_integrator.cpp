@@ -613,6 +613,88 @@ class TestValidatedStepIntegrator : public Ariadne::Testing::ContextFixture {
                 UpperBoxType({{-1.0_x, 1.0_x}}))));
     }
 
+    Void test_equation_then_timed_inclusion_preserves_constant_parameter() {
+        // First use a native nonautonomous equation solver for
+        // x'=t+p. Then use the autonomous high-order inclusion solver
+        // (internally lifted) for x'=t+p+u(t). The original p coordinate
+        // must be shared across both solvers; only u(t) is a fresh input.
+        const auto t_eq = EffectiveScalarMultivariateFunction::coordinate(3u, 1u);
+        const auto p_eq = EffectiveScalarMultivariateFunction::coordinate(3u, 2u);
+        const EffectiveVectorMultivariateFunction equation = {t_eq + p_eq};
+
+        const auto t_inc = EffectiveScalarMultivariateFunction::coordinate(4u, 1u);
+        const auto p_inc = EffectiveScalarMultivariateFunction::coordinate(4u, 2u);
+        const auto u_inc = EffectiveScalarMultivariateFunction::coordinate(4u, 3u);
+        const EffectiveVectorMultivariateFunction inclusion = {t_inc + p_inc + u_inc};
+        ValidatedTimedInputFieldBoxAdapterDP set_valued(
+            inclusion, BoxDomainType({{-1.0_x, 1.0_x}}),
+            IntervalDomainType(0.0_x, 1.0_x),
+            BoxDomainType({{0.0_x, 1.0_x}}),
+            BoxDomainType({{-0.125_x, 0.125_x}}));
+
+        const ExactBoxType initial({{0.0_x, 0.125_x}});
+        const ExactBoxType parameters({{0.125_x, 0.25_x}});
+        const UpperBoxType bound({{-1.0_x, 1.0_x}});
+        const StepSizeType t0(0.5_x);
+        const StepSizeType h1(0.03125_x);
+        const StepSizeType h2(0.015625_x);
+
+        TaylorSeriesIntegrator equation_solver(step_maximum_error = 1e-6, order = 8);
+        const FlowStepIntegratorAdapter equation_adapter(equation_solver);
+        const ValidatedStepIntegratorInterface& first_solver = equation_adapter;
+        const auto first = first_solver.step(ValidatedIntegrationRequest(
+            equation, initial, t0, h1, parameters, bound));
+
+        TaylorSeriesIntegrator high_taylor(ThresholdSweeper<FloatDP>(dp, 1e-10),
+                                           lipschitz_tolerance = 0.5_x, order = 8);
+        SelectedParametricMultifunctionIntegrator high_inclusion(
+            high_taylor, InputApproximation(ZeroApproximation()),
+            InputApproximation(ConstantApproximation()));
+        const StructuredInclusionStepIntegratorAdapter inclusion_adapter(high_inclusion);
+        const ValidatedStepIntegratorInterface& second_solver = inclusion_adapter;
+        const auto second = second_solver.step(ValidatedIntegrationRequest(
+            set_valued, first, h2, bound));
+
+        ARIADNE_TESTING_PROVE(first.has_evolve_model());
+        ARIADNE_TESTING_PROVE(second.has_evolve_model());
+        ARIADNE_TESTING_PROVE(second.has_reach_models());
+        ARIADNE_TESTING_EXPECT_EQUAL(second.initial_time(), StepSizeType(0.53125_x));
+        ARIADNE_TESTING_EXPECT_EQUAL(second.final_time(), StepSizeType(0.546875_x));
+        ARIADNE_TESTING_EXPECT_EQUAL(second.constant_parameter_domain(), parameters);
+        ARIADNE_TESTING_EXPECT_EQUAL(
+            second.evolve_model().domain()[range(0u, 2u)], product(initial, parameters));
+        ARIADNE_TESTING_PROVE(
+            second.evolve_model().argument_size() > first.evolve_model().argument_size());
+        ARIADNE_TESTING_EXPECT_EQUAL(
+            second.evolve_model().domain()[range(0u, first.evolve_model().argument_size())],
+            first.evolve_model().domain());
+        ARIADNE_TESTING_PROVE(second.reach_time_index().has_value());
+        ARIADNE_TESTING_EXPECT_EQUAL(second.reach_time_index().value(), 2u);
+
+        // The exact endpoint has H=3/64; u is active only during h2=1/64.
+        // x0 in [0,1/8], p in [1/8,1/4], u(t) in [-1/8,1/8]:
+        // [H*t0+H^2/2+H/8-h2/8,
+        //  H*t0+H^2/2+H/4+h2/8+1/8]
+        // = [233/8192, 1337/8192].
+        ARIADNE_TESTING_NOTE("equation-to-inclusion first=" << first.evolve()
+            << "; second=" << second.evolve());
+        ARIADNE_TESTING_PROVE(definitely(subset(
+            ExactBoxType({{0.0284423828125_x, 0.1632080078125_x}}),
+            cast_exact_box(second.evolve()))));
+
+        // Compare two slices of the SAME endpoint map. The difference
+        // caused by p must be H*(1/4-1/8)=3/512 regardless of the
+        // algorithm used in the first step.
+        const auto low_p = partial_evaluate(second.evolve_model(), 1u, 0.125_x);
+        const auto high_p = partial_evaluate(second.evolve_model(), 1u, 0.25_x);
+        ARIADNE_TESTING_EXPECT_EQUAL(low_p.domain(), high_p.domain());
+        const auto effect = high_p - low_p;
+        ARIADNE_TESTING_NOTE("equation-to-inclusion parameter effect=" << effect.range());
+        ARIADNE_TESTING_PROVE(definitely(subset(
+            ExactBoxType({{0.005859375_x, 0.005859375_x}}),
+            cast_exact_box(UpperBoxType(effect.range())))));
+    }
+
     Void test_reject_invalid_request() {
         const ValidatedVectorMultivariateFunction ordinary = {
             ValidatedScalarMultivariateFunction::constant(1u, 1)};
@@ -646,6 +728,7 @@ int main(int argc, char** argv) {
     ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_timed_inclusion_rejects_unsupported_capabilities_and_domains);
     ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_timed_high_order_inclusion_preserves_constant_parameters_and_inputs);
     ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_timed_high_order_rejects_missing_structural_capability);
+    ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_equation_then_timed_inclusion_preserves_constant_parameter);
     ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_reject_invalid_request);
     return Ariadne::Testing::run_logging_suite(ariadne_test_suite, argc, argv);
 }
