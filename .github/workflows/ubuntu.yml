@@ -173,6 +173,27 @@ jobs:
       if: always() && matrix.build_type == 'Debug'
       run: echo "Inspected full test result"
 
+    - name: Multifunction diagnostic interior_valid_step
+      if: always() && matrix.build_type == 'Debug'
+      working-directory: ${{ runner.workspace }}/build
+      env:
+        ARIADNE_MULTIFUNCTION_CASE: interior_valid_step
+      run: ctest -R "^test_multifunction_integrator$" --output-on-failure
+
+    - name: Multifunction diagnostic boundary_domain_check
+      if: always() && matrix.build_type == 'Debug'
+      working-directory: ${{ runner.workspace }}/build
+      env:
+        ARIADNE_MULTIFUNCTION_CASE: boundary_domain_check
+      run: ctest -R "^test_multifunction_integrator$" --output-on-failure
+
+    - name: Multifunction diagnostic boundary_box_evaluation
+      if: always() && matrix.build_type == 'Debug'
+      working-directory: ${{ runner.workspace }}/build
+      env:
+        ARIADNE_MULTIFUNCTION_CASE: boundary_box_evaluation
+      run: ctest -R "^test_multifunction_integrator$" --output-on-failure
+
     - name: Test C++
       id: cpp_tests
       if: always() && matrix.build_type == 'Debug'

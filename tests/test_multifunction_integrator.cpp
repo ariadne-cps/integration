@@ -107,6 +107,42 @@ class TestMultifunctionIntegrator : public Ariadne::Testing::ContextFixture {
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument, integrator.flow_step(field, initial, StepSizeType(0.5_x), outside_domain));
     }
 
+    // An interior bound must certify the very same constant inclusion.
+    // This isolates the continuation test from domain-boundary handling.
+    Void test_interior_valid_step() {
+        BoxDomainType domain({{-1, 1}});
+        ThresholdSweeper<FloatDP> sweeper(dp, 1e-10);
+        Scalar uncertain = Scalar::constant(domain, Ivl(-1, 1, dp), sweeper);
+        VectorModel model({uncertain});
+        ValidatedIntervalTaylorBoxMultifunctionDP field(model);
+        FirstOrderMultifunctionIntegrator integrator;
+        ExactBoxType initial({{0, 0}});
+        UpperBoxType interior({{-0.5_x, 0.5_x}});
+        const auto step = integrator.flow_step(field, initial, StepSizeType(0.25_x), interior);
+        ARIADNE_TESTING_PROVE(definitely(inside(step.reach, interior)));
+        ARIADNE_TESTING_PROVE(definitely(subset(ExactBoxType({{-0.25_x, 0.25_x}}), step.evolve)));
+    }
+
+    // The equality case is legitimate: the bounding box may coincide with
+    // the (closed) domain of the Taylor model.
+    Void test_boundary_domain_check() {
+        BoxDomainType domain({{-1, 1}});
+        UpperBoxType same_bound({{-1, 1}});
+        ARIADNE_TESTING_PROVE(definitely(subset(same_bound, domain)));
+    }
+
+    Void test_boundary_box_evaluation() {
+        BoxDomainType domain({{-1, 1}});
+        ThresholdSweeper<FloatDP> sweeper(dp, 1e-10);
+        Scalar uncertain = Scalar::constant(domain, Ivl(-1, 1, dp), sweeper);
+        VectorModel model({uncertain});
+        ValidatedIntervalTaylorBoxMultifunctionDP field(model);
+        UpperBoxType same_bound({{-1, 1}});
+        const auto values = field.evaluate(same_bound);
+        ARIADNE_TESTING_EXPECT_EQUAL(values.dimension(), 1u);
+        ARIADNE_TESTING_PROVE(definitely(subset(ExactBoxType({{-1, 1}}), values)));
+    }
+
     Void test_reject_dimension_mismatch() {
         BoxDomainType domain({{-1, 1}});
         ThresholdSweeper<FloatDP> sweeper(dp, 1e-10);
@@ -139,6 +175,15 @@ int main(int argc, char** argv) {
     }
     if (selected_case("reject_dimension_mismatch")) {
         ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_reject_dimension_mismatch);
+    }
+    if (selected.empty() || selected == "interior_valid_step") {
+        ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_interior_valid_step);
+    }
+    if (selected.empty() || selected == "boundary_domain_check") {
+        ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_boundary_domain_check);
+    }
+    if (selected.empty() || selected == "boundary_box_evaluation") {
+        ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_boundary_box_evaluation);
     }
     return Ariadne::Testing::run_logging_suite(ariadne_test_suite, argc, argv);
 }
