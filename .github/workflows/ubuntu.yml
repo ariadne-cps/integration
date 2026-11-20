@@ -81,6 +81,299 @@ jobs:
       working-directory: ${{ runner.workspace }}/build
       run: cmake --build . --parallel $NPROC --target tests bindings
 
+    # Temporary diagnostics: each case gets a separate GitHub step outcome.
+    - name: Probe multifunction constant_inclusion
+      if: ${{ always() && matrix.build_type == 'Debug' }}
+      working-directory: ${{ runner.workspace }}/build
+      env:
+        ARIADNE_MULTIFUNCTION_CASE: constant_inclusion
+      run: ctest -R '^test_multifunction_integrator      id: cpp_tests
+      if: matrix.build_type == 'Debug'
+      working-directory: ${{ runner.workspace }}/build
+      run: ctest -j $NPROC -LE python --output-on-failure
+
+    # A libstdc++ checked-iterator abort lacks a C++ call-site in the CTest
+    # output. Only on a failing GCC Debug test, collect a symbolic backtrace.
+    - name: Diagnose GCC Debug iterator abort
+      if: ${{ always() && matrix.build_type == 'Debug' && matrix.config.libstdcxx_debug && steps.cpp_tests.outcome == 'failure' }}
+      working-directory: ${{ runner.workspace }}/build
+      run: |
+        sudo apt-get install -y gdb
+        gdb -q -batch -ex 'set pagination off' -ex run -ex 'bt 40' --args ./tests/test_integrator > iterator-backtrace.txt 2>&1 || true
+        echo '--- GCC Debug iterator backtrace ---'
+        tail -n 125 iterator-backtrace.txt
+
+    - name: Upload GCC Debug backtrace
+      if: ${{ always() && matrix.build_type == 'Debug' && matrix.config.libstdcxx_debug && steps.cpp_tests.outcome == 'failure' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: integration-gcc-debug-backtrace
+        path: ${{ runner.workspace }}/build/iterator-backtrace.txt
+        if-no-files-found: error
+
+    - name: Test Python
+      if: matrix.build_type == 'Debug'
+      working-directory: ${{ runner.workspace }}/build
+      run: ctest -L python -V --output-on-failure
+
+    - name: Install Ariadne Integration
+      if: matrix.build_type == 'Release'
+      working-directory: ${{ runner.workspace }}/build
+      run: cmake --install . --prefix ${{ runner.workspace }}/install
+
+    - name: Prepare C++ Integration Tutorial
+      if: matrix.build_type == 'Release'
+      run: cmake -E copy_directory $GITHUB_WORKSPACE/tutorials/tutorial_integration ${{ runner.workspace }}/tutorial_integration
+
+    - name: Check C++ Integration Tutorial
+      if: matrix.build_type == 'Release'
+      working-directory: ${{ runner.workspace }}/tutorial_integration
+      run: |
+        cmake -S . -B build -DCMAKE_PREFIX_PATH=${{ runner.workspace }}/install -DCMAKE_CXX_COMPILER=${{ matrix.config.cxx }} -DCMAKE_CXX_COMPILER_LAUNCHER="$SCCACHE_LAUNCHER" -G Ninja
+        cmake --build build --parallel $NPROC
+        export LD_LIBRARY_PATH=${{ runner.workspace }}/install/lib:${LD_LIBRARY_PATH:-}
+        export DYLD_LIBRARY_PATH=${{ runner.workspace }}/install/lib:${DYLD_LIBRARY_PATH:-}
+        ./build/tutorial_integration
+
+
+    - name: Check Python Integration Tutorial
+      if: matrix.build_type == 'Release'
+      working-directory: ${{ github.workspace }}/python/tutorials
+      env:
+        PYTHONPATH: ${{ runner.workspace }}/install/lib/python3.13/site-packages
+        LD_LIBRARY_PATH: ${{ runner.workspace }}/install/lib
+        DYLD_LIBRARY_PATH: ${{ runner.workspace }}/install/lib
+      run: |
+        python -c "import os, pathlib, pyariadne_integration; p=pathlib.Path(pyariadne_integration.__file__).resolve(); root=pathlib.Path(os.environ['PYTHONPATH']).resolve(); assert p.is_relative_to(root), (p, root)"
+        python tutorial_integration.py
+
+
+    - name: Verify Uninstallation
+      if: matrix.build_type == 'Release'
+      working-directory: ${{ runner.workspace }}/build
+      run: cmake --build . --target uninstall
+
+ --output-on-failure
+
+    - name: Probe multifunction time_varying_selection
+      if: ${{ always() && matrix.build_type == 'Debug' }}
+      working-directory: ${{ runner.workspace }}/build
+      env:
+        ARIADNE_MULTIFUNCTION_CASE: time_varying_selection
+      run: ctest -R '^test_multifunction_integrator      id: cpp_tests
+      if: matrix.build_type == 'Debug'
+      working-directory: ${{ runner.workspace }}/build
+      run: ctest -j $NPROC -LE python --output-on-failure
+
+    # A libstdc++ checked-iterator abort lacks a C++ call-site in the CTest
+    # output. Only on a failing GCC Debug test, collect a symbolic backtrace.
+    - name: Diagnose GCC Debug iterator abort
+      if: ${{ always() && matrix.build_type == 'Debug' && matrix.config.libstdcxx_debug && steps.cpp_tests.outcome == 'failure' }}
+      working-directory: ${{ runner.workspace }}/build
+      run: |
+        sudo apt-get install -y gdb
+        gdb -q -batch -ex 'set pagination off' -ex run -ex 'bt 40' --args ./tests/test_integrator > iterator-backtrace.txt 2>&1 || true
+        echo '--- GCC Debug iterator backtrace ---'
+        tail -n 125 iterator-backtrace.txt
+
+    - name: Upload GCC Debug backtrace
+      if: ${{ always() && matrix.build_type == 'Debug' && matrix.config.libstdcxx_debug && steps.cpp_tests.outcome == 'failure' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: integration-gcc-debug-backtrace
+        path: ${{ runner.workspace }}/build/iterator-backtrace.txt
+        if-no-files-found: error
+
+    - name: Test Python
+      if: matrix.build_type == 'Debug'
+      working-directory: ${{ runner.workspace }}/build
+      run: ctest -L python -V --output-on-failure
+
+    - name: Install Ariadne Integration
+      if: matrix.build_type == 'Release'
+      working-directory: ${{ runner.workspace }}/build
+      run: cmake --install . --prefix ${{ runner.workspace }}/install
+
+    - name: Prepare C++ Integration Tutorial
+      if: matrix.build_type == 'Release'
+      run: cmake -E copy_directory $GITHUB_WORKSPACE/tutorials/tutorial_integration ${{ runner.workspace }}/tutorial_integration
+
+    - name: Check C++ Integration Tutorial
+      if: matrix.build_type == 'Release'
+      working-directory: ${{ runner.workspace }}/tutorial_integration
+      run: |
+        cmake -S . -B build -DCMAKE_PREFIX_PATH=${{ runner.workspace }}/install -DCMAKE_CXX_COMPILER=${{ matrix.config.cxx }} -DCMAKE_CXX_COMPILER_LAUNCHER="$SCCACHE_LAUNCHER" -G Ninja
+        cmake --build build --parallel $NPROC
+        export LD_LIBRARY_PATH=${{ runner.workspace }}/install/lib:${LD_LIBRARY_PATH:-}
+        export DYLD_LIBRARY_PATH=${{ runner.workspace }}/install/lib:${DYLD_LIBRARY_PATH:-}
+        ./build/tutorial_integration
+
+
+    - name: Check Python Integration Tutorial
+      if: matrix.build_type == 'Release'
+      working-directory: ${{ github.workspace }}/python/tutorials
+      env:
+        PYTHONPATH: ${{ runner.workspace }}/install/lib/python3.13/site-packages
+        LD_LIBRARY_PATH: ${{ runner.workspace }}/install/lib
+        DYLD_LIBRARY_PATH: ${{ runner.workspace }}/install/lib
+      run: |
+        python -c "import os, pathlib, pyariadne_integration; p=pathlib.Path(pyariadne_integration.__file__).resolve(); root=pathlib.Path(os.environ['PYTHONPATH']).resolve(); assert p.is_relative_to(root), (p, root)"
+        python tutorial_integration.py
+
+
+    - name: Verify Uninstallation
+      if: matrix.build_type == 'Release'
+      working-directory: ${{ runner.workspace }}/build
+      run: cmake --build . --target uninstall
+
+ --output-on-failure
+
+    - name: Probe multifunction reject_uncertified_bound
+      if: ${{ always() && matrix.build_type == 'Debug' }}
+      working-directory: ${{ runner.workspace }}/build
+      env:
+        ARIADNE_MULTIFUNCTION_CASE: reject_uncertified_bound
+      run: ctest -R '^test_multifunction_integrator      id: cpp_tests
+      if: matrix.build_type == 'Debug'
+      working-directory: ${{ runner.workspace }}/build
+      run: ctest -j $NPROC -LE python --output-on-failure
+
+    # A libstdc++ checked-iterator abort lacks a C++ call-site in the CTest
+    # output. Only on a failing GCC Debug test, collect a symbolic backtrace.
+    - name: Diagnose GCC Debug iterator abort
+      if: ${{ always() && matrix.build_type == 'Debug' && matrix.config.libstdcxx_debug && steps.cpp_tests.outcome == 'failure' }}
+      working-directory: ${{ runner.workspace }}/build
+      run: |
+        sudo apt-get install -y gdb
+        gdb -q -batch -ex 'set pagination off' -ex run -ex 'bt 40' --args ./tests/test_integrator > iterator-backtrace.txt 2>&1 || true
+        echo '--- GCC Debug iterator backtrace ---'
+        tail -n 125 iterator-backtrace.txt
+
+    - name: Upload GCC Debug backtrace
+      if: ${{ always() && matrix.build_type == 'Debug' && matrix.config.libstdcxx_debug && steps.cpp_tests.outcome == 'failure' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: integration-gcc-debug-backtrace
+        path: ${{ runner.workspace }}/build/iterator-backtrace.txt
+        if-no-files-found: error
+
+    - name: Test Python
+      if: matrix.build_type == 'Debug'
+      working-directory: ${{ runner.workspace }}/build
+      run: ctest -L python -V --output-on-failure
+
+    - name: Install Ariadne Integration
+      if: matrix.build_type == 'Release'
+      working-directory: ${{ runner.workspace }}/build
+      run: cmake --install . --prefix ${{ runner.workspace }}/install
+
+    - name: Prepare C++ Integration Tutorial
+      if: matrix.build_type == 'Release'
+      run: cmake -E copy_directory $GITHUB_WORKSPACE/tutorials/tutorial_integration ${{ runner.workspace }}/tutorial_integration
+
+    - name: Check C++ Integration Tutorial
+      if: matrix.build_type == 'Release'
+      working-directory: ${{ runner.workspace }}/tutorial_integration
+      run: |
+        cmake -S . -B build -DCMAKE_PREFIX_PATH=${{ runner.workspace }}/install -DCMAKE_CXX_COMPILER=${{ matrix.config.cxx }} -DCMAKE_CXX_COMPILER_LAUNCHER="$SCCACHE_LAUNCHER" -G Ninja
+        cmake --build build --parallel $NPROC
+        export LD_LIBRARY_PATH=${{ runner.workspace }}/install/lib:${LD_LIBRARY_PATH:-}
+        export DYLD_LIBRARY_PATH=${{ runner.workspace }}/install/lib:${DYLD_LIBRARY_PATH:-}
+        ./build/tutorial_integration
+
+
+    - name: Check Python Integration Tutorial
+      if: matrix.build_type == 'Release'
+      working-directory: ${{ github.workspace }}/python/tutorials
+      env:
+        PYTHONPATH: ${{ runner.workspace }}/install/lib/python3.13/site-packages
+        LD_LIBRARY_PATH: ${{ runner.workspace }}/install/lib
+        DYLD_LIBRARY_PATH: ${{ runner.workspace }}/install/lib
+      run: |
+        python -c "import os, pathlib, pyariadne_integration; p=pathlib.Path(pyariadne_integration.__file__).resolve(); root=pathlib.Path(os.environ['PYTHONPATH']).resolve(); assert p.is_relative_to(root), (p, root)"
+        python tutorial_integration.py
+
+
+    - name: Verify Uninstallation
+      if: matrix.build_type == 'Release'
+      working-directory: ${{ runner.workspace }}/build
+      run: cmake --build . --target uninstall
+
+ --output-on-failure
+
+    - name: Probe multifunction reject_dimension_mismatch
+      if: ${{ always() && matrix.build_type == 'Debug' }}
+      working-directory: ${{ runner.workspace }}/build
+      env:
+        ARIADNE_MULTIFUNCTION_CASE: reject_dimension_mismatch
+      run: ctest -R '^test_multifunction_integrator      id: cpp_tests
+      if: matrix.build_type == 'Debug'
+      working-directory: ${{ runner.workspace }}/build
+      run: ctest -j $NPROC -LE python --output-on-failure
+
+    # A libstdc++ checked-iterator abort lacks a C++ call-site in the CTest
+    # output. Only on a failing GCC Debug test, collect a symbolic backtrace.
+    - name: Diagnose GCC Debug iterator abort
+      if: ${{ always() && matrix.build_type == 'Debug' && matrix.config.libstdcxx_debug && steps.cpp_tests.outcome == 'failure' }}
+      working-directory: ${{ runner.workspace }}/build
+      run: |
+        sudo apt-get install -y gdb
+        gdb -q -batch -ex 'set pagination off' -ex run -ex 'bt 40' --args ./tests/test_integrator > iterator-backtrace.txt 2>&1 || true
+        echo '--- GCC Debug iterator backtrace ---'
+        tail -n 125 iterator-backtrace.txt
+
+    - name: Upload GCC Debug backtrace
+      if: ${{ always() && matrix.build_type == 'Debug' && matrix.config.libstdcxx_debug && steps.cpp_tests.outcome == 'failure' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: integration-gcc-debug-backtrace
+        path: ${{ runner.workspace }}/build/iterator-backtrace.txt
+        if-no-files-found: error
+
+    - name: Test Python
+      if: matrix.build_type == 'Debug'
+      working-directory: ${{ runner.workspace }}/build
+      run: ctest -L python -V --output-on-failure
+
+    - name: Install Ariadne Integration
+      if: matrix.build_type == 'Release'
+      working-directory: ${{ runner.workspace }}/build
+      run: cmake --install . --prefix ${{ runner.workspace }}/install
+
+    - name: Prepare C++ Integration Tutorial
+      if: matrix.build_type == 'Release'
+      run: cmake -E copy_directory $GITHUB_WORKSPACE/tutorials/tutorial_integration ${{ runner.workspace }}/tutorial_integration
+
+    - name: Check C++ Integration Tutorial
+      if: matrix.build_type == 'Release'
+      working-directory: ${{ runner.workspace }}/tutorial_integration
+      run: |
+        cmake -S . -B build -DCMAKE_PREFIX_PATH=${{ runner.workspace }}/install -DCMAKE_CXX_COMPILER=${{ matrix.config.cxx }} -DCMAKE_CXX_COMPILER_LAUNCHER="$SCCACHE_LAUNCHER" -G Ninja
+        cmake --build build --parallel $NPROC
+        export LD_LIBRARY_PATH=${{ runner.workspace }}/install/lib:${LD_LIBRARY_PATH:-}
+        export DYLD_LIBRARY_PATH=${{ runner.workspace }}/install/lib:${DYLD_LIBRARY_PATH:-}
+        ./build/tutorial_integration
+
+
+    - name: Check Python Integration Tutorial
+      if: matrix.build_type == 'Release'
+      working-directory: ${{ github.workspace }}/python/tutorials
+      env:
+        PYTHONPATH: ${{ runner.workspace }}/install/lib/python3.13/site-packages
+        LD_LIBRARY_PATH: ${{ runner.workspace }}/install/lib
+        DYLD_LIBRARY_PATH: ${{ runner.workspace }}/install/lib
+      run: |
+        python -c "import os, pathlib, pyariadne_integration; p=pathlib.Path(pyariadne_integration.__file__).resolve(); root=pathlib.Path(os.environ['PYTHONPATH']).resolve(); assert p.is_relative_to(root), (p, root)"
+        python tutorial_integration.py
+
+
+    - name: Verify Uninstallation
+      if: matrix.build_type == 'Release'
+      working-directory: ${{ runner.workspace }}/build
+      run: cmake --build . --target uninstall
+
+ --output-on-failure
+
     - name: Test C++
       id: cpp_tests
       if: matrix.build_type == 'Debug'
