@@ -118,7 +118,11 @@ class ValidatedIntegrationStep {
             while (covered < model_step_time.upper_bound()) {
                 auto next = covered;
                 for (const auto& model: _reach_models) {
-                    const auto& interval = model.domain()[*_reach_time_index];
+                    // domain() returns a box BY VALUE. Retaining a reference
+                    // to one of its elements after this expression would
+                    // dangle, corrupting the time coverage comparison.
+                    const auto domain = model.domain();
+                    const auto& interval = domain[*_reach_time_index];
                     if (interval.lower_bound() <= covered && interval.upper_bound() > next) {
                         next = interval.upper_bound();
                     }
