@@ -70,16 +70,16 @@ class BoundingNotFoundException : public std::runtime_error {
 struct LipschitzTolerance : Attribute<ExactDouble> {
     LipschitzTolerance(const ExactDouble& value);
 };
-static const Generator<LipschitzTolerance> lipschitz_tolerance = Generator<LipschitzTolerance>();
+extern const Generator<LipschitzTolerance> lipschitz_tolerance;
 /** @brief Construct the integration object. */
-static const LipschitzTolerance DEFAULT_LIPSCHITZ_TOLERANCE(0.5_x);
+extern const LipschitzTolerance DEFAULT_LIPSCHITZ_TOLERANCE;
 /** @brief Type representing minimum step size in integration algorithms. */
 struct MinimumStepSize : Attribute<ExactDouble> {
     MinimumStepSize(const ExactDouble& value);
 };
-static const Generator<MinimumStepSize> minimum_step_size = Generator<MinimumStepSize>();
+extern const Generator<MinimumStepSize> minimum_step_size;
 /** @brief Construct the integration object. */
-static const MinimumStepSize DEFAULT_MINIMUM_STEP_SIZE(0.00000095367431640625_x);
+extern const MinimumStepSize DEFAULT_MINIMUM_STEP_SIZE;
 
 //! \ingroup DifferentialEquationSubModule
 //! \brief Interface for classes calculating the bounds of a flow.

@@ -113,15 +113,15 @@ struct MaximumTemporalOrder : Attribute<DegreeType> {
 MaximumTemporalOrder(DegreeType v);
 };
 
-static const Generator<StepMaximumError> step_maximum_error = Generator<StepMaximumError>();
-static const Generator<StepSweepThreshold> step_sweep_threshold = Generator<StepSweepThreshold>();
-static const Generator<Order> order = Generator<Order>();
-static const Generator<SpacialOrder> spacial_order = Generator<SpacialOrder>();
-static const Generator<TemporalOrder> temporal_order = Generator<TemporalOrder>();
-static const Generator<MinimumTemporalOrder> minimum_temporal_order = Generator<MinimumTemporalOrder>();
-static const Generator<MinimumSpacialOrder> minimum_spacial_order = Generator<MinimumSpacialOrder>();
-static const Generator<MaximumSpacialOrder> maximum_spacial_order = Generator<MaximumSpacialOrder>();
-static const Generator<MaximumTemporalOrder> maximum_temporal_order = Generator<MaximumTemporalOrder>();
+extern const Generator<StepMaximumError> step_maximum_error;
+extern const Generator<StepSweepThreshold> step_sweep_threshold;
+extern const Generator<Order> order;
+extern const Generator<SpacialOrder> spacial_order;
+extern const Generator<TemporalOrder> temporal_order;
+extern const Generator<MinimumTemporalOrder> minimum_temporal_order;
+extern const Generator<MinimumSpacialOrder> minimum_spacial_order;
+extern const Generator<MaximumSpacialOrder> maximum_spacial_order;
+extern const Generator<MaximumTemporalOrder> maximum_temporal_order;
 
 //! \brief Class used for storing the result of a flow step.
 class FlowStepModelType : public ValidatedVectorMultivariateFunctionPatch {

@@ -12,6 +12,17 @@
 
 namespace Ariadne {
 
+const Generator<StepMaximumError> step_maximum_error{};
+const Generator<StepSweepThreshold> step_sweep_threshold{};
+const Generator<Order> order{};
+const Generator<SpacialOrder> spacial_order{};
+const Generator<TemporalOrder> temporal_order{};
+const Generator<MinimumTemporalOrder> minimum_temporal_order{};
+const Generator<MinimumSpacialOrder> minimum_spacial_order{};
+const Generator<MaximumSpacialOrder> maximum_spacial_order{};
+const Generator<MaximumTemporalOrder> maximum_temporal_order{};
+
+
 StepMaximumError::StepMaximumError(ApproximateDouble x) : Attribute<ApproximateDouble>(x) {}
 
 StepMaximumError::StepMaximumError(double x) : Attribute<ApproximateDouble>(x) {}

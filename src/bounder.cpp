@@ -32,6 +32,10 @@
 #include "function/taylor_model.hpp"
 
 namespace Ariadne {
+const MinimumStepSize DEFAULT_MINIMUM_STEP_SIZE = MinimumStepSize(0.00000095367431640625_x);
+const Generator<MinimumStepSize> minimum_step_size = Generator<MinimumStepSize>();
+const LipschitzTolerance DEFAULT_LIPSCHITZ_TOLERANCE = LipschitzTolerance(0.5_x);
+const Generator<LipschitzTolerance> lipschitz_tolerance = Generator<LipschitzTolerance>();
 Pair<StepSizeType, UpperBoxType> BounderHandle::compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const Suggestion<StepSizeType>& hsug) const {
         return _impl->compute(f, D, hsug);
     }
