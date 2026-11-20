@@ -105,6 +105,13 @@ class ValidatedIntegrationStep {
             if (not definitely(subset(model.domain()[*_reach_time_index], model_step_time))) {
                 throw std::invalid_argument("Validated reach patch lies outside the step's time interval");
             }
+            // The common reach box must enclose ALL states certified by
+            // every reach patch. A contradictory box is not a valid
+            // lossy projection of a structured reach certificate.
+            if (not definitely(subset(cast_exact_box(UpperBoxType(model.range())),
+                                      cast_exact_box(_reach)))) {
+                throw std::invalid_argument("Validated reach box does not enclose a reach patch");
+            }
         }
         if (not _reach_models.empty()) {
             // Individual patch intervals may be split, overlap and arrive
@@ -136,6 +143,13 @@ class ValidatedIntegrationStep {
         }
         if (_evolve_model && _evolve_model->result_size() != evolve.dimension()) {
             throw std::invalid_argument("Validated endpoint model has an incompatible state dimension");
+        }
+        // Reach and endpoint may use different approximations and
+        // different parameter domains. Validate their boxes separately.
+        if (_evolve_model &&
+            not definitely(subset(cast_exact_box(UpperBoxType(_evolve_model->range())),
+                                  cast_exact_box(_evolve)))) {
+            throw std::invalid_argument("Validated endpoint box does not enclose the endpoint model");
         }
     }
 

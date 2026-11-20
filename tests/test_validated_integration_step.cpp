@@ -75,6 +75,18 @@ class TestValidatedIntegrationStep : public Ariadne::Testing::ContextFixture {
         ARIADNE_TESTING_EXPECT_EQUAL(restored->argument_size(), 2u);
         ARIADNE_TESTING_PROVE(step.representation_as<SelectedInclusionStep>() == nullptr);
 
+        // The box enclosures and the structured certificates must agree.
+        // An undersized reach bound cannot be advertised as the hull of a
+        // certified full-time flow; likewise for the endpoint map.
+        ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
+            ValidatedIntegrationStep(
+                h, UpperBoxType({{0.0625_x, 0.15625_x}}), step.evolve(),
+                {}, step.reach_models(), step.evolve_model(), StepSizeType(0u), 1u));
+        ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
+            ValidatedIntegrationStep(
+                h, step.reach(), UpperBoxType({{0.0625_x, 0.15625_x}}),
+                {}, step.reach_models(), step.evolve_model(), StepSizeType(0u), 1u));
+
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
             validated_integration_step(
                 flow, Interval<StepSizeType>(StepSizeType(0u), StepSizeType(0.0625_x))));
