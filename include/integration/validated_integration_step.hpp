@@ -60,6 +60,7 @@ class ValidatedIntegrationStep {
     UpperBoxType _evolve;
     List<ValidatedVectorMultivariateFunctionPatch> _reach_models;
     std::optional<ValidatedVectorMultivariateFunctionPatch> _evolve_model;
+    std::optional<SizeType> _reach_time_index;
     std::any _representation;
 
   public:
@@ -69,18 +70,22 @@ class ValidatedIntegrationStep {
                              std::any representation = {},
                              List<ValidatedVectorMultivariateFunctionPatch> reach_models = {},
                              std::optional<ValidatedVectorMultivariateFunctionPatch> evolve_model = std::nullopt,
-                             const StepSizeType& initial_time = StepSizeType(0u))
+                             const StepSizeType& initial_time = StepSizeType(0u),
+                             std::optional<SizeType> reach_time_index = std::nullopt)
         : _time_step(time_step), _initial_time(initial_time), _reach(reach), _evolve(evolve),
           _reach_models(std::move(reach_models)),
           _evolve_model(std::move(evolve_model)),
+          _reach_time_index(reach_time_index ? reach_time_index
+              : (_reach_models.empty() ? std::nullopt : std::optional<SizeType>(reach.dimension()))),
           _representation(std::move(representation)) {
         if (not (time_step > StepSizeType(0u)) ||
             reach.dimension() != evolve.dimension()) {
             throw std::invalid_argument("Validated integration step has incompatible bounds or duration");
         }
         for (const auto& model: _reach_models) {
-            if (model.result_size() != reach.dimension()) {
-                throw std::invalid_argument("Validated reach model has an incompatible state dimension");
+            if (model.result_size() != reach.dimension() ||
+                not _reach_time_index || *_reach_time_index >= model.argument_size()) {
+                throw std::invalid_argument("Validated reach model has incompatible state or time coordinates");
             }
         }
         if (_evolve_model && _evolve_model->result_size() != evolve.dimension()) {
@@ -102,6 +107,11 @@ class ValidatedIntegrationStep {
         return _reach_models;
     }
     bool has_reach_models() const { return not _reach_models.empty(); }
+    /** @brief Time-coordinate index in each reach patch, if maps are provided.
+     *  The time coordinate may differ from the state dimension when a prior
+     *  structured mapping has additional uncertainty parameters.
+     */
+    std::optional<SizeType> reach_time_index() const { return _reach_time_index; }
 
     /** @brief Endpoint mapping suitable for structured continuation.
      *  An integrator computing only box enclosures does not fabricate a map.

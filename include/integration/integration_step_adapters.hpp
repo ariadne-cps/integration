@@ -43,20 +43,23 @@ namespace Ariadne {
 inline ValidatedIntegrationStep validated_integration_step(
     const FlowStepModelType& flow,
     const Interval<StepSizeType>& time_domain,
-    const StepSizeType& initial_time = StepSizeType(0u)) {
+    const StepSizeType& initial_time = StepSizeType(0u),
+    std::optional<SizeType> time_coordinate = std::nullopt) {
     const SizeType n = flow.result_size();
-    if (flow.argument_size() < n + 1u ||
-        not (flow.domain()[n] ==
+    const SizeType time_index = time_coordinate.value_or(n);
+    if (flow.argument_size() <= time_index ||
+        not (flow.domain()[time_index] ==
              IntervalDomainType(time_domain.lower_bound(), time_domain.upper_bound()))) {
         throw std::invalid_argument("Ordinary flow patch has an incompatible time domain");
     }
     const StepSizeType duration = time_domain.upper_bound() - time_domain.lower_bound();
-    const auto endpoint = partial_evaluate(flow, n, time_domain.upper_bound());
+    const auto endpoint = partial_evaluate(flow, time_index, time_domain.upper_bound());
     List<ValidatedVectorMultivariateFunctionPatch> reach_models;
     reach_models.append(flow);
     return ValidatedIntegrationStep(duration, UpperBoxType(flow.range()),
                                     UpperBoxType(endpoint.range()), std::any(flow),
-                                    std::move(reach_models), endpoint, initial_time);
+                                    std::move(reach_models), endpoint, initial_time,
+                                    time_index);
 }
 
 /** @brief Preserve the full structured inclusion result, including all

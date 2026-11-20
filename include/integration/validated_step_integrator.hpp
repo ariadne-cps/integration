@@ -185,14 +185,31 @@ class FlowStepIntegratorAdapter : public ValidatedStepIntegratorInterface {
         if (field == nullptr) {
             throw std::invalid_argument("This flow integrator requires a validated single-valued vector field");
         }
-        if (request.has_initial_mapping()) {
-            throw std::invalid_argument("Ordinary flow continuation cannot discard a structured endpoint map");
+        const Interval<StepSizeType> local_time(StepSizeType(0u), request.time_step());
+        if (not request.has_initial_mapping()) {
+            const auto native = _integrator.flow_step(
+                *field, request.initial(), request.time_step(), request.bounding_box());
+            return validated_integration_step(native, local_time, request.initial_time());
         }
-        const auto native = _integrator.flow_step(
-            *field, request.initial(), request.time_step(), request.bounding_box());
-        return validated_integration_step(native,
-            Interval<StepSizeType>(StepSizeType(0u), request.time_step()),
-            request.initial_time());
+
+        // Integrate over an enclosure of the current states, then compose
+        // the certified local flow with the previous endpoint mapping.
+        // The previous initial-state coordinates and all uncertainty inputs
+        // survive the step; only the new local time coordinate is appended.
+        const auto& previous = request.initial_mapping();
+        const ExactBoxType current = cast_exact_box(UpperBoxType(previous.range()));
+        if (not definitely(subset(current, cast_exact_box(request.bounding_box())))) {
+            throw std::invalid_argument("Equation continuation endpoint exceeds the state bound");
+        }
+        const auto local = _integrator.flow_step(
+            *field, current, request.time_step(), request.bounding_box());
+        const auto embedded = embed(previous, IntervalDomainType(local_time));
+        const SizeType time_index = previous.argument_size();
+        const auto time_function = factory(embedded).create(
+            ValidatedScalarMultivariateFunction::coordinate(time_index + 1u, time_index));
+        const FlowStepModelType composed(compose(local, join(embedded, time_function)));
+        return validated_integration_step(composed, local_time,
+                                          request.initial_time(), time_index);
     }
 };
 
