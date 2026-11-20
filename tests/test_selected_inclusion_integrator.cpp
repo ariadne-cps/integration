@@ -174,6 +174,56 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         }
     }
 
+    Void test_two_steps_preserve_independent_input_choices() {
+        // Each step admits an independently chosen measurable input:
+        // x' = u(t), |u(t)| <= 1, X0 = [-1/8,1/8].
+        // At 2h (h=1/32) the exact reachable interval is [-3/16,3/16].
+        // Passing the first endpoint patch to the second step must not
+        // inadvertently freeze its input coefficients or reuse new ones.
+        const auto u = EffectiveFormula::coordinate(1u);
+        const EffectiveVectorMultivariateFunction f =
+            EffectiveVectorMultivariateFormulaFunction(
+                2u, Vector<EffectiveFormula>{u});
+        const BoxDomainType U({{-1.0_x, 1.0_x}});
+        const BoxDomainType initial_domain({{-0.125_x, 0.125_x}});
+        const UpperBoxType bound({{-1.0_x, 1.0_x}});
+        const StepSizeType h(0.03125_x);
+        const ExactBoxType one_step({{-0.15625_x, 0.15625_x}});
+        const ExactBoxType two_steps({{-0.1875_x, 0.1875_x}});
+
+        TaylorSeriesIntegrator base(ThresholdSweeper<FloatDP>(dp, 1e-10),
+                                    lipschitz_tolerance = 0.5_x, order = 8);
+        InclusionIntegratorFactory factory(base);
+        const auto identity = base.function_factory().create_identity(initial_domain);
+        const InputApproximation reach{ZeroApproximation()};
+
+        for (const auto& evolve: {InputApproximation(ZeroApproximation()),
+                                 InputApproximation(ConstantApproximation()),
+                                 InputApproximation(AffineApproximation()),
+                                 InputApproximation(SinusoidalApproximation()),
+                                 InputApproximation(PiecewiseApproximation())}) {
+            SelectedInclusionIntegrator selected(factory, f, U, reach, evolve);
+            const auto first = selected.step(
+                initial_domain, identity, bound, TimeStepType(0u), h);
+            const auto first_boxes = first.bounding_step(h);
+            ARIADNE_TESTING_PROVE(definitely(subset(
+                one_step, cast_exact_box(first_boxes.evolve))));
+
+            // The second step begins at the previous absolute endpoint
+            // and uses the validated endpoint mapping as its initial map.
+            const auto second = selected.step(
+                initial_domain, first.evolve_model, bound,
+                TimeStepType(0.03125_x), h);
+            const auto second_boxes = second.bounding_step(h);
+            ARIADNE_TESTING_PROVE(definitely(subset(
+                two_steps, cast_exact_box(second_boxes.evolve))));
+            ARIADNE_TESTING_PROVE(definitely(subset(
+                one_step, cast_exact_box(second_boxes.reach))));
+            ARIADNE_TESTING_PROVE(definitely(subset(
+                two_steps, cast_exact_box(second_boxes.reach))));
+        }
+    }
+
     Void test_parametric_box_extension_and_low_order_bridge() {
         BoxDomainType state_domain({{-1.0_x, 1.0_x}});
         // The owned structural representation outlives these temporaries.
@@ -529,6 +579,7 @@ int main(int argc, char** argv) {
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_distinct_approximations_and_endpoint);
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_same_method_and_nonrigorous_endpoint_strategy);
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_every_endpoint_strategy_encloses_full_input_range);
+    ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_two_steps_preserve_independent_input_choices);
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_invalid_time_step);
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_parametric_box_extension_and_low_order_bridge);
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_high_order_common_integrator_bridge);
