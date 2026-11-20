@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - multifunction
   pull_request:
 
 jobs:
