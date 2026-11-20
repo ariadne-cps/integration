@@ -1898,7 +1898,7 @@ PreconditionedTaylorSeriesState
 
     return PreconditionedTaylorSeriesState(
         std::move(centre), std::move(linear_map), std::move(local_domain),
-        std::move(rotated));
+        std::move(rotated), state);
 }
 
 PreconditionedTaylorSeriesStep
@@ -2406,6 +2406,25 @@ PreconditionedTaylorSeriesStep
     ValidatedVectorMultivariateFunctionPatch evolved_mapping =
         compose(local_endpoint, state.normalised_mapping());
 
+    // A physical coordinate with exactly zero derivative is constant in time,
+    // even when its initial Taylor model depends on parameters.  Carry its
+    // original physical map rather than repeatedly reconstructing it through
+    // c+A*y and rotating that approximation in later steps.  The validated
+    // zero-range check is over the complete physical flow bound: no
+    // nonzero derivative or uncertified remainder is discarded.
+    if (state.has_physical_mapping()) {
+        const auto& original_physical = state.physical_mapping();
+        ARIADNE_PRECONDITION(original_physical.domain() == parameter_domain);
+        for (SizeType i = 0u; i != n; ++i) {
+            if (definitely(subset(physical_field_ranges[i],
+                                  ExactIntervalType(0, 0)))) {
+                evolved_mapping[i] = original_physical[i];
+                flowpipe_mapping[i] =
+                    embed(original_physical[i], domt);
+            }
+        }
+    }
+
     // A constant composed with a Taylor map stays exactly constant.  Avoid
     // manufacturing an interval remainder in the generic compose pathway.
     for (SizeType i = 0u; i != n; ++i) {
@@ -2438,7 +2457,8 @@ PreconditionedTaylorSeriesStep
         local_transition.centre(),
         local_transition.linear_map(),
         std::move(next_local_domain),
-        std::move(next_normalised_mapping));
+        std::move(next_normalised_mapping),
+        evolved_mapping);
 
     return PreconditionedTaylorSeriesStep(
         h, std::move(flowpipe_mapping), std::move(evolved_mapping),
