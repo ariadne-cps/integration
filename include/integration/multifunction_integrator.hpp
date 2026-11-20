@@ -88,6 +88,16 @@ class InclusionIntegratorFieldProvider {
     virtual InclusionIntegratorFieldData inclusion_integrator_field() const = 0;
 };
 
+/** @brief Optional structured numerical capability for nonautonomous inclusions.
+ *  The field arguments are [state, absolute time, fixed parameters, free inputs].
+ *  Only the final block contains independently selectable functions u(t).
+ */
+class TimedInclusionIntegratorFieldProvider {
+  public:
+    virtual ~TimedInclusionIntegratorFieldProvider() = default;
+    virtual InclusionIntegratorFieldData timed_inclusion_integrator_field() const = 0;
+};
+
 /** @brief Box extension of a double-precision interval Taylor vector model. */
 class ValidatedIntervalTaylorBoxMultifunctionDP : public ValidatedBoxMultifunctionInterface,
                                                   public InclusionIntegratorFieldProvider {
@@ -219,7 +229,8 @@ class ValidatedTimedBoxMultifunctionInterface {
  *  Every u(t) in the input box remains admissible at each instant.
  *  This adapter does not supply high-order inclusion solver data.
  */
-class ValidatedTimedInputFieldBoxAdapterDP : public ValidatedTimedBoxMultifunctionInterface {
+class ValidatedTimedInputFieldBoxAdapterDP : public ValidatedTimedBoxMultifunctionInterface,
+                                            public TimedInclusionIntegratorFieldProvider {
     EffectiveVectorMultivariateFunction _field;
     BoxDomainType _states;
     IntervalDomainType _time;
@@ -246,6 +257,10 @@ class ValidatedTimedInputFieldBoxAdapterDP : public ValidatedTimedBoxMultifuncti
     BoxDomainType domain() const override { return _states; }
     IntervalDomainType time_domain() const override { return _time; }
     BoxDomainType parameter_domain() const override { return _parameters; }
+
+    InclusionIntegratorFieldData timed_inclusion_integrator_field() const override {
+        return InclusionIntegratorFieldData{_field, _inputs};
+    }
 
     UpperBoxType evaluate(const UpperBoxType& states, const UpperIntervalType& time,
                           const UpperBoxType& parameters) const override {

@@ -72,12 +72,13 @@ inline ValidatedIntegrationStep validated_integration_step(
     const SelectedInclusionStep& step,
     const StepSizeType& initial_time = StepSizeType(0u),
     bool equation_has_explicit_time = false,
-    const ExactBoxType& constant_parameter_domain = ExactBoxType(0u)) {
+    const ExactBoxType& constant_parameter_domain = ExactBoxType(0u),
+    std::optional<SizeType> time_coordinate = std::nullopt) {
     const auto bounds = step.bounding_step();
     return ValidatedIntegrationStep(bounds.time_step, bounds.reach,
                                     bounds.evolve, std::any(step),
                                     step.reach_models, step.evolve_model, initial_time,
-                                    std::nullopt, equation_has_explicit_time,
+                                    time_coordinate, equation_has_explicit_time,
                                     constant_parameter_domain);
 }
 

@@ -322,6 +322,107 @@ class SelectedParametricMultifunctionIntegrator : public MultifunctionIntegrator
         return selected.step(initial, initial_mapping, state_bound, initial_time, time_step);
     }
 
+
+    /** @brief Rigorous structured integration of x' in F(x,t,p,u(t)).
+     *
+     *  A numerical autonomous lifting defines (x,clock,p)'=(f(x,clock,p,u),1,0).
+     *  Thus fixed p and absolute time are integrated as STATES, never as
+     *  freely varying solver inputs. The only free inputs remain u(t).
+     *  Output maps retain x, p and old input parameters; the synthetic
+     *  initial-clock coordinate is removed by validated partial evaluation.
+     */
+    SelectedInclusionStep timed_structured_step(
+        const ValidatedTimedBoxMultifunctionInterface& field,
+        const ExactBoxType& initial,
+        const TimeStepType& initial_time,
+        const StepSizeType& time_step,
+        const ExactBoxType& parameters,
+        const UpperBoxType& state_bound,
+        const ValidatedVectorMultivariateFunctionPatch* previous = nullptr) const {
+        const SizeType n = initial.dimension();
+        const SizeType np = parameters.dimension();
+        const SizeType ns = n + 1u + np;
+        const IntervalDomainType times(initial_time, initial_time + time_step);
+        if (not (time_step > StepSizeType(0u)) || field.argument_size() != n ||
+            field.result_size() != n || state_bound.dimension() != n ||
+            field.parameter_domain().dimension() != np ||
+            not definitely(subset(initial, field.domain())) ||
+            not definitely(subset(state_bound, field.domain())) ||
+            not definitely(subset(times, field.time_domain())) ||
+            not definitely(subset(parameters, field.parameter_domain()))) {
+            throw std::invalid_argument("Timed high-order inclusion request outside numerical field domain");
+        }
+        const auto* provider = dynamic_cast<const TimedInclusionIntegratorFieldProvider*>(&field);
+        if (provider == nullptr) {
+            throw std::invalid_argument("Timed field does not supply structured high-order solver data");
+        }
+        const auto data = provider->timed_inclusion_integrator_field();
+        const SizeType args = ns + data.inputs.dimension();
+        if (data.inputs.dimension() == 0u || data.field.result_size() != n ||
+            data.field.argument_size() != args) {
+            throw std::invalid_argument("Timed structured field has incompatible state, time or input dimensions");
+        }
+
+        EffectiveVectorMultivariateFunction lifted_field = join(
+            data.field, EffectiveScalarMultivariateFunction::constant(args, 1));
+        for (SizeType i = 0u; i != np; ++i) {
+            lifted_field = join(lifted_field,
+                EffectiveScalarMultivariateFunction::constant(args, 0));
+        }
+
+        const BoxDomainType clock_start(1u,
+            IntervalDomainType(initial_time, initial_time));
+        const BoxDomainType augmented_initial = product(
+            BoxDomainType(initial), clock_start, BoxDomainType(parameters));
+        const UpperBoxType clock_bound(1u, UpperIntervalType(
+            field.time_domain().lower_bound(), field.time_domain().upper_bound()));
+        const UpperBoxType augmented_bound = product(
+            state_bound, clock_bound, UpperBoxType(field.parameter_domain()));
+
+        ValidatedVectorMultivariateFunctionPatch initial_mapping;
+        if (previous == nullptr) {
+            initial_mapping = _function_factory.create_identity(augmented_initial);
+        } else {
+            const SizeType old_args = previous->argument_size();
+            if (previous->result_size() != n || old_args < n + np ||
+                not (previous->domain()[range(0u, n)] == BoxDomainType(initial)) ||
+                not (previous->domain()[range(n, n + np)] == BoxDomainType(parameters))) {
+                throw std::invalid_argument("Timed continuation must retain original state and parameter coordinates");
+            }
+            const BoxDomainType domain = product(
+                BoxDomainType(initial), clock_start,
+                previous->domain()[range(n, old_args)]);
+            auto remap = _function_factory.create_zeros(old_args, domain);
+            for (SizeType i = 0u; i != old_args; ++i) {
+                remap[i] = _function_factory.create_coordinate(
+                    domain, i < n ? i : i + 1u);
+            }
+            initial_mapping = join(
+                compose(*previous, remap),
+                _function_factory.create_coordinate(domain, n));
+            for (SizeType i = 0u; i != np; ++i) {
+                initial_mapping = join(initial_mapping,
+                    _function_factory.create_coordinate(domain, n + 1u + i));
+            }
+        }
+
+        SelectedInclusionIntegrator solver(_factory, lifted_field, data.inputs,
+                                           _reach_approximation, _evolve_approximation);
+        auto result = solver.step(
+            augmented_initial, initial_mapping, augmented_bound, initial_time, time_step);
+        List<ValidatedVectorMultivariateFunctionPatch> reach_models;
+        for (const auto& model: result.reach_models) {
+            auto copy = model;
+            auto state = copy[range(0u, n)];
+            reach_models.append(partial_evaluate(state, n, initial_time));
+        }
+        auto endpoint = result.evolve_model;
+        auto state_endpoint = endpoint[range(0u, n)];
+        return SelectedInclusionStep{
+            time_step, std::move(reach_models),
+            partial_evaluate(state_endpoint, n, initial_time)};
+    }
+
     /** @brief Compute certified boxes through the common integrator contract. */
     ValidatedMultiflowStep flow_step(const ValidatedBoxMultifunctionInterface& field,
                                     const ExactBoxType& initial,

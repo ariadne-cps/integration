@@ -365,6 +365,18 @@ class StructuredInclusionStepIntegratorAdapter : public ValidatedStepIntegratorI
         : _integrator(integrator) {}
 
     ValidatedIntegrationStep step(const ValidatedIntegrationRequest& request) const override {
+        if (const auto* timed = request.field_as<ValidatedTimedBoxMultifunctionInterface>()) {
+            const auto* previous = request.has_initial_mapping()
+                ? &request.initial_mapping() : nullptr;
+            const auto native = _integrator.timed_structured_step(
+                *timed, request.initial(), request.initial_time(), request.time_step(),
+                request.constant_parameter_domain(), request.bounding_box(), previous);
+            const SizeType time_index =
+                request.initial().dimension() + request.constant_parameter_domain().dimension();
+            return validated_integration_step(
+                native, request.initial_time(), true,
+                request.constant_parameter_domain(), time_index);
+        }
         const auto* field = request.field_as<ValidatedBoxMultifunctionInterface>();
         if (field == nullptr) {
             throw std::invalid_argument("Structured inclusion integration requires a validated box multifunction");
