@@ -26,7 +26,9 @@
  *  @brief Tests for validated box integration of differential inclusions.
  */
 
+#include <cstdlib>
 #include <stdexcept>
+#include <string>
 
 #include "function/taylor_multifunction.hpp"
 #include "integration/multifunction_integrator.hpp"
@@ -120,9 +122,20 @@ class TestMultifunctionIntegrator : public Ariadne::Testing::ContextFixture {
 
 int main(int argc, char** argv) {
     ARIADNE_TESTING_SUITE("test_multifunction_integrator");
-    ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_constant_inclusion);
-    ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_time_varying_selection);
-    ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_reject_uncertified_bound);
-    ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_reject_dimension_mismatch);
+    // Diagnostic selection is opt-in; production runs exercise all four cases.
+    const char* requested = std::getenv("ARIADNE_MULTIFUNCTION_CASE");
+    const std::string selected = requested ? requested : "";
+    if (selected.empty() || selected == "constant_inclusion") {
+        ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_constant_inclusion);
+    }
+    if (selected.empty() || selected == "time_varying_selection") {
+        ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_time_varying_selection);
+    }
+    if (selected.empty() || selected == "reject_uncertified_bound") {
+        ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_reject_uncertified_bound);
+    }
+    if (selected.empty() || selected == "reject_dimension_mismatch") {
+        ARIADNE_TESTING_ADD_TEST(TestMultifunctionIntegrator, test_reject_dimension_mismatch);
+    }
     return Ariadne::Testing::run_logging_suite(ariadne_test_suite, argc, argv);
 }

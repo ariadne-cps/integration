@@ -81,6 +81,38 @@ jobs:
       working-directory: ${{ runner.workspace }}/build
       run: cmake --build . --parallel $NPROC --target tests bindings
 
+    - name: Multifunction diagnostic constant_inclusion
+      if: matrix.build_type == 'Debug'
+      continue-on-error: true
+      working-directory: ${{ runner.workspace }}/build
+      env:
+        ARIADNE_MULTIFUNCTION_CASE: constant_inclusion
+      run: ctest -R "^test_multifunction_integrator$" --output-on-failure
+
+    - name: Multifunction diagnostic time_varying_selection
+      if: matrix.build_type == 'Debug'
+      continue-on-error: true
+      working-directory: ${{ runner.workspace }}/build
+      env:
+        ARIADNE_MULTIFUNCTION_CASE: time_varying_selection
+      run: ctest -R "^test_multifunction_integrator$" --output-on-failure
+
+    - name: Multifunction diagnostic reject_uncertified_bound
+      if: matrix.build_type == 'Debug'
+      continue-on-error: true
+      working-directory: ${{ runner.workspace }}/build
+      env:
+        ARIADNE_MULTIFUNCTION_CASE: reject_uncertified_bound
+      run: ctest -R "^test_multifunction_integrator$" --output-on-failure
+
+    - name: Multifunction diagnostic reject_dimension_mismatch
+      if: matrix.build_type == 'Debug'
+      continue-on-error: true
+      working-directory: ${{ runner.workspace }}/build
+      env:
+        ARIADNE_MULTIFUNCTION_CASE: reject_dimension_mismatch
+      run: ctest -R "^test_multifunction_integrator$" --output-on-failure
+
     - name: Test multifunction integrator independently
       if: matrix.build_type == 'Debug'
       working-directory: ${{ runner.workspace }}/build
