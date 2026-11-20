@@ -97,9 +97,9 @@ class MultifunctionIntegratorInterface {
   public:
     virtual ~MultifunctionIntegratorInterface() = default;
     virtual ValidatedMultiflowStep flow_step(const ValidatedBoxMultifunctionInterface& field,
-                                              const ExactBoxType& initial,
-                                              const StepSizeType& time_step,
-                                              const UpperBoxType& state_bound) const = 0;
+                                             const ExactBoxType& initial,
+                                             const StepSizeType& time_step,
+                                             const UpperBoxType& state_bound) const = 0;
 };
 
 /** @brief First-order validated enclosure for x'(t) in F(x(t)).
@@ -113,9 +113,9 @@ class MultifunctionIntegratorInterface {
 class FirstOrderMultifunctionIntegrator : public MultifunctionIntegratorInterface {
   public:
     virtual ValidatedMultiflowStep flow_step(const ValidatedBoxMultifunctionInterface& field,
-                                              const ExactBoxType& initial,
-                                              const StepSizeType& time_step,
-                                              const UpperBoxType& state_bound) const override {
+                                             const ExactBoxType& initial,
+                                             const StepSizeType& time_step,
+                                             const UpperBoxType& state_bound) const override {
         if (not(time_step > StepSizeType(0u))) {
             throw std::invalid_argument("Multifunction integration requires a positive time step");
         }

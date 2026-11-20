@@ -30,7 +30,6 @@
 
 #include "function/taylor_multifunction.hpp"
 #include "integration/multifunction_integrator.hpp"
-
 #include "logging/test_runner.hpp"
 
 #include "ariadne-testing.hpp"
@@ -48,7 +47,9 @@ class TestMultifunctionIntegrator : public Ariadne::Testing::ContextFixture {
     using ContextFixture::ContextFixture;
 
     Void test_constant_inclusion() {
-        BoxDomainType domain({{-1, 1}});
+        BoxDomainType domain({
+            {-1, 1}
+        });
         ThresholdSweeper<FloatDP> sweeper(dp, 1e-10);
         Scalar uncertain = Scalar::constant(domain, Ivl(-1, 1, dp), sweeper);
         VectorModel model({uncertain});
@@ -56,51 +57,83 @@ class TestMultifunctionIntegrator : public Ariadne::Testing::ContextFixture {
         FirstOrderMultifunctionIntegrator integrator;
         const MultifunctionIntegratorInterface& polymorphic = integrator;
 
-        ExactBoxType initial({{0, 0}});
-        UpperBoxType bound({{-1, 1}});
+        ExactBoxType initial({
+            {0, 0}
+        });
+        UpperBoxType bound({
+            {-1, 1}
+        });
         StepSizeType h(0.25_x);
         const auto step = polymorphic.flow_step(field, initial, h, bound);
         ARIADNE_TESTING_EXPECT_EQUAL(step.time_step, h);
-        ARIADNE_TESTING_PROVE(definitely(subset(ExactBoxType({{-0.25_x, 0.25_x}}), cast_exact_box(step.reach))));
-        ARIADNE_TESTING_PROVE(definitely(subset(ExactBoxType({{-0.25_x, 0.25_x}}), cast_exact_box(step.evolve))));
+        ARIADNE_TESTING_PROVE(definitely(subset(ExactBoxType({
+                                                    {-0.25_x, 0.25_x}
+        }),
+                                                cast_exact_box(step.reach))));
+        ARIADNE_TESTING_PROVE(definitely(subset(ExactBoxType({
+                                                    {-0.25_x, 0.25_x}
+        }),
+                                                cast_exact_box(step.evolve))));
         ARIADNE_TESTING_PROVE(definitely(inside(step.reach, cast_exact_box(bound))));
     }
 
     Void test_time_varying_selection() {
         // x' = u(t), y' = x, u(t) in [-1,1]. A switching input with
         // u=+1 then -1 produces (x(1/2),y(1/2))=(0,1/16).
-        BoxDomainType domain({{-1, 1}, {-1, 1}});
+        BoxDomainType domain({
+            {-1, 1},
+            {-1, 1}
+        });
         ThresholdSweeper<FloatDP> sweeper(dp, 1e-10);
         Scalar x = Scalar::coordinate(domain, 0u, sweeper);
         Scalar uncertain = Scalar::constant(domain, Ivl(-1, 1, dp), sweeper);
         VectorModel model({uncertain, x});
         ValidatedIntervalTaylorBoxMultifunctionDP field(model);
         FirstOrderMultifunctionIntegrator integrator;
-        ExactBoxType initial({{0, 0}, {0, 0}});
-        UpperBoxType bound({{-1, 1}, {-1, 1}});
+        ExactBoxType initial({
+            {0, 0},
+            {0, 0}
+        });
+        UpperBoxType bound({
+            {-1, 1},
+            {-1, 1}
+        });
 
         const auto step = integrator.flow_step(field, initial, StepSizeType(0.5_x), bound);
-        const ExactBoxType switching_endpoint({{0, 0}, {0.0625_x, 0.0625_x}});
+        const ExactBoxType switching_endpoint({
+            {       0,        0},
+            {0.0625_x, 0.0625_x}
+        });
         ARIADNE_TESTING_PROVE(definitely(subset(switching_endpoint, cast_exact_box(step.evolve))));
         ARIADNE_TESTING_PROVE(definitely(subset(switching_endpoint, cast_exact_box(step.reach))));
     }
 
     Void test_reject_uncertified_bound() {
-        BoxDomainType domain({{-1, 1}});
+        BoxDomainType domain({
+            {-1, 1}
+        });
         ThresholdSweeper<FloatDP> sweeper(dp, 1e-10);
         Scalar uncertain = Scalar::constant(domain, Ivl(-1, 1, dp), sweeper);
         VectorModel model({uncertain});
         ValidatedIntervalTaylorBoxMultifunctionDP field(model);
         FirstOrderMultifunctionIntegrator integrator;
-        ExactBoxType initial({{0, 0}});
+        ExactBoxType initial({
+            {0, 0}
+        });
 
         // The reach candidate cannot fit inside this state bound.
-        UpperBoxType insufficient({{-0.125_x, 0.125_x}});
+        UpperBoxType insufficient({
+            {-0.125_x, 0.125_x}
+        });
         ARIADNE_TESTING_EXPECT_THROWS(FlowBoundsException, integrator.flow_step(field, initial, StepSizeType(0.5_x), insufficient));
-        ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument, integrator.flow_step(field, initial, StepSizeType(0u), UpperBoxType({{-1, 1}})));
+        ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument, integrator.flow_step(field, initial, StepSizeType(0u), UpperBoxType({
+                                                                                                                        {-1, 1}
+        })));
 
         // A box extension must not be evaluated beyond the model domain.
-        UpperBoxType outside_domain({{-2, 2}});
+        UpperBoxType outside_domain({
+            {-2, 2}
+        });
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument, field.evaluate(outside_domain));
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument, integrator.flow_step(field, initial, StepSizeType(0.5_x), outside_domain));
     }
@@ -108,47 +141,72 @@ class TestMultifunctionIntegrator : public Ariadne::Testing::ContextFixture {
     // An interior bound must certify the very same constant inclusion.
     // This isolates the continuation test from domain-boundary handling.
     Void test_interior_valid_step() {
-        BoxDomainType domain({{-1, 1}});
+        BoxDomainType domain({
+            {-1, 1}
+        });
         ThresholdSweeper<FloatDP> sweeper(dp, 1e-10);
         Scalar uncertain = Scalar::constant(domain, Ivl(-1, 1, dp), sweeper);
         VectorModel model({uncertain});
         ValidatedIntervalTaylorBoxMultifunctionDP field(model);
         FirstOrderMultifunctionIntegrator integrator;
-        ExactBoxType initial({{0, 0}});
-        UpperBoxType interior({{-0.5_x, 0.5_x}});
+        ExactBoxType initial({
+            {0, 0}
+        });
+        UpperBoxType interior({
+            {-0.5_x, 0.5_x}
+        });
         const auto step = integrator.flow_step(field, initial, StepSizeType(0.25_x), interior);
         ARIADNE_TESTING_PROVE(definitely(inside(step.reach, cast_exact_box(interior))));
-        ARIADNE_TESTING_PROVE(definitely(subset(ExactBoxType({{-0.25_x, 0.25_x}}), cast_exact_box(step.evolve))));
+        ARIADNE_TESTING_PROVE(definitely(subset(ExactBoxType({
+                                                    {-0.25_x, 0.25_x}
+        }),
+                                                cast_exact_box(step.evolve))));
     }
 
     // The equality case is legitimate: the bounding box may coincide with
     // the (closed) domain of the Taylor model.
     Void test_boundary_domain_check() {
-        BoxDomainType domain({{-1, 1}});
-        UpperBoxType same_bound({{-1, 1}});
+        BoxDomainType domain({
+            {-1, 1}
+        });
+        UpperBoxType same_bound({
+            {-1, 1}
+        });
         ARIADNE_TESTING_PROVE(definitely(subset(same_bound, domain)));
     }
 
     Void test_boundary_box_evaluation() {
-        BoxDomainType domain({{-1, 1}});
+        BoxDomainType domain({
+            {-1, 1}
+        });
         ThresholdSweeper<FloatDP> sweeper(dp, 1e-10);
         Scalar uncertain = Scalar::constant(domain, Ivl(-1, 1, dp), sweeper);
         VectorModel model({uncertain});
         ValidatedIntervalTaylorBoxMultifunctionDP field(model);
-        UpperBoxType same_bound({{-1, 1}});
+        UpperBoxType same_bound({
+            {-1, 1}
+        });
         const auto values = field.evaluate(same_bound);
         ARIADNE_TESTING_EXPECT_EQUAL(values.dimension(), 1u);
-        ARIADNE_TESTING_PROVE(definitely(subset(ExactBoxType({{-1, 1}}), cast_exact_box(values))));
+        ARIADNE_TESTING_PROVE(definitely(subset(ExactBoxType({
+                                                    {-1, 1}
+        }),
+                                                cast_exact_box(values))));
     }
 
     Void test_reject_dimension_mismatch() {
-        BoxDomainType domain({{-1, 1}});
+        BoxDomainType domain({
+            {-1, 1}
+        });
         ThresholdSweeper<FloatDP> sweeper(dp, 1e-10);
         Scalar x = Scalar::coordinate(domain, 0u, sweeper);
         VectorModel model({x, x});
         ValidatedIntervalTaylorBoxMultifunctionDP field(model);
         FirstOrderMultifunctionIntegrator integrator;
-        ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument, integrator.flow_step(field, ExactBoxType({{0, 0}}), StepSizeType(0.25_x), UpperBoxType({{-1, 1}})));
+        ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument, integrator.flow_step(field, ExactBoxType({
+                                                                                             {0, 0}
+        }),
+                                                                                  StepSizeType(0.25_x), UpperBoxType({{-1, 1}})));
     }
 };
 
