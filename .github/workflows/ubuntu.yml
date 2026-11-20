@@ -126,6 +126,25 @@ jobs:
       if: matrix.build_type == 'Debug'
       run: echo "Runner location captured"
 
+    - name: Capture selected-inclusion tail and exception
+      if: matrix.build_type == 'Debug'
+      id: selected_inclusion_tail
+      working-directory: ${{ runner.workspace }}/build
+      run: |
+        OUT=$(grep -i -E 'exception|terminate|uncaught|what\\(\\)|domain|assert|failed' selected_inclusion_test.txt | tail -n 2 | tr '\n' ' ' | cut -c1-175 || true)
+        OUT=${OUT:-no-exception-marker}
+        LAST=$(tail -n 6 selected_inclusion_test.txt | tr '\n' ' ' | cut -c1-175)
+        echo "exception=$OUT" >> "$GITHUB_OUTPUT"
+        echo "tail=$LAST" >> "$GITHUB_OUTPUT"
+
+    - name: "Selected exception ${{ steps.selected_inclusion_tail.outputs.exception }}"
+      if: matrix.build_type == 'Debug'
+      run: echo "Exception metadata"
+
+    - name: "Selected tail ${{ steps.selected_inclusion_tail.outputs.tail }}"
+      if: matrix.build_type == 'Debug'
+      run: echo "Tail metadata"
+
     - name: Test C++
       id: cpp_tests
       if: matrix.build_type == 'Debug'
