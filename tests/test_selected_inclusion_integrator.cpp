@@ -279,6 +279,56 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         ARIADNE_TESTING_PROVE(definitely(is_bounded(step.evolve)));
         ARIADNE_TESTING_PROVE(definitely(subset(ExactBoxType({{1.0_x, 1.0_x}}),
                                                  cast_exact_box(step.reach))));
+        // x(t) = exp(integral_0^t u(s) ds), |u(s)| <= 1:
+        // all endpoints in [exp(-h), exp(h)] must be enclosed, not just x(0).
+        const FloatDPBounds h_bounds(StepSizeType(0.03125_x), dp);
+        const FloatDPBounds minimum = exp(-h_bounds);
+        const FloatDPBounds maximum = exp(h_bounds);
+        const UpperIntervalType exact_endpoint_hull(minimum.lower(), maximum.upper());
+        ARIADNE_TESTING_PROVE(refines(exact_endpoint_hull, step.evolve[0u]));
+        ARIADNE_TESTING_PROVE(refines(exact_endpoint_hull, step.reach[0u]));
+    }
+
+    Void test_interval_taylor_conversion_preserves_switching_endpoints() {
+        // x' = u(t), y' = x with u(t) in [-1,1].
+        // Switching u=+1 on [0,h/2] and u=-1 on [h/2,h]
+        // reaches x(h)=0, y(h)=h*h/4. A frozen coefficient cannot do this.
+        BoxDomainType domain({{-1.0_x, 1.0_x}, {-1.0_x, 1.0_x}});
+        ThresholdSweeper<FloatDP> sweeper(dp, 1e-10);
+        using Scalar = ValidatedIntervalTaylorFunctionModel<FloatDP>;
+        using Model = ValidatedVectorIntervalTaylorFunctionModel<FloatDP>;
+        Scalar uncertain = Scalar::constant(domain, Interval<FloatDPUpperBound>(-1, 1, dp), sweeper);
+        Scalar x = Scalar::coordinate(domain, 0u, sweeper);
+        ValidatedIntervalTaylorBoxMultifunctionDP field(Model({uncertain, x}));
+
+        const auto form = field.parametric_form();
+        ARIADNE_TESTING_PROVE(form.has_value());
+        ARIADNE_TESTING_EXPECT_EQUAL(form->field.result_size(), 2u);
+        ARIADNE_TESTING_EXPECT_EQUAL(form->field.argument_size(), 2u + form->inputs.dimension());
+
+        TaylorSeriesIntegrator base(ThresholdSweeper<FloatDP>(dp, 1e-10),
+                                    lipschitz_tolerance = 0.5_x, order = 8);
+        SelectedParametricMultifunctionIntegrator integrator(base,
+            InputApproximation(ZeroApproximation()), InputApproximation(AffineApproximation()));
+        const StepSizeType h(0.03125_x);
+        const auto step = integrator.flow_step(field,
+            ExactBoxType({{0.0_x, 0.0_x}, {0.0_x, 0.0_x}}), h,
+            UpperBoxType({{-1.0_x, 1.0_x}, {-1.0_x, 1.0_x}}));
+
+        const ExactBoxType positive_constant_input({
+            {0.03125_x, 0.03125_x},
+            {0.00048828125_x, 0.00048828125_x}});
+        const ExactBoxType negative_constant_input({
+            {-0.03125_x, -0.03125_x},
+            {-0.00048828125_x, -0.00048828125_x}});
+        const ExactBoxType switching_input({
+            {0.0_x, 0.0_x},
+            {0.000244140625_x, 0.000244140625_x}});
+
+        ARIADNE_TESTING_PROVE(definitely(subset(positive_constant_input, cast_exact_box(step.evolve))));
+        ARIADNE_TESTING_PROVE(definitely(subset(negative_constant_input, cast_exact_box(step.evolve))));
+        ARIADNE_TESTING_PROVE(definitely(subset(switching_input, cast_exact_box(step.evolve))));
+        ARIADNE_TESTING_PROVE(definitely(subset(switching_input, cast_exact_box(step.reach))));
     }
 
     Void test_invalid_time_step() {
@@ -307,5 +357,6 @@ int main(int argc, char** argv) {
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_high_order_common_integrator_bridge);
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_high_order_interval_taylor_via_parametric_conversion);
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_interval_taylor_conversion_of_state_dependent_input);
+    ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_interval_taylor_conversion_preserves_switching_endpoints);
     return Ariadne::Testing::run_logging_suite(ariadne_test_suite, argc, argv);
 }
