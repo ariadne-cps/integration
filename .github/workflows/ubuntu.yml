@@ -81,6 +81,11 @@ jobs:
       working-directory: ${{ runner.workspace }}/build
       run: cmake --build . --parallel $NPROC --target tests bindings
 
+    - name: Test multifunction integrator independently
+      if: matrix.build_type == 'Debug'
+      working-directory: ${{ runner.workspace }}/build
+      run: ctest -R "^test_multifunction_integrator$" --output-on-failure
+
     - name: Test C++
       id: cpp_tests
       if: matrix.build_type == 'Debug'
