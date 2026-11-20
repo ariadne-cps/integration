@@ -32,6 +32,38 @@
 #include "function/taylor_model.hpp"
 
 namespace Ariadne {
+Pair<StepSizeType, UpperBoxType> BounderHandle::compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const Suggestion<StepSizeType>& hsug) const {
+        return _impl->compute(f, D, hsug);
+    }
+Pair<StepSizeType, UpperBoxType> BounderHandle::compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const BoxDomainType& A, const Suggestion<StepSizeType>& hsug) const {
+        return _impl->compute(f, D, A, hsug);
+    }
+Pair<StepSizeType, UpperBoxType> BounderHandle::compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const StepSizeType& t, const Suggestion<StepSizeType>& hsug) const {
+        return _impl->compute(f, D, t, hsug);
+    }
+Pair<StepSizeType, UpperBoxType> BounderHandle::compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const StepSizeType& t, const BoxDomainType& A, const Suggestion<StepSizeType>& hsug) const {
+        return _impl->compute(f, D, t, A, hsug);
+    }
+BounderHandle* BounderHandle::clone() const { return new BounderHandle(*this); }
+Void BounderHandle::_write(OutputStream& os) const { _impl->_write(os); }
+BounderHandle::operator const BounderInterface&() const { return *_impl; }
+BounderHandle& BounderHandle::operator=(const BounderHandle& other) {
+        _impl = other._impl;
+        return *this;
+    }
+BounderHandle::BounderHandle(const BounderHandle& other) : _impl(other._impl) {}
+BounderHandle::BounderHandle(const BounderInterface& bounder) : _impl(bounder.clone()) {}
+EulerBounder* EulerBounder::clone() const { return new EulerBounder(*this); }
+Void EulerBounder::_write(OutputStream& os) const { os << "EulerBounder"; }
+MinimumStepSize::MinimumStepSize(const ExactDouble& value) : Attribute<ExactDouble>(value) {}
+LipschitzTolerance::LipschitzTolerance(const ExactDouble& value) : Attribute<ExactDouble>(value) {}
+BoundingNotFoundException::BoundingNotFoundException(const String& str) : std::runtime_error(str) {}
+
+OutputStream& operator<<(OutputStream& os, const BounderInterface& bounder) {
+    bounder._write(os);
+    return os;
+}
+
 
 BounderBase::BounderBase(LipschitzTolerance lipschitz, MinimumStepSize minimum_step)
     : _lipschitz_tolerance(lipschitz), _minimum_step_size(minimum_step) {}

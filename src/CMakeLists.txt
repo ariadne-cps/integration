@@ -8,6 +8,7 @@ add_library(INTEGRATION_SRC OBJECT
     selected_inclusion_integrator.cpp
     inclusion_integrator.cpp
     bounder.cpp
+    integrator_interface.cpp
     runge_kutta_integrator.cpp
 )
 
