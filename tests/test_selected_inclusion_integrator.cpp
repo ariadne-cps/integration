@@ -135,6 +135,84 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         }
     }
 
+
+    Void test_parametric_box_extension_and_low_order_bridge() {
+        BoxDomainType state_domain({{-1.0_x, 1.0_x}});
+        // The owned structural representation outlives these temporaries.
+        ValidatedParametricBoxMultifunctionDP field_view(field(), inputs(), state_domain);
+        UpperBoxType evaluation_box({{0.0_x, 0.125_x}});
+        auto range = field_view.evaluate(evaluation_box);
+        ARIADNE_TESTING_EXPECT_EQUAL(range.dimension(), 1u);
+        ARIADNE_TESTING_PROVE(definitely(subset(ExactBoxType({{-0.125_x, 0.25_x}}), cast_exact_box(range))));
+
+        FirstOrderMultifunctionIntegrator low_order;
+        const MultifunctionIntegratorInterface& common = low_order;
+        auto box_step = common.flow_step(field_view, ExactBoxType({{0.0_x, 0.125_x}}),
+                                         StepSizeType(0.03125_x), UpperBoxType({{-1.0_x, 1.0_x}}));
+        ARIADNE_TESTING_EXPECT_EQUAL(box_step.time_step, StepSizeType(0.03125_x));
+        ARIADNE_TESTING_PROVE(definitely(inside(box_step.reach, ExactBoxType({{-1.0_x, 1.0_x}}))));
+        ARIADNE_TESTING_PROVE(definitely(is_bounded(box_step.evolve)));
+
+        ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
+            field_view.evaluate(UpperBoxType({{-2.0_x, 2.0_x}})));
+        ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
+            ValidatedParametricBoxMultifunctionDP(field(), BoxDomainType(0u), state_domain));
+        ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
+            ValidatedParametricBoxMultifunctionDP(field(), inputs(), BoxDomainType({{-1.0_x, 1.0_x}, {-1.0_x, 1.0_x}})));
+    }
+
+    Void test_high_order_common_integrator_bridge() {
+        TaylorSeriesIntegrator base(ThresholdSweeper<FloatDP>(dp, 1e-10),
+                                    lipschitz_tolerance = 0.5_x, order = 8);
+        SelectedParametricMultifunctionIntegrator high_order(base,
+            InputApproximation(ZeroApproximation()),
+            InputApproximation(AffineApproximation()));
+        ARIADNE_TESTING_EXPECT_EQUAL(high_order.reach_index(), ZeroApproximation().index());
+        ARIADNE_TESTING_EXPECT_EQUAL(high_order.evolve_index(), AffineApproximation().index());
+
+        ValidatedParametricBoxMultifunctionDP structural(field(), inputs(), BoxDomainType({{-1.0_x, 1.0_x}}));
+        ExactBoxType initial({{0.0_x, 0.125_x}});
+        UpperBoxType bound({{-1.0_x, 1.0_x}});
+        StepSizeType h(0.03125_x);
+        const MultifunctionIntegratorInterface& common = high_order;
+        const auto box_step = common.flow_step(structural, initial, h, bound);
+        ARIADNE_TESTING_EXPECT_EQUAL(box_step.time_step, h);
+        ARIADNE_TESTING_PROVE(definitely(is_bounded(box_step.reach)));
+        ARIADNE_TESTING_PROVE(definitely(is_bounded(box_step.evolve)));
+        const auto patch_step = high_order.structured_step(structural, initial, h, bound);
+        ARIADNE_TESTING_EXPECT_EQUAL(patch_step.reach_models.size(), 1u);
+        ARIADNE_TESTING_EXPECT_EQUAL(patch_step.evolve_model.argument_size(), 3u);
+        ARIADNE_TESTING_PROVE(same(cast_exact_box(patch_step.bounding_step(h).reach),
+                                  cast_exact_box(box_step.reach)));
+
+        const auto expected = FloatDPBounds(0.0625_x, dp) * exp(FloatDPBounds(h, dp));
+        UpperIntervalType nominal(expected.lower(), expected.upper());
+        ARIADNE_TESTING_PROVE(refines(nominal, box_step.evolve[0u]));
+
+        ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
+            high_order.structured_step(structural, initial, h, UpperBoxType({{-2.0_x, 2.0_x}})));
+        ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
+            SelectedParametricMultifunctionIntegrator(base,
+                InputApproximation(AffineApproximation()),
+                InputApproximation(ConstantApproximation())));
+    }
+
+    Void test_high_order_rejects_unstructured_interval_field() {
+        TaylorSeriesIntegrator base(step_maximum_error = 1e-6, order = 8);
+        SelectedParametricMultifunctionIntegrator high_order(base,
+            InputApproximation(ConstantApproximation()), InputApproximation(ConstantApproximation()));
+        BoxDomainType domain({{-1.0_x, 1.0_x}});
+        ThresholdSweeper<FloatDP> sweeper(dp, 1e-10);
+        using Scalar = ValidatedIntervalTaylorFunctionModel<FloatDP>;
+        using Model = ValidatedVectorIntervalTaylorFunctionModel<FloatDP>;
+        Scalar uncertain = Scalar::constant(domain, Interval<FloatDPUpperBound>(-1, 1, dp), sweeper);
+        ValidatedIntervalTaylorBoxMultifunctionDP unstructured(Model({uncertain}));
+        const MultifunctionIntegratorInterface& common = high_order;
+        ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
+            common.flow_step(unstructured, ExactBoxType({{0.0_x, 0.125_x}}),
+                             StepSizeType(0.03125_x), UpperBoxType({{-1.0_x, 1.0_x}})));
+    }
+
     Void test_invalid_time_step() {
         TaylorSeriesIntegrator base(step_maximum_error = 1e-6, order = 8);
         InclusionIntegratorFactory factory(base);
@@ -157,5 +235,8 @@ int main(int argc, char** argv) {
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_distinct_approximations_and_endpoint);
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_same_method_and_nonrigorous_endpoint_strategy);
     ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_invalid_time_step);
+    ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_parametric_box_extension_and_low_order_bridge);
+    ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_high_order_common_integrator_bridge);
+    ARIADNE_TESTING_ADD_TEST(TestSelectedInclusionIntegrator, test_high_order_rejects_unstructured_interval_field);
     return Ariadne::Testing::run_logging_suite(ariadne_test_suite, argc, argv);
 }
