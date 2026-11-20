@@ -131,6 +131,114 @@ class TestValidatedStepIntegrator : public Ariadne::Testing::ContextFixture {
         ARIADNE_TESTING_EXPECT_EQUAL(original->time_step, h);
     }
 
+    Void test_structured_two_step_continuation_uses_common_result() {
+        // x'=u(t), |u(t)|<=1. Each step must admit a fresh independent
+        // input while preserving the coordinates and inputs of earlier steps.
+        const auto u = EffectiveFormula::coordinate(1u);
+        const EffectiveVectorMultivariateFunction f =
+            EffectiveVectorMultivariateFormulaFunction(
+                2u, Vector<EffectiveFormula>{u});
+        ValidatedInputFieldBoxAdapterDP field(f,
+            BoxDomainType({{-1.0_x, 1.0_x}}),
+            BoxDomainType({{-1.0_x, 1.0_x}}));
+        const ExactBoxType initial({{-0.125_x, 0.125_x}});
+        const UpperBoxType bound({{-1.0_x, 1.0_x}});
+        const StepSizeType h1(0.03125_x);
+        const StepSizeType h2(0.015625_x);
+        TaylorSeriesIntegrator base(ThresholdSweeper<FloatDP>(dp, 1e-10),
+                                    lipschitz_tolerance = 0.5_x, order = 8);
+        SelectedParametricMultifunctionIntegrator selected(
+            base, InputApproximation(ZeroApproximation()),
+            InputApproximation(ConstantApproximation()));
+        const StructuredInclusionStepIntegratorAdapter adapter(selected);
+        const ValidatedStepIntegratorInterface& solver = adapter;
+        const auto first = solver.step(
+            ValidatedIntegrationRequest(field, initial, h1, bound));
+        const auto second = solver.step(
+            ValidatedIntegrationRequest(field, first, h2, bound));
+
+        ARIADNE_TESTING_EXPECT_EQUAL(first.initial_time(), StepSizeType(0u));
+        ARIADNE_TESTING_EXPECT_EQUAL(first.final_time(), h1);
+        ARIADNE_TESTING_EXPECT_EQUAL(second.initial_time(), h1);
+        ARIADNE_TESTING_EXPECT_EQUAL(second.time_step(), h2);
+        ARIADNE_TESTING_EXPECT_EQUAL(second.final_time(), StepSizeType(0.046875_x));
+        ARIADNE_TESTING_PROVE(first.has_evolve_model());
+        ARIADNE_TESTING_PROVE(second.has_evolve_model());
+        ARIADNE_TESTING_PROVE(
+            second.evolve_model().argument_size() > first.evolve_model().argument_size());
+        ARIADNE_TESTING_EXPECT_EQUAL(
+            second.evolve_model().domain()[range(0u, first.evolve_model().argument_size())],
+            first.evolve_model().domain());
+        ARIADNE_TESTING_PROVE(definitely(subset(
+            ExactBoxType({{-0.171875_x, 0.171875_x}}),
+            cast_exact_box(second.evolve()))));
+        ARIADNE_TESTING_PROVE(second.has_reach_models());
+        for (const auto& reach_model: second.reach_models()) {
+            ARIADNE_TESTING_EXPECT_EQUAL(
+                reach_model.domain()[initial.dimension()],
+                IntervalDomainType(0.03125_x, 0.046875_x));
+        }
+    }
+
+    Void test_box_only_continuation_keeps_hull_and_time() {
+        const auto u = EffectiveFormula::coordinate(1u);
+        const EffectiveVectorMultivariateFunction f =
+            EffectiveVectorMultivariateFormulaFunction(
+                2u, Vector<EffectiveFormula>{u});
+        ValidatedInputFieldBoxAdapterDP field(f,
+            BoxDomainType({{-1.0_x, 1.0_x}}),
+            BoxDomainType({{-1.0_x, 1.0_x}}));
+        const ExactBoxType initial({{-0.125_x, 0.125_x}});
+        const UpperBoxType bound({{-1.0_x, 1.0_x}});
+        const StepSizeType h1(0.03125_x);
+        const StepSizeType h2(0.015625_x);
+        FirstOrderMultifunctionIntegrator low;
+        const MultiflowStepIntegratorAdapter adapter(low);
+        const ValidatedStepIntegratorInterface& solver = adapter;
+        const auto first = solver.step(ValidatedIntegrationRequest(field, initial, h1, bound));
+        const auto second = solver.step(ValidatedIntegrationRequest(field, first, h2, bound));
+
+        ARIADNE_TESTING_PROVE(not first.has_evolve_model());
+        ARIADNE_TESTING_PROVE(not second.has_evolve_model());
+        ARIADNE_TESTING_PROVE(not second.has_reach_models());
+        ARIADNE_TESTING_EXPECT_EQUAL(second.initial_time(), h1);
+        ARIADNE_TESTING_EXPECT_EQUAL(second.final_time(), StepSizeType(0.046875_x));
+        ARIADNE_TESTING_PROVE(definitely(subset(
+            ExactBoxType({{-0.171875_x, 0.171875_x}}),
+            cast_exact_box(second.evolve()))));
+    }
+
+    Void test_no_implicit_loss_of_structured_continuation() {
+        // A structured map must not be silently restarted as an endpoint box
+        // by a solver which cannot preserve its accumulated input parameters.
+        const auto u = EffectiveFormula::coordinate(1u);
+        const EffectiveVectorMultivariateFunction f =
+            EffectiveVectorMultivariateFormulaFunction(
+                2u, Vector<EffectiveFormula>{u});
+        ValidatedInputFieldBoxAdapterDP field(f,
+            BoxDomainType({{-1.0_x, 1.0_x}}),
+            BoxDomainType({{-1.0_x, 1.0_x}}));
+        const ExactBoxType initial({{-0.125_x, 0.125_x}});
+        const UpperBoxType bound({{-1.0_x, 1.0_x}});
+        const StepSizeType h(0.03125_x);
+        TaylorSeriesIntegrator base(ThresholdSweeper<FloatDP>(dp, 1e-10),
+                                    lipschitz_tolerance = 0.5_x, order = 8);
+        SelectedParametricMultifunctionIntegrator selected(
+            base, InputApproximation(ZeroApproximation()),
+            InputApproximation(ConstantApproximation()));
+        const StructuredInclusionStepIntegratorAdapter high(selected);
+        const auto first = high.step(ValidatedIntegrationRequest(field, initial, h, bound));
+        FirstOrderMultifunctionIntegrator low;
+        const MultiflowStepIntegratorAdapter box_adapter(low);
+        ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
+            box_adapter.step(ValidatedIntegrationRequest(field, first, h, bound)));
+
+        // The concrete type of the preceding solver is not consulted.
+        ARIADNE_TESTING_PROVE(first.has_evolve_model());
+        ARIADNE_TESTING_EXPECT_EQUAL(
+            ValidatedIntegrationRequest::continuation_domain(first), initial);
+    }
+
     Void test_reject_invalid_request() {
         const ValidatedVectorMultivariateFunction ordinary = {
             ValidatedScalarMultivariateFunction::constant(1u, 1)};
@@ -153,6 +261,9 @@ int main(int argc, char** argv) {
     ARIADNE_TESTING_SUITE("test_validated_step_integrator");
     ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_common_polymorphic_step_for_both_field_capabilities);
     ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_structured_inclusion_retains_native_maps);
+    ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_structured_two_step_continuation_uses_common_result);
+    ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_box_only_continuation_keeps_hull_and_time);
+    ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_no_implicit_loss_of_structured_continuation);
     ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_reject_invalid_request);
     return Ariadne::Testing::run_logging_suite(ariadne_test_suite, argc, argv);
 }
