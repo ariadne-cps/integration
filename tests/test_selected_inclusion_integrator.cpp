@@ -154,7 +154,7 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
                                     lipschitz_tolerance = 0.5_x, order = 8);
         InclusionIntegratorFactory factory(base);
         const auto initial = base.function_factory().create_identity(initial_domain);
-        const InputApproximation rigorous_reach(ZeroApproximation());
+        const InputApproximation rigorous_reach{ZeroApproximation()};
         for (const auto& endpoint: {InputApproximation(ZeroApproximation()),
                                    InputApproximation(ConstantApproximation()),
                                    InputApproximation(AffineApproximation()),
