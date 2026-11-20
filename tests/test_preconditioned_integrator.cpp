@@ -248,6 +248,73 @@ class TestPreconditionedIntegrator : public Ariadne::Testing::ContextFixture {
         }
     }
 
+    // Check the structural Taylor invariant, not merely set inclusion.
+    Void check_stationary_component(
+        const ValidatedVectorMultivariateFunctionPatch& mapping,
+        const FloatDP& constant_value) {
+        const auto& taylor =
+            dynamic_cast<const ValidatedVectorMultivariateTaylorFunctionModelDP&>(
+                mapping.reference());
+        const auto& model = taylor.model(0u);
+        ARIADNE_TESTING_EXPECT_EQUAL(model.value().raw(), constant_value);
+        ARIADNE_TESTING_EXPECT_EQUAL(
+            model.error().raw(), FloatDP(0u, dp));
+        ARIADNE_TESTING_EXPECT_EQUAL(model.number_of_nonzeros(), 1u);
+    }
+
+    // A component with zero derivative and a constant initial Taylor model
+    // must remain structurally constant while another component evolves.
+    Void test_stationary_constant_component_in_coupled_flow() {
+        auto zero = EffectiveScalarMultivariateFunction::constant(2u, 0);
+        auto y = EffectiveScalarMultivariateFunction::coordinate(2u, 1u);
+        ValidatedVectorMultivariateFunction field =
+            EffectiveVectorMultivariateFunction({zero, y});
+        ExactBoxType parameter_domain(2u, ExactIntervalType(-0.5_x, 0.5_x));
+        const FloatDP constant_value(1.25_x, dp);
+        const StepSizeType h(0.03125_x);
+
+        for (auto mode: {TaylorSeriesPreconditioning::IDENTITY,
+                         TaylorSeriesPreconditioning::QR}) {
+            ARIADNE_TESTING_NOTE(
+                "Constant component with preconditioning="
+                << (mode == TaylorSeriesPreconditioning::QR ? "QR" : "IDENTITY"));
+            PreconditionedGradedTaylorSeriesIntegrator integrator(
+                step_maximum_error = 1e-6);
+            integrator.set_preconditioning(mode);
+
+            const auto& factory = integrator.function_factory();
+            auto initial = factory.create_zeros(2u, parameter_domain);
+            initial[0u] = factory.create_constant(
+                parameter_domain, FloatDPBounds(constant_value));
+            initial[1u] = factory.create_coordinate(parameter_domain, 1u);
+            check_stationary_component(initial, constant_value);
+
+            auto state = integrator.precondition(initial);
+            ARIADNE_TESTING_EXPECT_EQUAL(state.centre()[0u], constant_value);
+
+            auto first = integrator.step(field, state, suggest(h));
+            ARIADNE_TESTING_EXPECT_EQUAL(first.time_step(), h);
+            check_stationary_component(first.flowpipe_mapping(), constant_value);
+            check_stationary_component(first.evolved_mapping(), constant_value);
+            ARIADNE_TESTING_EXPECT_EQUAL(
+                first.final_state().centre()[0u], constant_value);
+
+            auto second = integrator.step(field, first.final_state(), suggest(h));
+            ARIADNE_TESTING_EXPECT_EQUAL(second.time_step(), h);
+            check_stationary_component(second.flowpipe_mapping(), constant_value);
+            check_stationary_component(second.evolved_mapping(), constant_value);
+            ARIADNE_TESTING_EXPECT_EQUAL(
+                second.final_state().centre()[0u], constant_value);
+
+            auto third = integrator.step(field, second.final_state(), suggest(h));
+            ARIADNE_TESTING_EXPECT_EQUAL(third.time_step(), h);
+            check_stationary_component(third.flowpipe_mapping(), constant_value);
+            check_stationary_component(third.evolved_mapping(), constant_value);
+            ARIADNE_TESTING_EXPECT_EQUAL(
+                third.final_state().centre()[0u], constant_value);
+        }
+    }
+
     Void test_adaptive_orders_and_step_rejection() {
         auto x = EffectiveScalarMultivariateFunction::coordinate(1u, 0u);
         ValidatedVectorMultivariateFunction field = EffectiveVectorMultivariateFunction({x});
@@ -288,6 +355,7 @@ int main(int argc, char** argv) {
     ARIADNE_TESTING_ADD_TEST(TestPreconditionedIntegrator, test_physical_flow_step);
     ARIADNE_TESTING_ADD_TEST(TestPreconditionedIntegrator, test_step_dimension_contracts);
     ARIADNE_TESTING_ADD_TEST(TestPreconditionedIntegrator, test_stationary_zero_order_step);
+    ARIADNE_TESTING_ADD_TEST(TestPreconditionedIntegrator, test_stationary_constant_component_in_coupled_flow);
     ARIADNE_TESTING_ADD_TEST(TestPreconditionedIntegrator, test_adaptive_orders_and_step_rejection);
     return Ariadne::Testing::run_logging_suite(ariadne_test_suite, argc, argv);
 }
