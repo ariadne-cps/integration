@@ -96,7 +96,9 @@ class TestPolynomialProcedure : public Ariadne::Testing::ContextFixture {
             EffectiveVectorMultivariateFunction({sqr(x) - x});
         const ExactBoxType domain({{0.375_x, 0.625_x}});
         const auto [step, log] = integrate_with_diagnostics(field, domain);
+        // Boolean diagnostics follow the stream's boolalpha setting.
         ARIADNE_TESTING_PROVE(
+            diagnostic_reports(log, "exact_polynomial_available=true") ||
             diagnostic_reports(log, "exact_polynomial_available=1"));
         ARIADNE_TESTING_PROVE(
             diagnostic_reports(log, "exact_polynomial_degree="));
