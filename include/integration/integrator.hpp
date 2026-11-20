@@ -560,7 +560,7 @@ class PreconditionedTaylorSeriesState {
           _physical_mapping(std::make_shared<const ValidatedVectorMultivariateFunctionPatch>(
               std::move(physical_mapping))) {}
 
-    const Bool has_physical_mapping() const { return static_cast<Bool>(_physical_mapping != nullptr); }
+    Bool has_physical_mapping() const { return static_cast<Bool>(_physical_mapping != nullptr); }
     const ValidatedVectorMultivariateFunctionPatch& physical_mapping() const { return *_physical_mapping; }
     const Vector<FloatDP>& centre() const { return _centre; }
     const Matrix<FloatDP>& linear_map() const { return _linear_map; }
