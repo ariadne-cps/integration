@@ -64,9 +64,9 @@ class TestValidatedStepIntegrator : public Ariadne::Testing::ContextFixture {
         const MultiflowStepIntegratorAdapter inclusion_solver(low_order);
 
         // The caller only depends on this one numerical step interface.
-        const ValidatedStepIntegratorInterface& solvers[2] = {flow_solver, inclusion_solver};
-        const auto ordinary_step = solvers[0].step(function_request);
-        const auto inclusion_step = solvers[1].step(multifunction_request);
+        const ValidatedStepIntegratorInterface* const solvers[2] = {&flow_solver, &inclusion_solver};
+        const auto ordinary_step = solvers[0]->step(function_request);
+        const auto inclusion_step = solvers[1]->step(multifunction_request);
 
         ARIADNE_TESTING_EXPECT_EQUAL(ordinary_step.time_step(), h);
         ARIADNE_TESTING_EXPECT_EQUAL(inclusion_step.time_step(), h);
@@ -82,9 +82,9 @@ class TestValidatedStepIntegrator : public Ariadne::Testing::ContextFixture {
 
         // An unsuitable numerical input must not select another solver.
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-            solvers[0].step(multifunction_request));
+            solvers[0]->step(multifunction_request));
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-            solvers[1].step(function_request));
+            solvers[1]->step(function_request));
     }
 
     Void test_structured_inclusion_retains_native_maps() {
