@@ -62,7 +62,7 @@ class ValidatedIntegrationStep {
     std::optional<ValidatedVectorMultivariateFunctionPatch> _evolve_model;
     std::optional<SizeType> _reach_time_index;
     StepSizeType _reach_time_offset;
-    bool _equation_has_explicit_time;
+    bool _has_explicit_time;
     ExactBoxType _constant_parameter_domain;
     std::any _representation;
 
@@ -75,7 +75,7 @@ class ValidatedIntegrationStep {
                              std::optional<ValidatedVectorMultivariateFunctionPatch> evolve_model = std::nullopt,
                              const StepSizeType& initial_time = StepSizeType(0u),
                              std::optional<SizeType> reach_time_index = std::nullopt,
-                             bool equation_has_explicit_time = false,
+                             bool has_explicit_time = false,
                              ExactBoxType constant_parameter_domain = ExactBoxType(0u),
                              const StepSizeType& reach_time_offset = StepSizeType(0u));
 
@@ -83,13 +83,11 @@ class ValidatedIntegrationStep {
     const StepSizeType& time_step() const;
     const StepSizeType& initial_time() const;
     StepSizeType final_time() const;
-    /** @brief Whether an equation step uses an explicit time coordinate.
+    /** @brief Whether the numerical field uses an explicit time coordinate.
      *  This is numerical continuation metadata, not a system classification.
      */
     bool has_explicit_time() const;
-    /** @brief Compatibility alias for earlier equation-only requests. */
-    bool equation_has_explicit_time() const;
-    /** @brief Trajectory-constant parameters shared across equation steps.
+    /** @brief Trajectory-constant parameters shared across integration steps.
      *  Their coordinates occupy the prefix immediately after original states.
      *  Later inclusion steps may append independent time-varying inputs.
      */

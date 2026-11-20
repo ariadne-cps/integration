@@ -63,7 +63,7 @@ class ValidatedIntegrationRequest {
     StepSizeType _initial_time;
     UpperBoxType _bounding_box;
     std::optional<ValidatedVectorMultivariateFunctionPatch> _initial_mapping;
-    bool _equation_has_explicit_time = false;
+    bool _has_explicit_time = false;
     ExactBoxType _constant_parameter_domain = ExactBoxType(0u);
 
   public:
@@ -141,8 +141,6 @@ ValidatedIntegrationRequest(const ValidatedTimedBoxMultifunctionInterface& field
     const UpperBoxType& bounding_box() const;
     /** @brief Generic numerical metadata, also valid for timed inclusions. */
     bool has_explicit_time() const;
-    /** @brief Kept for compatibility with existing equation tests. */
-    bool equation_has_explicit_time() const;
     const ExactBoxType& constant_parameter_domain() const;
     bool has_initial_mapping() const;
     const ValidatedVectorMultivariateFunctionPatch& initial_mapping() const;

@@ -45,7 +45,7 @@ ValidatedIntegrationStep validated_integration_step(
     const Interval<StepSizeType>& time_domain,
     const StepSizeType& initial_time = StepSizeType(0u),
     std::optional<SizeType> time_coordinate = std::nullopt,
-    bool equation_has_explicit_time = false,
+    bool has_explicit_time = false,
     const ExactBoxType& constant_parameter_domain = ExactBoxType(0u));
 
 
@@ -55,7 +55,7 @@ ValidatedIntegrationStep validated_integration_step(
 ValidatedIntegrationStep validated_integration_step(
     const SelectedInclusionStep& step,
     const StepSizeType& initial_time = StepSizeType(0u),
-    bool equation_has_explicit_time = false,
+    bool has_explicit_time = false,
     const ExactBoxType& constant_parameter_domain = ExactBoxType(0u),
     std::optional<SizeType> time_coordinate = std::nullopt);
 
@@ -64,7 +64,7 @@ ValidatedIntegrationStep validated_integration_step(
 ValidatedIntegrationStep validated_integration_step(
     const ValidatedMultiflowStep& step,
     const StepSizeType& initial_time = StepSizeType(0u),
-    bool equation_has_explicit_time = false,
+    bool has_explicit_time = false,
     const ExactBoxType& constant_parameter_domain = ExactBoxType(0u));
 
 

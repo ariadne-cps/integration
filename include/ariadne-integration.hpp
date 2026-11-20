@@ -35,7 +35,7 @@
 #include "integration/integrator_interface.hpp"
 #include "integration/runge_kutta_integrator.hpp"
 // Public numerical step API shared by equation and inclusion solvers.
-// Historical integrator interfaces remain available for compatibility.
+// Concrete numerical solvers and their common validated step interface.
 #include "integration/validated_step_integrator.hpp"
 
 #include "ariadne-function.hpp"

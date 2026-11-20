@@ -366,7 +366,7 @@ class TestValidatedStepIntegrator : public Ariadne::Testing::ContextFixture {
         ARIADNE_TESTING_EXPECT_EQUAL(first.final_time(), StepSizeType(0.5625_x));
         ARIADNE_TESTING_EXPECT_EQUAL(second.initial_time(), StepSizeType(0.5625_x));
         ARIADNE_TESTING_EXPECT_EQUAL(second.final_time(), StepSizeType(0.59375_x));
-        ARIADNE_TESTING_PROVE(second.equation_has_explicit_time());
+        ARIADNE_TESTING_PROVE(second.has_explicit_time());
         ARIADNE_TESTING_PROVE(second.has_evolve_model());
         ARIADNE_TESTING_EXPECT_EQUAL(second.reach_time_offset(), StepSizeType(0u));
         const auto absolute_sections = second.reach_sections(second.final_time());
@@ -406,7 +406,7 @@ class TestValidatedStepIntegrator : public Ariadne::Testing::ContextFixture {
         const EffectiveVectorMultivariateFunction expected = {
             x0 + p0 * Real(0.09375_x) + Real(0.05126953125_x)};
         ARIADNE_TESTING_PROVE(second.has_evolve_model());
-        ARIADNE_TESTING_PROVE(second.equation_has_explicit_time());
+        ARIADNE_TESTING_PROVE(second.has_explicit_time());
         ARIADNE_TESTING_EXPECT_EQUAL(second.constant_parameter_domain(), parameters);
         ARIADNE_TESTING_EXPECT_EQUAL(second.evolve_model().argument_size(), 2u);
         ARIADNE_TESTING_EXPECT_EQUAL(

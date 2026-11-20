@@ -17,11 +17,11 @@ ValidatedIntegrationStep validated_integration_step(
     const Interval<StepSizeType>& time_domain,
     const StepSizeType& initial_time,
     std::optional<SizeType> time_coordinate,
-    bool equation_has_explicit_time,
+    bool has_explicit_time,
     const ExactBoxType& constant_parameter_domain) {
     const SizeType n = flow.result_size();
     const SizeType time_index = time_coordinate.value_or(n);
-    if (equation_has_explicit_time && initial_time != time_domain.lower_bound()) {
+    if (has_explicit_time && initial_time != time_domain.lower_bound()) {
         throw std::invalid_argument("Explicit-time flow cannot be relabelled with a different absolute start");
     }
     if (flow.argument_size() <= time_index ||
@@ -36,7 +36,7 @@ ValidatedIntegrationStep validated_integration_step(
     return ValidatedIntegrationStep(duration, UpperBoxType(flow.range()),
                                     UpperBoxType(endpoint.range()), std::any(flow),
                                     std::move(reach_models), endpoint, initial_time,
-                                    time_index, equation_has_explicit_time,
+                                    time_index, has_explicit_time,
                                     constant_parameter_domain,
                                     initial_time - time_domain.lower_bound());
 }
@@ -44,25 +44,25 @@ ValidatedIntegrationStep validated_integration_step(
 ValidatedIntegrationStep validated_integration_step(
     const SelectedInclusionStep& step,
     const StepSizeType& initial_time,
-    bool equation_has_explicit_time,
+    bool has_explicit_time,
     const ExactBoxType& constant_parameter_domain,
     std::optional<SizeType> time_coordinate) {
     const auto bounds = step.bounding_step();
     return ValidatedIntegrationStep(bounds.time_step, bounds.reach,
                                     bounds.evolve, std::any(step),
                                     step.reach_models, step.evolve_model, initial_time,
-                                    time_coordinate, equation_has_explicit_time,
+                                    time_coordinate, has_explicit_time,
                                     constant_parameter_domain);
 }
 
 ValidatedIntegrationStep validated_integration_step(
     const ValidatedMultiflowStep& step,
     const StepSizeType& initial_time,
-    bool equation_has_explicit_time,
+    bool has_explicit_time,
     const ExactBoxType& constant_parameter_domain) {
     return ValidatedIntegrationStep(step.time_step, step.reach, step.evolve,
                                     {}, {}, std::nullopt, initial_time,
-                                    std::nullopt, equation_has_explicit_time,
+                                    std::nullopt, has_explicit_time,
                                     constant_parameter_domain);
 }
 

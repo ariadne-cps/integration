@@ -20,7 +20,7 @@ ValidatedIntegrationStep::ValidatedIntegrationStep(const StepSizeType& time_step
                              std::optional<ValidatedVectorMultivariateFunctionPatch> evolve_model,
                              const StepSizeType& initial_time,
                              std::optional<SizeType> reach_time_index,
-                             bool equation_has_explicit_time,
+                             bool has_explicit_time,
                              ExactBoxType constant_parameter_domain,
                              const StepSizeType& reach_time_offset)        : _time_step(time_step), _initial_time(initial_time), _reach(reach), _evolve(evolve),
           _reach_models(std::move(reach_models)),
@@ -28,7 +28,7 @@ ValidatedIntegrationStep::ValidatedIntegrationStep(const StepSizeType& time_step
           _reach_time_index(reach_time_index ? reach_time_index
               : (_reach_models.empty() ? std::nullopt : std::optional<SizeType>(reach.dimension()))),
           _reach_time_offset(reach_time_offset),
-          _equation_has_explicit_time(equation_has_explicit_time),
+          _has_explicit_time(has_explicit_time),
           _constant_parameter_domain(std::move(constant_parameter_domain)),
           _representation(std::move(representation)) {
         if (not (time_step > StepSizeType(0u)) ||
@@ -103,9 +103,7 @@ const StepSizeType& ValidatedIntegrationStep::initial_time() const { return _ini
 
 StepSizeType ValidatedIntegrationStep::final_time() const { return _initial_time + _time_step; }
 
-bool ValidatedIntegrationStep::has_explicit_time() const { return _equation_has_explicit_time; }
-
-bool ValidatedIntegrationStep::equation_has_explicit_time() const { return has_explicit_time(); }
+bool ValidatedIntegrationStep::has_explicit_time() const { return _has_explicit_time; }
 
 const ExactBoxType& ValidatedIntegrationStep::constant_parameter_domain() const {
         return _constant_parameter_domain;

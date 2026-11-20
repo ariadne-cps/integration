@@ -35,7 +35,7 @@ ValidatedIntegrationRequest::ValidatedIntegrationRequest(const ValidatedVectorMu
                                 const ExactBoxType& constant_parameters,
                                 const UpperBoxType& bounding_box)        : _field(std::cref(field)), _initial(initial), _time_step(time_step),
           _initial_time(initial_time), _bounding_box(bounding_box),
-          _equation_has_explicit_time(true),
+          _has_explicit_time(true),
           _constant_parameter_domain(constant_parameters) {
         this->validate();
     }
@@ -47,7 +47,7 @@ ValidatedIntegrationRequest::ValidatedIntegrationRequest(const ValidatedTimedBox
                                 const ExactBoxType& constant_parameters,
                                 const UpperBoxType& bounding_box)        : _field(std::cref(field)), _initial(initial), _time_step(time_step),
           _initial_time(initial_time), _bounding_box(bounding_box),
-          _equation_has_explicit_time(true),
+          _has_explicit_time(true),
           _constant_parameter_domain(constant_parameters) {
         this->validate();
     }
@@ -61,7 +61,7 @@ ValidatedIntegrationRequest::ValidatedIntegrationRequest(const ValidatedVectorMu
           _initial_mapping(previous.has_evolve_model()
                                ? std::optional<ValidatedVectorMultivariateFunctionPatch>(previous.evolve_model())
                                : std::nullopt),
-          _equation_has_explicit_time(previous.equation_has_explicit_time()),
+          _has_explicit_time(previous.has_explicit_time()),
           _constant_parameter_domain(previous.constant_parameter_domain()) {
         this->validate();
     }
@@ -75,7 +75,7 @@ ValidatedIntegrationRequest::ValidatedIntegrationRequest(const ValidatedBoxMulti
           _initial_mapping(previous.has_evolve_model()
                                ? std::optional<ValidatedVectorMultivariateFunctionPatch>(previous.evolve_model())
                                : std::nullopt),
-          _equation_has_explicit_time(previous.equation_has_explicit_time()),
+          _has_explicit_time(previous.has_explicit_time()),
           _constant_parameter_domain(previous.constant_parameter_domain()) {
         this->validate();
     }
@@ -89,7 +89,7 @@ ValidatedIntegrationRequest::ValidatedIntegrationRequest(const ValidatedTimedBox
           _initial_mapping(previous.has_evolve_model()
                                ? std::optional<ValidatedVectorMultivariateFunctionPatch>(previous.evolve_model())
                                : std::nullopt),
-          _equation_has_explicit_time(true),
+          _has_explicit_time(true),
           _constant_parameter_domain(previous.constant_parameter_domain()) {
         this->validate();
     }
@@ -115,9 +115,7 @@ const StepSizeType& ValidatedIntegrationRequest::initial_time() const { return _
 
 const UpperBoxType& ValidatedIntegrationRequest::bounding_box() const { return _bounding_box; }
 
-bool ValidatedIntegrationRequest::has_explicit_time() const { return _equation_has_explicit_time; }
-
-bool ValidatedIntegrationRequest::equation_has_explicit_time() const { return has_explicit_time(); }
+bool ValidatedIntegrationRequest::has_explicit_time() const { return _has_explicit_time; }
 
 const ExactBoxType& ValidatedIntegrationRequest::constant_parameter_domain() const {
         return _constant_parameter_domain;
@@ -137,7 +135,7 @@ void ValidatedIntegrationRequest::validate() const {
             _initial.dimension() != _bounding_box.dimension()) {
             throw std::invalid_argument("Validated integration request has incompatible dimensions or duration");
         }
-        if (_constant_parameter_domain.dimension() != 0u && not _equation_has_explicit_time) {
+        if (_constant_parameter_domain.dimension() != 0u && not _has_explicit_time) {
             throw std::invalid_argument("Trajectory-constant equation parameters require explicit-time field semantics");
         }
         if (_initial_mapping &&
@@ -171,7 +169,7 @@ ValidatedIntegrationStep FlowStepIntegratorAdapter::step(const ValidatedIntegrat
         }
         const SizeType n = request.initial().dimension();
         const SizeType np = request.constant_parameter_domain().dimension();
-        const bool explicit_time = request.equation_has_explicit_time();
+        const bool explicit_time = request.has_explicit_time();
         if (field->result_size() != n ||
             field->argument_size() != n + (explicit_time ? 1u + np : 0u)) {
             throw std::invalid_argument("Equation field does not match state, time and parameter arguments");
@@ -272,13 +270,13 @@ ValidatedIntegrationStep StructuredInclusionStepIntegratorAdapter::step(const Va
             return validated_integration_step(_integrator.structured_step(
                 *field, request.initial(), request.initial_mapping(),
                 request.initial_time(), request.time_step(), request.bounding_box()),
-                request.initial_time(), request.equation_has_explicit_time(),
+                request.initial_time(), request.has_explicit_time(),
                 request.constant_parameter_domain());
         }
         return validated_integration_step(_integrator.structured_step(
             *field, request.initial(), request.initial_time(),
             request.time_step(), request.bounding_box()),
-            request.initial_time(), request.equation_has_explicit_time(),
+            request.initial_time(), request.has_explicit_time(),
             request.constant_parameter_domain());
     }
 
