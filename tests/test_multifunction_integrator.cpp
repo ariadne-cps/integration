@@ -63,8 +63,8 @@ class TestMultifunctionIntegrator : public Ariadne::Testing::ContextFixture {
         StepSizeType h(0.25_x);
         const auto step = polymorphic.flow_step(field, initial, h, bound);
         ARIADNE_TESTING_EXPECT_EQUAL(step.time_step, h);
-        ARIADNE_TESTING_PROVE(definitely(subset(ExactBoxType({{-0.25_x, 0.25_x}}), step.reach)));
-        ARIADNE_TESTING_PROVE(definitely(subset(ExactBoxType({{-0.25_x, 0.25_x}}), step.evolve)));
+        ARIADNE_TESTING_PROVE(definitely(subset(ExactBoxType({{-0.25_x, 0.25_x}}), cast_exact_box(step.reach))));
+        ARIADNE_TESTING_PROVE(definitely(subset(ExactBoxType({{-0.25_x, 0.25_x}}), cast_exact_box(step.evolve))));
         ARIADNE_TESTING_PROVE(definitely(inside(step.reach, cast_exact_box(bound))));
     }
 
@@ -83,8 +83,8 @@ class TestMultifunctionIntegrator : public Ariadne::Testing::ContextFixture {
 
         const auto step = integrator.flow_step(field, initial, StepSizeType(0.5_x), bound);
         const ExactBoxType switching_endpoint({{0, 0}, {0.0625_x, 0.0625_x}});
-        ARIADNE_TESTING_PROVE(definitely(subset(switching_endpoint, step.evolve)));
-        ARIADNE_TESTING_PROVE(definitely(subset(switching_endpoint, step.reach)));
+        ARIADNE_TESTING_PROVE(definitely(subset(switching_endpoint, cast_exact_box(step.evolve))));
+        ARIADNE_TESTING_PROVE(definitely(subset(switching_endpoint, cast_exact_box(step.reach))));
     }
 
     Void test_reject_uncertified_bound() {
@@ -120,7 +120,7 @@ class TestMultifunctionIntegrator : public Ariadne::Testing::ContextFixture {
         UpperBoxType interior({{-0.5_x, 0.5_x}});
         const auto step = integrator.flow_step(field, initial, StepSizeType(0.25_x), interior);
         ARIADNE_TESTING_PROVE(definitely(inside(step.reach, cast_exact_box(interior))));
-        ARIADNE_TESTING_PROVE(definitely(subset(ExactBoxType({{-0.25_x, 0.25_x}}), step.evolve)));
+        ARIADNE_TESTING_PROVE(definitely(subset(ExactBoxType({{-0.25_x, 0.25_x}}), cast_exact_box(step.evolve))));
     }
 
     // The equality case is legitimate: the bounding box may coincide with
@@ -140,7 +140,7 @@ class TestMultifunctionIntegrator : public Ariadne::Testing::ContextFixture {
         UpperBoxType same_bound({{-1, 1}});
         const auto values = field.evaluate(same_bound);
         ARIADNE_TESTING_EXPECT_EQUAL(values.dimension(), 1u);
-        ARIADNE_TESTING_PROVE(definitely(subset(ExactBoxType({{-1, 1}}), values)));
+        ARIADNE_TESTING_PROVE(definitely(subset(ExactBoxType({{-1, 1}}), cast_exact_box(values))));
     }
 
     Void test_reject_dimension_mismatch() {
