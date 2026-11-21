@@ -369,7 +369,12 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         ARIADNE_TESTING_EXPECT_EQUAL(high_order.reach_index(), ZeroApproximation().index());
         ARIADNE_TESTING_EXPECT_EQUAL(high_order.evolve_index(), AffineApproximation().index());
 
-        ValidatedInputFieldBoxAdapterDP structural(field(), inputs(), BoxDomainType({{-1.0_x, 1.0_x}}));
+        // A component-list function has a generic vector wrapper. The
+        // backend must materialise formulas without burdening its callers.
+        const auto x = EffectiveScalarMultivariateFunction::coordinate(2u, 0u);
+        const auto u = EffectiveScalarMultivariateFunction::coordinate(2u, 1u);
+        const EffectiveVectorMultivariateFunction generic = {x + u};
+        ValidatedInputFieldBoxAdapterDP structural(generic, inputs(), BoxDomainType({{-1.0_x, 1.0_x}}));
         ExactBoxType initial({{0.0_x, 0.125_x}});
         UpperBoxType bound({{-1.0_x, 1.0_x}});
         StepSizeType h(0.03125_x);

@@ -288,6 +288,42 @@ class TestValidatedIntegrationStep : public Ariadne::Testing::ContextFixture {
         ARIADNE_TESTING_PROVE(step.representation_as<FlowStepModelType>() == nullptr);
     }
 
+    Void test_fixed_parameter_metadata_matches_structured_maps() {
+        // x'=p, [x0,t,p] arguments: the fresh flow has time BEFORE p,
+        // whereas its endpoint has [x0,p]. Both layouts must be checked.
+        const auto p0 = EffectiveScalarMultivariateFunction::coordinate(3u, 2u);
+        const EffectiveVectorMultivariateFunction field = {p0};
+        const ExactBoxType initial({{0.0_x, 0.125_x}});
+        const ExactBoxType parameters({{0.125_x, 0.25_x}});
+        const UpperBoxType bound({{-1.0_x, 1.0_x}});
+        const StepSizeType t0(0.5_x);
+        const StepSizeType h(0.03125_x);
+        const Interval<StepSizeType> times(t0, t0 + h);
+        TaylorSeriesIntegrator solver(step_maximum_error = 1e-6, order = 8);
+        const auto flow = solver.flow_step(field, initial, times, parameters, bound);
+        const auto native = validated_integration_step(flow, times, t0, 1u, true, parameters);
+        ARIADNE_TESTING_EXPECT_EQUAL(native.constant_parameter_domain(), parameters);
+        const auto sections = native.reach_sections(t0 + h);
+        ARIADNE_TESTING_EXPECT_EQUAL(sections.size(), 1u);
+        ARIADNE_TESTING_EXPECT_EQUAL(sections[0u].domain(), product(initial, parameters));
+        ARIADNE_TESTING_PROVE(definitely(subset(
+            ExactBoxType({{0.00390625_x, 0.1328125_x}}), cast_exact_box(native.evolve()))));
+
+        const ExactBoxType changed({{0.125_x, 0.5_x}});
+        const ExactBoxType missing_coordinate({{0.125_x, 0.25_x}, {0.125_x, 0.25_x}});
+        for (const auto& wrong: {changed, missing_coordinate}) {
+            // Isolate reach and endpoint validation so one cannot mask a
+            // missing check in the other. A box-only result may retain p
+            // as metadata without pretending it has correlated maps.
+            ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
+                ValidatedIntegrationStep(h, native.reach(), native.evolve(),
+                    {}, native.reach_models(), std::nullopt, t0, 1u, true, wrong));
+            ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
+                ValidatedIntegrationStep(h, native.reach(), native.evolve(),
+                    {}, {}, native.evolve_model(), t0, std::nullopt, true, wrong));
+        }
+    }
+
     Void test_reject_inconsistent_basic_result() {
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
             ValidatedIntegrationStep(
@@ -309,6 +345,7 @@ int main(int argc, char** argv) {
     ARIADNE_TESTING_ADD_TEST(TestValidatedIntegrationStep, test_overlapping_reach_patches_keep_independent_parameter_domains);
     ARIADNE_TESTING_ADD_TEST(TestValidatedIntegrationStep, test_set_valued_box_step_without_forced_structure);
     ARIADNE_TESTING_ADD_TEST(TestValidatedIntegrationStep, test_structured_inclusion_retains_parameter_maps);
+    ARIADNE_TESTING_ADD_TEST(TestValidatedIntegrationStep, test_fixed_parameter_metadata_matches_structured_maps);
     ARIADNE_TESTING_ADD_TEST(TestValidatedIntegrationStep, test_reject_inconsistent_basic_result);
     return Ariadne::Testing::run_logging_suite(ariadne_test_suite, argc, argv);
 }

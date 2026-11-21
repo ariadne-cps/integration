@@ -203,7 +203,16 @@ SelectedInclusionStep SelectedParametricMultifunctionIntegrator::structured_step
                                   cast_exact_box(state_bound)))) {
             throw std::invalid_argument("Structured continuation endpoint is outside the certified state bound");
         }
-        SelectedInclusionIntegrator selected(_factory, form.field, form.inputs,
+        // The legacy backend analyses input additivity on a formula
+        // function. A vector assembled from scalar functions is equally
+        // valid input, but its wrapper does not expose that concrete type.
+        // Materialise its symbolic representation here, at the solver boundary.
+        const Vector<EffectiveFormula> coordinates(form.field.argument_size(), [&](SizeType i) {
+            return EffectiveFormula::coordinate(i);
+        });
+        const EffectiveVectorMultivariateFunction formula_field =
+            EffectiveVectorMultivariateFormulaFunction(form.field.argument_size(), form.field(coordinates));
+        SelectedInclusionIntegrator selected(_factory, formula_field, form.inputs,
                                             _reach_approximation, _evolve_approximation);
         return selected.step(initial, initial_mapping, state_bound, initial_time, time_step);
     }

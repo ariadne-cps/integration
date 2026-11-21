@@ -78,5 +78,45 @@ int main() {
     show("flow domain", flow.domain());
     show("flow range", flow.range());
 
+    section("Common validated step interface and continuation");
+    const ExactBoxType initial({{0.0_x, 0.125_x}});
+    const UpperBoxType bound({{-1.0_x, 1.0_x}});
+    const StepSizeType h1(0.03125_x), h2(0.015625_x);
+    const FlowStepIntegratorAdapter flow_adapter(integrator);
+    const ValidatedStepIntegratorInterface& equation_solver = flow_adapter;
+    const EffectiveVectorMultivariateFunction constant = {
+        EffectiveScalarMultivariateFunction::constant(1u, 1)};
+    const auto first = equation_solver.step(ValidatedIntegrationRequest(constant, initial, h1, bound));
+    const auto second = equation_solver.step(ValidatedIntegrationRequest(constant, first, h2, bound));
+    show("absolute final time", second.final_time());
+    show("validated endpoint", second.evolve());
+    show("structured endpoint domain", second.evolve_model().domain());
+    show("reach sections at the final time", second.reach_sections(second.final_time()).size());
+
+    section("Differential inclusion with one configured reach/evolve pair");
+    const auto u = EffectiveFormula::coordinate(1u);
+    const EffectiveVectorMultivariateFunction input_field =
+        EffectiveVectorMultivariateFormulaFunction(2u, Vector<EffectiveFormula>{u});
+    // The numerical field and solver are named objects. Requests borrow the
+    // former and the adapter borrows the latter; both must remain alive.
+    ValidatedInputFieldBoxAdapterDP inclusion(input_field,
+        BoxDomainType({{-1.0_x, 1.0_x}}), BoxDomainType({{-1.0_x, 1.0_x}}));
+    SelectedParametricMultifunctionIntegrator selected(integrator,
+        InputApproximation(ZeroApproximation()), InputApproximation(ConstantApproximation()));
+    const StructuredInclusionStepIntegratorAdapter inclusion_adapter(selected);
+    const ValidatedStepIntegratorInterface& inclusion_solver = inclusion_adapter;
+    const auto inclusion_first = inclusion_solver.step(ValidatedIntegrationRequest(inclusion, initial, h1, bound));
+    const auto inclusion_second = inclusion_solver.step(ValidatedIntegrationRequest(inclusion, inclusion_first, h2, bound));
+    show("inclusion endpoint", inclusion_second.evolve());
+    show("retained state and input domain", inclusion_second.evolve_model().domain());
+
+    section("An unsupported capability fails explicitly");
+    try {
+        equation_solver.step(ValidatedIntegrationRequest(inclusion, initial, h1, bound));
+        return 1; // Unexpected: an equation solver cannot consume this field.
+    } catch (const std::invalid_argument& error) {
+        show("rejected request", error.what());
+    }
+
     return 0;
 }

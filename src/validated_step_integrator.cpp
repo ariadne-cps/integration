@@ -15,15 +15,15 @@ namespace Ariadne {
 ValidatedIntegrationRequest::ValidatedIntegrationRequest(const ValidatedVectorMultivariateFunction& field,
                                 const ExactBoxType& initial,
                                 const StepSizeType& time_step,
-                                const UpperBoxType& bounding_box)        : _field(std::cref(field)), _initial(initial), _time_step(time_step),
+                                const UpperBoxType& bounding_box)        : _field(field), _initial(initial), _time_step(time_step),
           _initial_time(0u), _bounding_box(bounding_box) {
         this->validate();
     }
 
-ValidatedIntegrationRequest::ValidatedIntegrationRequest(const ValidatedBoxMultifunctionInterface& field,
+ValidatedIntegrationRequest::ValidatedIntegrationRequest(std::reference_wrapper<const ValidatedBoxMultifunctionInterface> field,
                                 const ExactBoxType& initial,
                                 const StepSizeType& time_step,
-                                const UpperBoxType& bounding_box)        : _field(std::cref(field)), _initial(initial), _time_step(time_step),
+                                const UpperBoxType& bounding_box)        : _field(field), _initial(initial), _time_step(time_step),
           _initial_time(0u), _bounding_box(bounding_box) {
         this->validate();
     }
@@ -33,19 +33,19 @@ ValidatedIntegrationRequest::ValidatedIntegrationRequest(const ValidatedVectorMu
                                 const StepSizeType& initial_time,
                                 const StepSizeType& time_step,
                                 const ExactBoxType& constant_parameters,
-                                const UpperBoxType& bounding_box)        : _field(std::cref(field)), _initial(initial), _time_step(time_step),
+                                const UpperBoxType& bounding_box)        : _field(field), _initial(initial), _time_step(time_step),
           _initial_time(initial_time), _bounding_box(bounding_box),
           _has_explicit_time(true),
           _constant_parameter_domain(constant_parameters) {
         this->validate();
     }
 
-ValidatedIntegrationRequest::ValidatedIntegrationRequest(const ValidatedTimedBoxMultifunctionInterface& field,
+ValidatedIntegrationRequest::ValidatedIntegrationRequest(std::reference_wrapper<const ValidatedTimedBoxMultifunctionInterface> field,
                                 const ExactBoxType& initial,
                                 const StepSizeType& initial_time,
                                 const StepSizeType& time_step,
                                 const ExactBoxType& constant_parameters,
-                                const UpperBoxType& bounding_box)        : _field(std::cref(field)), _initial(initial), _time_step(time_step),
+                                const UpperBoxType& bounding_box)        : _field(field), _initial(initial), _time_step(time_step),
           _initial_time(initial_time), _bounding_box(bounding_box),
           _has_explicit_time(true),
           _constant_parameter_domain(constant_parameters) {
@@ -55,7 +55,7 @@ ValidatedIntegrationRequest::ValidatedIntegrationRequest(const ValidatedTimedBox
 ValidatedIntegrationRequest::ValidatedIntegrationRequest(const ValidatedVectorMultivariateFunction& field,
                                 const ValidatedIntegrationStep& previous,
                                 const StepSizeType& time_step,
-                                const UpperBoxType& bounding_box)        : _field(std::cref(field)), _initial(continuation_domain(previous)),
+                                const UpperBoxType& bounding_box)        : _field(field), _initial(continuation_domain(previous)),
           _time_step(time_step), _initial_time(previous.final_time()),
           _bounding_box(bounding_box),
           _initial_mapping(previous.has_evolve_model()
@@ -66,10 +66,10 @@ ValidatedIntegrationRequest::ValidatedIntegrationRequest(const ValidatedVectorMu
         this->validate();
     }
 
-ValidatedIntegrationRequest::ValidatedIntegrationRequest(const ValidatedBoxMultifunctionInterface& field,
+ValidatedIntegrationRequest::ValidatedIntegrationRequest(std::reference_wrapper<const ValidatedBoxMultifunctionInterface> field,
                                 const ValidatedIntegrationStep& previous,
                                 const StepSizeType& time_step,
-                                const UpperBoxType& bounding_box)        : _field(std::cref(field)), _initial(continuation_domain(previous)),
+                                const UpperBoxType& bounding_box)        : _field(field), _initial(continuation_domain(previous)),
           _time_step(time_step), _initial_time(previous.final_time()),
           _bounding_box(bounding_box),
           _initial_mapping(previous.has_evolve_model()
@@ -80,10 +80,10 @@ ValidatedIntegrationRequest::ValidatedIntegrationRequest(const ValidatedBoxMulti
         this->validate();
     }
 
-ValidatedIntegrationRequest::ValidatedIntegrationRequest(const ValidatedTimedBoxMultifunctionInterface& field,
+ValidatedIntegrationRequest::ValidatedIntegrationRequest(std::reference_wrapper<const ValidatedTimedBoxMultifunctionInterface> field,
                                 const ValidatedIntegrationStep& previous,
                                 const StepSizeType& time_step,
-                                const UpperBoxType& bounding_box)        : _field(std::cref(field)), _initial(continuation_domain(previous)),
+                                const UpperBoxType& bounding_box)        : _field(field), _initial(continuation_domain(previous)),
           _time_step(time_step), _initial_time(previous.final_time()),
           _bounding_box(bounding_box),
           _initial_mapping(previous.has_evolve_model()

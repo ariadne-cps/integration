@@ -26,6 +26,8 @@
  */
 
 #include <stdexcept>
+#include <type_traits>
+#include <utility>
 
 #include "function/symbolic_function.hpp"
 // Compile the shared step contract through the public module entry point.
@@ -37,6 +39,22 @@
 using namespace Ariadne;
 
 namespace {
+
+// Borrowed polymorphic objects must be named lvalues. Ordinary function
+// handles, including implicit Effective -> Validated conversions, are owned.
+static_assert(std::is_constructible_v<ValidatedIntegrationRequest,
+    const ValidatedInputFieldBoxAdapterDP&, const ExactBoxType&, const StepSizeType&, const UpperBoxType&>);
+static_assert(not std::is_constructible_v<ValidatedIntegrationRequest,
+    ValidatedInputFieldBoxAdapterDP&&, const ExactBoxType&, const StepSizeType&, const UpperBoxType&>);
+static_assert(not std::is_constructible_v<ValidatedIntegrationRequest,
+    const ValidatedInputFieldBoxAdapterDP&&, const ValidatedIntegrationStep&, const StepSizeType&, const UpperBoxType&>);
+static_assert(not std::is_constructible_v<ValidatedIntegrationRequest,
+    ValidatedTimedInputFieldBoxAdapterDP&&, const ExactBoxType&, const StepSizeType&, const StepSizeType&, const ExactBoxType&, const UpperBoxType&>);
+static_assert(not std::is_constructible_v<ValidatedIntegrationRequest,
+    ValidatedTimedInputFieldBoxAdapterDP&&, const ValidatedIntegrationStep&, const StepSizeType&, const UpperBoxType&>);
+static_assert(not std::is_constructible_v<FlowStepIntegratorAdapter, TaylorSeriesIntegrator&&>);
+static_assert(not std::is_constructible_v<MultiflowStepIntegratorAdapter, FirstOrderMultifunctionIntegrator&&>);
+static_assert(not std::is_constructible_v<StructuredInclusionStepIntegratorAdapter, SelectedParametricMultifunctionIntegrator&&>);
 
 class TestValidatedStepIntegrator : public Ariadne::Testing::ContextFixture {
   public:
@@ -736,6 +754,32 @@ class TestValidatedStepIntegrator : public Ariadne::Testing::ContextFixture {
             cast_exact_box(UpperBoxType(effect.range())))));
     }
 
+    Void test_request_owns_converted_function_after_source_lifetime() {
+        const ExactBoxType initial({{0.0_x, 0.125_x}});
+        const UpperBoxType bound({{-1.0_x, 1.0_x}});
+        const StepSizeType h(0.03125_x);
+        const auto request = [&] {
+            const EffectiveVectorMultivariateFunction field = {
+                EffectiveScalarMultivariateFunction::constant(1u, 1)};
+            // The implicit Validated conversion dies at this semicolon;
+            // the named source and the original request die on return.
+            const ValidatedIntegrationRequest original(field, initial, h, bound);
+            return ValidatedIntegrationRequest(original);
+        }();
+        auto copy = request;
+        const auto moved = std::move(copy);
+        TaylorSeriesIntegrator base(step_maximum_error = 1e-6, order = 8);
+        const FlowStepIntegratorAdapter solver(base);
+        const auto step = solver.step(moved);
+        ARIADNE_TESTING_PROVE(definitely(subset(
+            ExactBoxType({{0.03125_x, 0.15625_x}}), cast_exact_box(step.evolve()))));
+        const auto second = solver.step(ValidatedIntegrationRequest(
+            *moved.field_as<ValidatedVectorMultivariateFunction>(), step, h, bound));
+        ARIADNE_TESTING_EXPECT_EQUAL(second.final_time(), StepSizeType(0.0625_x));
+        ARIADNE_TESTING_PROVE(definitely(subset(
+            ExactBoxType({{0.0625_x, 0.1875_x}}), cast_exact_box(second.evolve()))));
+    }
+
     Void test_reject_invalid_request() {
         const ValidatedVectorMultivariateFunction ordinary = {
             ValidatedScalarMultivariateFunction::constant(1u, 1)};
@@ -770,6 +814,7 @@ int main(int argc, char** argv) {
     ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_timed_high_order_inclusion_preserves_constant_parameters_and_inputs);
     ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_timed_high_order_rejects_missing_structural_capability);
     ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_equation_then_timed_inclusion_preserves_constant_parameter);
+    ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_request_owns_converted_function_after_source_lifetime);
     ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_reject_invalid_request);
     return Ariadne::Testing::run_logging_suite(ariadne_test_suite, argc, argv);
 }

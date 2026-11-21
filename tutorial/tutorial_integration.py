@@ -49,6 +49,43 @@ def tutorial_integration():
     show("flow domain", flow.domain())
     show("flow range", flow.range())
 
+    section("Common validated step interface and two-step continuation")
+    initial = exact_box([(0.0, 0.125)])
+    bound = FloatDPUpperBox(exact_box([(-1.0, 1.0)]))
+    h1, h2 = Dyadic("0.03125"), Dyadic("0.015625")
+    solver = FlowStepIntegratorAdapter(integrator)
+    constant = EffectiveVectorMultivariateFunction([
+        EffectiveScalarMultivariateFunction.constant(1, 1)])
+    first = solver.step(ValidatedIntegrationRequest(constant, initial, h1, bound))
+    second = solver.step(ValidatedIntegrationRequest(constant, first, h2, bound))
+    show("absolute final time", second.final_time())
+    show("endpoint", second.evolve())
+    show("endpoint domain", second.evolve_model().domain())
+    show("reach sections", len(second.reach_sections(second.final_time())))
+
+    section("Structured differential inclusion")
+    u = EffectiveScalarMultivariateFunction.coordinate(2, 1)
+    field = ValidatedInputFieldBoxAdapterDP(
+        EffectiveVectorMultivariateFunction([u]),
+        BoxDomainType(exact_box([(-1.0, 1.0)])),
+        BoxDomainType(exact_box([(-1.0, 1.0)])))
+    inclusion_solver = StructuredInclusionStepIntegratorAdapter(
+        SelectedParametricMultifunctionIntegrator(
+            integrator, InputApproximation(ZeroApproximation()),
+            InputApproximation(ConstantApproximation())))
+    first = inclusion_solver.step(ValidatedIntegrationRequest(field, initial, h1, bound))
+    second = inclusion_solver.step(ValidatedIntegrationRequest(field, first, h2, bound))
+    show("inclusion endpoint", second.evolve())
+    show("retained state and input domain", second.evolve_model().domain())
+
+    section("An unsupported capability fails explicitly")
+    try:
+        solver.step(ValidatedIntegrationRequest(field, initial, h1, bound))
+    except ValueError as error:
+        show("rejected request", error)
+    else:
+        raise AssertionError("An equation solver accepted a multifunction")
+
 
 if __name__ == "__main__":
     tutorial_integration()

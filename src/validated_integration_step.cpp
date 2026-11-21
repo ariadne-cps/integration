@@ -35,11 +35,35 @@ ValidatedIntegrationStep::ValidatedIntegrationStep(const StepSizeType& time_step
             reach.dimension() != evolve.dimension()) {
             throw std::invalid_argument("Validated integration step has incompatible bounds or duration");
         }
+        const SizeType n = reach.dimension();
+        const SizeType np = _constant_parameter_domain.dimension();
+        // Fixed parameters occupy the prefix after the original state
+        // coordinates in endpoint maps and in reach maps AFTER removing time.
+        // Input-approximation coordinates may differ between reach and evolve.
+        auto validate_parameters = [&](const ValidatedVectorMultivariateFunctionPatch& model,
+                                       std::optional<SizeType> time_index) {
+            if (np == 0u) {
+                return;
+            }
+            const SizeType nt = time_index ? 1u : 0u;
+            if (model.argument_size() < n + np + nt || (time_index && *time_index < n)) {
+                throw std::invalid_argument("Structured integration map has too few state or fixed-parameter coordinates");
+            }
+            const auto domain = model.domain();
+            for (SizeType j = 0u; j != np; ++j) {
+                const SizeType coordinate = n + j;
+                const SizeType index = coordinate + (time_index && *time_index <= coordinate ? 1u : 0u);
+                if (not (domain[index] == _constant_parameter_domain[j])) {
+                    throw std::invalid_argument("Structured integration map does not preserve the fixed-parameter domain");
+                }
+            }
+        };
         for (const auto& model: _reach_models) {
             if (model.result_size() != reach.dimension() ||
                 not _reach_time_index || *_reach_time_index >= model.argument_size()) {
                 throw std::invalid_argument("Validated reach model has incompatible state or time coordinates");
             }
+            validate_parameters(model, _reach_time_index);
             // Backend time may be local to the step or already absolute.
             // Each certified patch must lie within the correctly shifted
             // step interval; different patches may cover different parts.
@@ -87,6 +111,9 @@ ValidatedIntegrationStep::ValidatedIntegrationStep(const StepSizeType& time_step
         }
         if (_evolve_model && _evolve_model->result_size() != evolve.dimension()) {
             throw std::invalid_argument("Validated endpoint model has an incompatible state dimension");
+        }
+        if (_evolve_model) {
+            validate_parameters(*_evolve_model, std::nullopt);
         }
         // Reach and endpoint may use different approximations and
         // different parameter domains. Validate their boxes separately.

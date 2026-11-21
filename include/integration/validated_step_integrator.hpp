@@ -31,6 +31,7 @@
 #include <functional>
 #include <optional>
 #include <stdexcept>
+#include <type_traits>
 #include <variant>
 
 #include "integration/integration_step_adapters.hpp"
@@ -39,8 +40,11 @@ namespace Ariadne {
 
 /** @brief Validated step request, independent of the algorithm.
  *
- *  This is a numerical request, not a system model. The referenced field must
- *  outlive the call to step(). A continuation request retains the original
+ *  This is a numerical request, not a system model. Single-valued function
+ *  handles are retained by value, including implicit conversions from effective
+ *  functions. Polymorphic multifunction fields are borrowed from lvalues and
+ *  must outlive every request referring to them. Temporaries cannot be borrowed.
+ *  A continuation request retains the original
  *  state-coordinate domain and all earlier input parameters when a validated
  *  endpoint map is available. Numerical field overloads support both
  *  autonomous and explicit-time requests, according to solver capability.
@@ -52,7 +56,7 @@ namespace Ariadne {
 class ValidatedIntegrationRequest {
   public:
     using Field = std::variant<
-        std::reference_wrapper<const ValidatedVectorMultivariateFunction>,
+        ValidatedVectorMultivariateFunction,
         std::reference_wrapper<const ValidatedBoxMultifunctionInterface>,
         std::reference_wrapper<const ValidatedTimedBoxMultifunctionInterface>>;
 
@@ -73,7 +77,7 @@ ValidatedIntegrationRequest(const ValidatedVectorMultivariateFunction& field,
                                 const UpperBoxType& bounding_box);
 
 
-ValidatedIntegrationRequest(const ValidatedBoxMultifunctionInterface& field,
+ValidatedIntegrationRequest(std::reference_wrapper<const ValidatedBoxMultifunctionInterface> field,
                                 const ExactBoxType& initial,
                                 const StepSizeType& time_step,
                                 const UpperBoxType& bounding_box);
@@ -94,7 +98,7 @@ ValidatedIntegrationRequest(const ValidatedVectorMultivariateFunction& field,
     /** @brief Fresh timed inclusion step with fixed parameter coordinates.
      *  Input uncertainty is represented by the numerical field itself.
      */
-ValidatedIntegrationRequest(const ValidatedTimedBoxMultifunctionInterface& field,
+ValidatedIntegrationRequest(std::reference_wrapper<const ValidatedTimedBoxMultifunctionInterface> field,
                                 const ExactBoxType& initial,
                                 const StepSizeType& initial_time,
                                 const StepSizeType& time_step,
@@ -118,7 +122,7 @@ ValidatedIntegrationRequest(const ValidatedVectorMultivariateFunction& field,
                                 const UpperBoxType& bounding_box);
 
 
-ValidatedIntegrationRequest(const ValidatedBoxMultifunctionInterface& field,
+ValidatedIntegrationRequest(std::reference_wrapper<const ValidatedBoxMultifunctionInterface> field,
                                 const ValidatedIntegrationStep& previous,
                                 const StepSizeType& time_step,
                                 const UpperBoxType& bounding_box);
@@ -128,7 +132,7 @@ ValidatedIntegrationRequest(const ValidatedBoxMultifunctionInterface& field,
      *  Its parameter domain is retained, not independently reselected.
      *  A box-only algorithm still cannot accept a structured endpoint map.
      */
-ValidatedIntegrationRequest(const ValidatedTimedBoxMultifunctionInterface& field,
+ValidatedIntegrationRequest(std::reference_wrapper<const ValidatedTimedBoxMultifunctionInterface> field,
                                 const ValidatedIntegrationStep& previous,
                                 const StepSizeType& time_step,
                                 const UpperBoxType& bounding_box);
@@ -147,8 +151,12 @@ ValidatedIntegrationRequest(const ValidatedTimedBoxMultifunctionInterface& field
 
     template<class T>
     const T* field_as() const {
-        const auto* reference = std::get_if<std::reference_wrapper<const T>>(&_field);
-        return reference == nullptr ? nullptr : &reference->get();
+        if constexpr (std::is_same_v<T, ValidatedVectorMultivariateFunction>) {
+            return std::get_if<T>(&_field);
+        } else {
+            const auto* reference = std::get_if<std::reference_wrapper<const T>>(&_field);
+            return reference == nullptr ? nullptr : &reference->get();
+        }
     }
 
   private:
@@ -175,6 +183,9 @@ class FlowStepIntegratorAdapter : public ValidatedStepIntegratorInterface {
     explicit FlowStepIntegratorAdapter(const IntegratorInterface& integrator);
 
 
+    /** @brief The borrowed solver must outlive this adapter; temporaries are rejected. */
+    FlowStepIntegratorAdapter(const IntegratorInterface&&) = delete;
+
     ValidatedIntegrationStep step(const ValidatedIntegrationRequest& request) const override;
 };
 
@@ -185,6 +196,9 @@ class MultiflowStepIntegratorAdapter : public ValidatedStepIntegratorInterface {
   public:
     explicit MultiflowStepIntegratorAdapter(const MultifunctionIntegratorInterface& integrator);
 
+
+    /** @brief The borrowed solver must outlive this adapter; temporaries are rejected. */
+    MultiflowStepIntegratorAdapter(const MultifunctionIntegratorInterface&&) = delete;
 
     ValidatedIntegrationStep step(const ValidatedIntegrationRequest& request) const override;
 };
@@ -197,6 +211,9 @@ class StructuredInclusionStepIntegratorAdapter : public ValidatedStepIntegratorI
     explicit StructuredInclusionStepIntegratorAdapter(
         const SelectedParametricMultifunctionIntegrator& integrator);
 
+
+    /** @brief The borrowed solver must outlive this adapter; temporaries are rejected. */
+    StructuredInclusionStepIntegratorAdapter(const SelectedParametricMultifunctionIntegrator&&) = delete;
 
     ValidatedIntegrationStep step(const ValidatedIntegrationRequest& request) const override;
 };

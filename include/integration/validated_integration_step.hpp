@@ -90,6 +90,8 @@ class ValidatedIntegrationStep {
     /** @brief Trajectory-constant parameters shared across integration steps.
      *  Their coordinates occupy the prefix immediately after original states.
      *  Later inclusion steps may append independent time-varying inputs.
+     *  Structured maps must preserve this domain after removing reach time;
+     *  inconsistent metadata is rejected when the step is constructed.
      */
     const ExactBoxType& constant_parameter_domain() const;
     const UpperBoxType& reach() const;

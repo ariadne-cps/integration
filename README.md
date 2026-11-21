@@ -37,9 +37,51 @@ cmake --build build --parallel --target everything
 ctest --test-dir build --output-on-failure
 ```
 
+## Common validated step API
+
+Include `ariadne-integration.hpp` and use `ValidatedStepIntegratorInterface::step`
+with a `ValidatedIntegrationRequest`. Every successful call returns a
+`ValidatedIntegrationStep` with physical start/end times and independently
+certified `reach()` and `evolve()` boxes.
+
+| Adapter | Numerical field | Structured result |
+|---|---|---|
+| `FlowStepIntegratorAdapter` | Single-valued, autonomous or explicit time with fixed parameters | Reach patches and endpoint map |
+| `MultiflowStepIntegratorAdapter` | Box multifunction; timed fields require a timed backend | Boxes |
+| `StructuredInclusionStepIntegratorAdapter` | Multifunction with the chosen backend's structural capability | Reach patches and endpoint map |
+
+Construct the chosen backend and adapter explicitly. For structured inclusions,
+configure exactly one reach approximation and one evolve approximation through
+`SelectedParametricMultifunctionIntegrator`; they are never ranked or replaced
+by an implicit fallback. `ZeroApproximation` and `ConstantApproximation` support
+reach; the five approximation families remain available for endpoint evolution.
+
+A continuation request takes the previous step and preserves its original state
+coordinates, fixed parameters and accumulated input coordinates. Its time layout
+continues the previous request; changing the field's argument layout is outside
+this continuation contract. `reach_sections(absolute_time)` returns validated
+state patches with the time coordinate removed. Use `has_reach_models()` and
+`has_evolve_model()` before accessing structured output. A box-only backend
+rejects a structured continuation instead of silently discarding correlations.
+Reach and evolve can use different input coordinates; their domains need not be
+identical. Declared fixed-parameter domains must match both maps.
+
+Single-valued function handles are stored by value in requests, including
+implicit conversions from effective functions. Polymorphic multifunction fields
+are borrowed from named C++ objects, which must outlive the requests. Adapters
+borrow their backends, which must outlive the adapters. Borrowing a temporary is
+rejected at compilation. Python wrappers retain these dependencies automatically;
+returned boxes and patches are independent values.
+
+Unsupported capabilities or inconsistent domains raise `std::invalid_argument`
+(`ValueError` in Python). A failed numerical certificate raises a flow exception
+(`RuntimeError` in Python); it does not select another solver. The C++ and Python
+[tutorials](tutorial) demonstrate two-step equation and inclusion integration,
+structured output, and explicit failure handling.
+
 ## Python bindings
 
-When a compatible Python development environment is available, the standalone build produces `pyariadne` from the Function bindings (including their transitive dependencies) plus the Integration bindings.
+When a compatible Python development environment is available, import `pyariadne_integration`. It combines the Function bindings (including their transitive dependencies) and Integration bindings, including the common validated step API and the explicit first-order and structured inclusion adapters.
 
 ## Contribution guidelines
 
