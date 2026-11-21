@@ -44,6 +44,17 @@ with a `ValidatedIntegrationRequest`. Every successful call returns a
 `ValidatedIntegrationStep` with physical start/end times and independently
 certified `reach()` and `evolve()` boxes.
 
+A request with a duration and a state bound asks for an exact step. For an
+adaptive autonomous equation, pass `suggest(maximum_step)` without a state bound
+(optionally with an absolute initial time). The same solver chooses its bound
+and may reduce the step for accuracy. The adapter caps a longer returned flow
+at the requested maximum; `time_step()` on the result is the certified duration.
+`step_size_is_maximum()` and `has_bounding_box()` distinguish the requests;
+accessing a missing bound throws `std::logic_error`. Adaptive continuation keeps
+the previous endpoint map and uncertainty coordinates. Explicit-time and
+inclusion requests still require exact steps and explicit bounds. Python exposes
+the adaptive constructors as `ValidatedIntegrationRequest.with_maximum_step(...)`.
+
 | Adapter | Numerical field | Structured result |
 |---|---|---|
 | `FlowStepIntegratorAdapter` | Single-valued, autonomous or explicit time with fixed parameters | Reach patches and endpoint map |

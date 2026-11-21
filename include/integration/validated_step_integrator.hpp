@@ -65,12 +65,27 @@ class ValidatedIntegrationRequest {
     ExactBoxType _initial;
     StepSizeType _time_step;
     StepSizeType _initial_time;
-    UpperBoxType _bounding_box;
+    std::optional<UpperBoxType> _bounding_box;
     std::optional<ValidatedVectorMultivariateFunctionPatch> _initial_mapping;
+    bool _maximum_step = false;
     bool _has_explicit_time = false;
     ExactBoxType _constant_parameter_domain = ExactBoxType(0u);
 
   public:
+    /** @brief Autonomous equation step with a maximum duration.
+     *  The solver chooses its own state bound and may reduce the step.
+     *  The certified result never exceeds the requested maximum.
+     */
+    ValidatedIntegrationRequest(const ValidatedVectorMultivariateFunction& field,
+                                const ExactBoxType& initial,
+                                const Suggestion<StepSizeType>& maximum_step,
+                                const StepSizeType& initial_time = StepSizeType(0u));
+
+    /** @brief Adaptive autonomous continuation retaining the previous map. */
+    ValidatedIntegrationRequest(const ValidatedVectorMultivariateFunction& field,
+                                const ValidatedIntegrationStep& previous,
+                                const Suggestion<StepSizeType>& maximum_step);
+
     ValidatedIntegrationRequest(const ValidatedVectorMultivariateFunction& field,
                                 const ExactBoxType& initial,
                                 const StepSizeType& time_step,
@@ -135,6 +150,9 @@ class ValidatedIntegrationRequest {
     const ExactBoxType& initial() const;
     const StepSizeType& time_step() const;
     const StepSizeType& initial_time() const;
+    bool step_size_is_maximum() const;
+    bool has_bounding_box() const;
+    /** @throws std::logic_error if the solver must choose its own bound. */
     const UpperBoxType& bounding_box() const;
     /** @brief Generic numerical metadata, also valid for timed inclusions. */
     bool has_explicit_time() const;

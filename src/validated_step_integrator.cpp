@@ -14,6 +14,24 @@ namespace Ariadne {
 
 ValidatedIntegrationRequest::ValidatedIntegrationRequest(const ValidatedVectorMultivariateFunction& field,
                                                          const ExactBoxType& initial,
+                                                         const Suggestion<StepSizeType>& maximum_step,
+                                                         const StepSizeType& initial_time)
+    : _field(field), _initial(initial), _time_step(static_cast<const StepSizeType&>(maximum_step)),
+      _initial_time(initial_time), _maximum_step(true) {
+    this->validate();
+}
+
+ValidatedIntegrationRequest::ValidatedIntegrationRequest(const ValidatedVectorMultivariateFunction& field,
+                                                         const ValidatedIntegrationStep& previous,
+                                                         const Suggestion<StepSizeType>& maximum_step)
+    : ValidatedIntegrationRequest(field, previous, static_cast<const StepSizeType&>(maximum_step), previous.evolve()) {
+    _maximum_step = true;
+    _bounding_box.reset();
+    this->validate();
+}
+
+ValidatedIntegrationRequest::ValidatedIntegrationRequest(const ValidatedVectorMultivariateFunction& field,
+                                                         const ExactBoxType& initial,
                                                          const StepSizeType& time_step,
                                                          const UpperBoxType& bounding_box) : _field(field), _initial(initial), _time_step(time_step),
                                                                                              _initial_time(0u), _bounding_box(bounding_box) {
@@ -113,7 +131,16 @@ const StepSizeType& ValidatedIntegrationRequest::time_step() const { return _tim
 
 const StepSizeType& ValidatedIntegrationRequest::initial_time() const { return _initial_time; }
 
-const UpperBoxType& ValidatedIntegrationRequest::bounding_box() const { return _bounding_box; }
+bool ValidatedIntegrationRequest::step_size_is_maximum() const { return _maximum_step; }
+
+bool ValidatedIntegrationRequest::has_bounding_box() const { return _bounding_box.has_value(); }
+
+const UpperBoxType& ValidatedIntegrationRequest::bounding_box() const {
+    if (!has_bounding_box()) {
+        throw std::logic_error("The adaptive request leaves the state bound to the solver");
+    }
+    return *_bounding_box;
+}
 
 bool ValidatedIntegrationRequest::has_explicit_time() const { return _has_explicit_time; }
 
@@ -131,8 +158,11 @@ const ValidatedVectorMultivariateFunctionPatch& ValidatedIntegrationRequest::ini
 }
 
 void ValidatedIntegrationRequest::validate() const {
+    if (_maximum_step && _has_explicit_time) {
+        throw std::invalid_argument("Adaptive step requests require an autonomous equation field");
+    }
     if (not(_time_step > StepSizeType(0u)) ||
-        _initial.dimension() != _bounding_box.dimension()) {
+        (_bounding_box && _initial.dimension() != _bounding_box->dimension())) {
         throw std::invalid_argument("Validated integration request has incompatible dimensions or duration");
     }
     if (_constant_parameter_domain.dimension() != 0u && not _has_explicit_time) {
@@ -174,35 +204,42 @@ ValidatedIntegrationStep FlowStepIntegratorAdapter::step(const ValidatedIntegrat
         field->argument_size() != n + (explicit_time ? 1u + np : 0u)) {
         throw std::invalid_argument("Equation field does not match state, time and parameter arguments");
     }
-    const Interval<StepSizeType> time_domain(
-        explicit_time ? request.initial_time() : StepSizeType(0u),
-        (explicit_time ? request.initial_time() : StepSizeType(0u)) + request.time_step());
-    auto integrate = [&](const ExactBoxType& domain) -> FlowStepModelType {
-        if (explicit_time) {
-            return _integrator.flow_step(*field, domain, time_domain,
-                                         request.constant_parameter_domain(),
-                                         request.bounding_box());
-        }
-        return _integrator.flow_step(*field, domain, request.time_step(),
-                                     request.bounding_box());
-    };
-    if (not request.has_initial_mapping()) {
-        const auto native = integrate(request.initial());
-        return validated_integration_step(native, time_domain, request.initial_time(),
-                                          std::nullopt, explicit_time,
-                                          request.constant_parameter_domain());
-    }
-
-    // Integrate on an enclosure of current states, then compose
-    // the certified local flow with the previously validated endpoint.
-    // The initial-state coordinates, fixed parameters and any additional
-    // uncertain inputs retain their original correlation domains.
-    const auto& previous = request.initial_mapping();
-    const ExactBoxType current = cast_exact_box(UpperBoxType(previous.range()));
-    if (not definitely(subset(current, cast_exact_box(request.bounding_box())))) {
+    const ExactBoxType current = request.has_initial_mapping()
+                                   ? cast_exact_box(UpperBoxType(request.initial_mapping().range()))
+                                   : request.initial();
+    if (request.has_initial_mapping() && request.has_bounding_box() &&
+        not definitely(subset(current, cast_exact_box(request.bounding_box())))) {
         throw std::invalid_argument("Equation continuation endpoint exceeds the state bound");
     }
-    const auto local = integrate(current);
+    const auto local = [&]() -> FlowStepModelType {
+        if (request.step_size_is_maximum()) {
+            auto flow = _integrator.flow_step(*field, current, suggest(request.time_step()));
+            auto domain = flow.domain();
+            const StepSizeType h = min(request.time_step(), StepSizeType(domain[n].upper_bound()));
+            if (!(h > StepSizeType(0u)) || domain[n].lower_bound() > 0) {
+                throw std::invalid_argument("Adaptive solver returned no positive flow interval starting at zero");
+            }
+            domain[n] = IntervalDomainType(StepSizeType(0u), h);
+            return restriction(flow, domain);
+        }
+        if (explicit_time) {
+            return _integrator.flow_step(*field, current,
+                                         Interval<StepSizeType>(request.initial_time(), request.initial_time() + request.time_step()),
+                                         request.constant_parameter_domain(), request.bounding_box());
+        }
+        return _integrator.flow_step(*field, current, request.time_step(), request.bounding_box());
+    }();
+    const Interval<StepSizeType> time_domain = request.step_size_is_maximum()
+                                                 ? Interval<StepSizeType>(StepSizeType(0u), StepSizeType(local.domain()[n].upper_bound()))
+                                                 : Interval<StepSizeType>(explicit_time ? request.initial_time() : StepSizeType(0u),
+                                                                          (explicit_time ? request.initial_time() : StepSizeType(0u)) + request.time_step());
+    if (!request.has_initial_mapping()) {
+        return validated_integration_step(local, time_domain, request.initial_time(),
+                                          std::nullopt, explicit_time, request.constant_parameter_domain());
+    }
+
+    // Preserve the previous map and every existing uncertainty coordinate.
+    const auto& previous = request.initial_mapping();
     const auto embedded = embed(previous, IntervalDomainType(time_domain));
     const SizeType time_index = previous.argument_size();
     const auto time_function = factory(embedded).create(
@@ -223,6 +260,9 @@ ValidatedIntegrationStep FlowStepIntegratorAdapter::step(const ValidatedIntegrat
 }
 
 ValidatedIntegrationStep MultiflowStepIntegratorAdapter::step(const ValidatedIntegrationRequest& request) const {
+    if (request.step_size_is_maximum()) {
+        throw std::invalid_argument("This inclusion adapter requires an exact step and a state bound");
+    }
     if (request.has_initial_mapping()) {
         throw std::invalid_argument("Box-only integration cannot discard a structured endpoint map");
     }
@@ -250,6 +290,9 @@ ValidatedIntegrationStep MultiflowStepIntegratorAdapter::step(const ValidatedInt
 }
 
 ValidatedIntegrationStep StructuredInclusionStepIntegratorAdapter::step(const ValidatedIntegrationRequest& request) const {
+    if (request.step_size_is_maximum()) {
+        throw std::invalid_argument("This inclusion adapter requires an exact step and a state bound");
+    }
     if (const auto* timed = request.field_as<ValidatedTimedBoxMultifunctionInterface>()) {
         const auto* previous = request.has_initial_mapping()
                                  ? &request.initial_mapping()

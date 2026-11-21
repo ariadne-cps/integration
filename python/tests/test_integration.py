@@ -22,6 +22,25 @@ class TestValidatedSteps(unittest.TestCase):
         actual = FloatDPBounds(box[0].lower_bound(), box[0].upper_bound())
         self.assertTrue(refines(expected, actual))
 
+    def test_adaptive_request_preserves_origin_and_mapping(self):
+        field = EffectiveVectorMultivariateFunction([
+            EffectiveScalarMultivariateFunction.constant(1, 1)])
+        initial = exact_box([(0.0, 0.125)])
+        maximum, origin = Dyadic("0.03125"), Dyadic(2)
+        request = ValidatedIntegrationRequest.with_maximum_step(field, initial, maximum, origin)
+        self.assertTrue(request.step_size_is_maximum())
+        self.assertFalse(request.has_bounding_box())
+        with self.assertRaises(RuntimeError):
+            request.bounding_box()
+        solver = FlowStepIntegratorAdapter(TaylorPicardIntegrator(1e-6))
+        first = solver.step(request)
+        self.assertEqual(first.initial_time(), origin)
+        self.assertLessEqual(first.time_step(), maximum)
+        second = solver.step(ValidatedIntegrationRequest.with_maximum_step(field, first, maximum))
+        self.assertEqual(second.initial_time(), first.final_time())
+        self.assertEqual(second.evolve_model().domain(), BoxDomainType(initial))
+        self.assert_encloses(second.evolve(), 0.0625, 0.1875)
+
     def test_equation_request_survives_temporary_function_and_solver(self):
         initial = exact_box([(0.0, 0.125)])
         bound = FloatDPUpperBox(exact_box([(-1.0, 1.0)]))

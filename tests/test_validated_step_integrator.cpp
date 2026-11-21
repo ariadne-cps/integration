@@ -56,9 +56,77 @@ static_assert(not std::is_constructible_v<FlowStepIntegratorAdapter, TaylorSerie
 static_assert(not std::is_constructible_v<MultiflowStepIntegratorAdapter, FirstOrderMultifunctionIntegrator&&>);
 static_assert(not std::is_constructible_v<StructuredInclusionStepIntegratorAdapter, SelectedParametricMultifunctionIntegrator&&>);
 
+// Exercise both sides of the legacy suggestion contract deterministically.
+class ControlledStepIntegrator : public TaylorPicardIntegrator {
+    StepSizeType _factor;
+
+  public:
+    mutable SizeType calls = 0u;
+    explicit ControlledStepIntegrator(const StepSizeType& factor)
+        : TaylorPicardIntegrator(StepMaximumError(1e-6)), _factor(factor) {}
+    using TaylorPicardIntegrator::flow_step;
+    FlowStepModelType flow_step(const ValidatedVectorMultivariateFunction& field,
+                                const ExactBoxType& domain, const Suggestion<StepSizeType>& suggestion) const override {
+        ++calls;
+        if (_factor == StepSizeType(0u)) {
+            throw FlowTimeStepException("Selected solver failed");
+        }
+        return TaylorPicardIntegrator::flow_step(field, domain,
+                                                 static_cast<const StepSizeType&>(suggestion) * _factor,
+                                                 UpperBoxType({
+                                                     {-4.0_x, 4.0_x}
+        }));
+    }
+};
+
 class TestValidatedStepIntegrator : public Ariadne::Testing::ContextFixture {
   public:
     using ContextFixture::ContextFixture;
+
+    Void test_maximum_duration_and_correlated_continuation() {
+        const ValidatedVectorMultivariateFunction field = {ValidatedScalarMultivariateFunction::constant(1u, 1)};
+        const ExactBoxType initial({
+            {0.0_x, 0.125_x}
+        });
+        const StepSizeType maximum(0.125_x), origin(2u);
+        for (const StepSizeType& factor: {StepSizeType(0.5_x), StepSizeType(2u)}) {
+            ControlledStepIntegrator native(factor);
+            FlowStepIntegratorAdapter adapter(native);
+            const ValidatedIntegrationRequest request(field, initial, suggest(maximum), origin);
+            ARIADNE_TESTING_PROVE(request.step_size_is_maximum());
+            ARIADNE_TESTING_PROVE(!request.has_bounding_box());
+            ARIADNE_TESTING_EXPECT_THROWS(std::logic_error, request.bounding_box());
+            const auto first = adapter.step(request);
+            const StepSizeType actual = min(maximum, maximum * factor);
+            ARIADNE_TESTING_EXPECT_EQUAL(first.time_step(), actual);
+            ARIADNE_TESTING_EXPECT_EQUAL(first.initial_time(), origin);
+            ARIADNE_TESTING_EXPECT_EQUAL(first.reach_time_offset(), origin);
+            const auto second = adapter.step(ValidatedIntegrationRequest(field, first, suggest(maximum)));
+            ARIADNE_TESTING_EXPECT_EQUAL(second.initial_time(), first.final_time());
+            ARIADNE_TESTING_EXPECT_EQUAL(second.time_step(), actual);
+            ARIADNE_TESTING_EXPECT_EQUAL(second.evolve_model().domain(), initial);
+            const Vector<FloatDPBounds> point({FloatDPBounds(0, dp)});
+            ARIADNE_TESTING_PROVE(refines(FloatDPBounds(2 * actual, dp), second.evolve_model()(point)[0u]));
+            ARIADNE_TESTING_EXPECT_EQUAL(native.calls, 2u);
+        }
+    }
+
+    Void test_adaptive_failures_do_not_select_another_solver() {
+        const ValidatedVectorMultivariateFunction field = {ValidatedScalarMultivariateFunction::constant(1u, 1)};
+        const ExactBoxType initial({
+            {0.0_x, 0.125_x}
+        });
+        ControlledStepIntegrator failing(StepSizeType(0u));
+        FlowStepIntegratorAdapter adapter(failing);
+        const ValidatedIntegrationRequest request(field, initial, suggest(StepSizeType(0.125_x)));
+        ARIADNE_TESTING_EXPECT_THROWS(FlowTimeStepException, adapter.step(request));
+        ARIADNE_TESTING_EXPECT_EQUAL(failing.calls, 1u);
+        FirstOrderMultifunctionIntegrator box_solver;
+        MultiflowStepIntegratorAdapter box_adapter(box_solver);
+        ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument, box_adapter.step(request));
+        ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
+                                      ValidatedIntegrationRequest(field, initial, suggest(StepSizeType(0u))));
+    }
 
     Void test_common_polymorphic_step_for_both_field_capabilities() {
         const ValidatedVectorMultivariateFunction ordinary = {
@@ -946,6 +1014,8 @@ class TestValidatedStepIntegrator : public Ariadne::Testing::ContextFixture {
 
 int main(int argc, char** argv) {
     ARIADNE_TESTING_SUITE("test_validated_step_integrator");
+    ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_maximum_duration_and_correlated_continuation);
+    ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_adaptive_failures_do_not_select_another_solver);
     ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_common_polymorphic_step_for_both_field_capabilities);
     ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_structured_inclusion_retains_native_maps);
     ARIADNE_TESTING_ADD_TEST(TestValidatedStepIntegrator, test_structured_two_step_continuation_uses_common_result);
