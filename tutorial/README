@@ -1,0 +1,11 @@
+The C++ and Python tutorials demonstrate the standalone Ariadne Integration API.
+
+Build Ariadne Integration and install it to a prefix, then configure this directory
+with that prefix in CMAKE_PREFIX_PATH. The tutorial includes ariadne-integration.hpp
+and links against the installed ariadne-integration library.
+
+Both tutorials include the common ValidatedIntegrationRequest / ValidatedIntegrationStep
+contract, two consecutive steps for an equation and a structured differential inclusion,
+retrieval of reach sections and endpoint maps, and explicit rejection of unsupported
+field capabilities. Python wrappers keep borrowed fields and backends alive; C++
+examples use named objects for those dependencies.

@@ -82,7 +82,9 @@ Void export_integrators(pybind11::module& module) {
     integrator_interface_class.def("flow_step", (FlowStepModelType (IntegratorInterface::*)(const ValidatedVectorMultivariateFunction&, const ExactBoxType&, const StepSizeType&, const UpperBoxType&) const) & IntegratorInterface::flow_step);
     integrator_interface_class.def("__str__", &__cstr__<IntegratorInterface>);
 
-    pybind11::class_<TaylorPicardIntegrator, IntegratorInterface> taylor_picard_integrator_class(module, "TaylorPicardIntegrator");
+    pybind11::class_<IntegratorBase, IntegratorInterface>(module, "IntegratorBase");
+
+    pybind11::class_<TaylorPicardIntegrator, IntegratorBase> taylor_picard_integrator_class(module, "TaylorPicardIntegrator");
     taylor_picard_integrator_class.def(pybind11::init<ApproximateDouble>());
     taylor_picard_integrator_class.def("minimum_temporal_order", &TaylorPicardIntegrator::minimum_temporal_order);
     taylor_picard_integrator_class.def("maximum_temporal_order", &TaylorPicardIntegrator::maximum_temporal_order);
@@ -91,7 +93,7 @@ Void export_integrators(pybind11::module& module) {
     taylor_picard_integrator_class.def("set_maximum_temporal_order", &TaylorPicardIntegrator::set_maximum_temporal_order);
     taylor_picard_integrator_class.def("set_step_maximum_error", &TaylorPicardIntegrator::set_step_maximum_error);
 
-    pybind11::class_<GradedTaylorPicardIntegrator, IntegratorInterface> unbounded_taylor_picard_integrator_class(module, "GradedTaylorPicardIntegrator");
+    pybind11::class_<GradedTaylorPicardIntegrator, IntegratorBase> unbounded_taylor_picard_integrator_class(module, "GradedTaylorPicardIntegrator");
     unbounded_taylor_picard_integrator_class.def(pybind11::init<ApproximateDouble, Order>());
     unbounded_taylor_picard_integrator_class.def("order", &GradedTaylorPicardIntegrator::order);
     unbounded_taylor_picard_integrator_class.def("step_maximum_error", &GradedTaylorPicardIntegrator::step_maximum_error);
@@ -100,7 +102,7 @@ Void export_integrators(pybind11::module& module) {
     unbounded_taylor_picard_integrator_class.def("set_step_maximum_error", &GradedTaylorPicardIntegrator::set_step_maximum_error);
     unbounded_taylor_picard_integrator_class.def("set_error_refinement_minimum_improvement_percentage", &GradedTaylorPicardIntegrator::set_error_refinement_minimum_improvement_percentage);
 
-    pybind11::class_<TaylorSeriesIntegrator, IntegratorInterface> taylor_series_integrator_class(module, "TaylorSeriesIntegrator");
+    pybind11::class_<TaylorSeriesIntegrator, IntegratorBase> taylor_series_integrator_class(module, "TaylorSeriesIntegrator");
     taylor_series_integrator_class.def(pybind11::init<ApproximateDouble, Nat>());
     taylor_series_integrator_class.def("order", &TaylorSeriesIntegrator::order);
     taylor_series_integrator_class.def("has_step_maximum_error", &TaylorSeriesIntegrator::has_step_maximum_error);
@@ -108,7 +110,7 @@ Void export_integrators(pybind11::module& module) {
     taylor_series_integrator_class.def("set_order", &TaylorSeriesIntegrator::set_order);
     taylor_series_integrator_class.def("set_step_maximum_error", &TaylorSeriesIntegrator::set_step_maximum_error);
 
-    pybind11::class_<GradedTaylorSeriesIntegrator, IntegratorInterface> graded_taylor_series_integrator_class(module, "GradedTaylorSeriesIntegrator");
+    pybind11::class_<GradedTaylorSeriesIntegrator, IntegratorBase> graded_taylor_series_integrator_class(module, "GradedTaylorSeriesIntegrator");
     graded_taylor_series_integrator_class.def(pybind11::init<ApproximateDouble>());
     graded_taylor_series_integrator_class.def("maximum_spacial_order", &GradedTaylorSeriesIntegrator::maximum_spacial_order);
     graded_taylor_series_integrator_class.def("maximum_temporal_order", &GradedTaylorSeriesIntegrator::maximum_temporal_order);
@@ -123,6 +125,9 @@ Void export_integrators(pybind11::module& module) {
     runge_kutta_4_integrator_class.def("evolve", &RungeKutta4Integrator::evolve);
 }
 
+Void export_validated_steps(pybind11::module& module);
+
 Void integration_submodule(pybind11::module& module) {
     export_integrators(module);
+    export_validated_steps(module);
 }

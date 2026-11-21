@@ -42,7 +42,7 @@ namespace Ariadne {
 
 /** @brief Error raised when validated flow bounds are unavailable. */
 struct FlowBoundsException : public std::runtime_error {
-    FlowBoundsException(const StringType& what) : std::runtime_error(what) {}
+    FlowBoundsException(const StringType& what);
 };
 
 /** @brief Type representing flow step model type in integration algorithms. */
@@ -60,7 +60,7 @@ struct IncompleteFlowException : public std::runtime_error {
     IncompleteFlowException(const StringType& what, const FlowStepModelType& model);
     /** @brief Construct the integration object. */
     IncompleteFlowException(const IncompleteFlowException& other);
-    const FlowStepModelType& computed_model() const { return *this->_computed_model; }
+    const FlowStepModelType& computed_model() const;
 
   private:
     std::unique_ptr<FlowStepModelType> _computed_model;
@@ -69,7 +69,7 @@ struct IncompleteFlowException : public std::runtime_error {
 //! \ingroup DifferentialEquationSubModule
 //! \brief A solution to a differential equation could not be computed within the requested tolerances.
 struct FlowTimeStepException : public std::runtime_error {
-    FlowTimeStepException(const StringType& what) : std::runtime_error(what) {}
+    FlowTimeStepException(const StringType& what);
 };
 
 //! \ingroup DifferentialEquationSubModule
@@ -147,10 +147,7 @@ class IntegratorInterface {
                   const UpperBoxType& bounding_box) const = 0;
 
     //! \brief Write to an output stream.
-    friend inline OutputStream& operator<<(OutputStream& os, const IntegratorInterface& integrator) {
-        integrator._write(os);
-        return os;
-    }
+    friend OutputStream& operator<<(OutputStream& os, const IntegratorInterface& integrator);
 };
 
 } // namespace Ariadne

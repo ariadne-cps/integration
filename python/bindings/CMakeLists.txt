@@ -4,6 +4,7 @@ get_target_property(PYTHON_COMMON_SOURCE_DIR pyariadne-python-common SOURCE_DIR)
 
 add_library(pyariadne-integration-submodule-obj OBJECT
     integration_submodule.cpp
+    validated_step_submodule.cpp
 )
 
 target_include_directories(pyariadne-integration-submodule-obj PRIVATE
