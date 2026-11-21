@@ -95,7 +95,9 @@ class TestPolynomialProcedure : public Ariadne::Testing::ContextFixture {
         const auto x = EffectiveScalarMultivariateFunction::coordinate(1u, 0u);
         const ValidatedVectorMultivariateFunction field =
             EffectiveVectorMultivariateFunction({sqr(x) - x});
-        const ExactBoxType domain({{0.375_x, 0.625_x}});
+        const ExactBoxType domain({
+            {0.375_x, 0.625_x}
+        });
         const auto [step, log] = integrate_with_diagnostics(field, domain);
         // Boolean diagnostics follow the stream's boolalpha setting.
         ARIADNE_TESTING_PROVE(
@@ -127,7 +129,9 @@ class TestPolynomialProcedure : public Ariadne::Testing::ContextFixture {
             EffectiveVectorMultivariateFunction({1 / x});
         const ValidatedVectorMultivariateFunction sine =
             EffectiveVectorMultivariateFunction({sin(x)});
-        const ExactBoxType domain({{0.875_x, 1.125_x}});
+        const ExactBoxType domain({
+            {0.875_x, 1.125_x}
+        });
         // pow(x,3) is deliberately excluded: the earlier isolated
         // Procedure test only established that the degree analyser rejects
         // POW, not that the full graded integrator can evaluate it.
@@ -145,7 +149,9 @@ class TestPolynomialProcedure : public Ariadne::Testing::ContextFixture {
         const auto x = EffectiveScalarMultivariateFunction::coordinate(1u, 0u);
         const ValidatedVectorMultivariateFunction field =
             EffectiveVectorMultivariateFunction({sin(x)});
-        const ExactBoxType domain({{-0.125_x, 0.125_x}});
+        const ExactBoxType domain({
+            {-0.125_x, 0.125_x}
+        });
         const auto [step, log] = integrate_with_diagnostics(field, domain);
         // The recurrence's validated defect is an observable diagnostic,
         // regardless of whether the transformed Procedure is syntactically

@@ -42,7 +42,6 @@
 
 namespace Ariadne {
 
-
 /** @brief Field data expected by the legacy high-order inclusion solver.
  *
  *  This is a numerical adapter payload, not a dynamical-system declaration.
@@ -72,7 +71,6 @@ class ValidatedBoxMultifunctionInterface {
     virtual SizeType result_size() const = 0;
     virtual BoxDomainType domain() const = 0;
     virtual UpperBoxType evaluate(const UpperBoxType& box) const = 0;
-
 };
 
 /** @brief Optional, solver-specific capability, independent of box evaluation.
@@ -104,8 +102,7 @@ class ValidatedIntervalTaylorBoxMultifunctionDP : public ValidatedBoxMultifuncti
     ValidatedVectorIntervalTaylorFunctionModel<FloatDP> _model;
 
   public:
-explicit ValidatedIntervalTaylorBoxMultifunctionDP(const ValidatedVectorIntervalTaylorFunctionModel<FloatDP>& model);
-
+    explicit ValidatedIntervalTaylorBoxMultifunctionDP(const ValidatedVectorIntervalTaylorFunctionModel<FloatDP>& model);
 
     virtual SizeType argument_size() const override;
     virtual SizeType result_size() const override;
@@ -127,7 +124,6 @@ explicit ValidatedIntervalTaylorBoxMultifunctionDP(const ValidatedVectorInterval
      *  are not reconstructed.
      */
     InclusionIntegratorFieldData inclusion_integrator_field() const override;
-
 };
 
 /** @brief Rigorous reach-tube and endpoint box enclosures for a single step.
@@ -152,7 +148,6 @@ class MultifunctionIntegratorInterface {
                                              const StepSizeType& time_step,
                                              const UpperBoxType& state_bound) const = 0;
 };
-
 
 /** @brief Certified box extension for a time-dependent set-valued field.
  *
@@ -188,7 +183,7 @@ class ValidatedTimedBoxMultifunctionInterface {
  *  This adapter does not supply high-order inclusion solver data.
  */
 class ValidatedTimedInputFieldBoxAdapterDP : public ValidatedTimedBoxMultifunctionInterface,
-                                            public TimedInclusionIntegratorFieldProvider {
+                                             public TimedInclusionIntegratorFieldProvider {
     EffectiveVectorMultivariateFunction _field;
     BoxDomainType _states;
     IntervalDomainType _time;
@@ -196,12 +191,11 @@ class ValidatedTimedInputFieldBoxAdapterDP : public ValidatedTimedBoxMultifuncti
     BoxDomainType _inputs;
 
   public:
-ValidatedTimedInputFieldBoxAdapterDP(const EffectiveVectorMultivariateFunction& field,
+    ValidatedTimedInputFieldBoxAdapterDP(const EffectiveVectorMultivariateFunction& field,
                                          const BoxDomainType& states,
                                          const IntervalDomainType& time,
                                          const BoxDomainType& parameters,
                                          const BoxDomainType& inputs);
-
 
     SizeType argument_size() const override;
     SizeType result_size() const override;
@@ -241,7 +235,7 @@ class TimedMultifunctionIntegratorInterface {
  *  No enclosure is returned when the strict continuation test fails.
  */
 class FirstOrderMultifunctionIntegrator : public MultifunctionIntegratorInterface,
-                                           public TimedMultifunctionIntegratorInterface {
+                                          public TimedMultifunctionIntegratorInterface {
   public:
     virtual ValidatedMultiflowStep flow_step(const ValidatedBoxMultifunctionInterface& field,
                                              const ExactBoxType& initial,

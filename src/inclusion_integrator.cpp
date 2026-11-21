@@ -35,15 +35,15 @@
 
 namespace Ariadne {
 
-TimeStepType lower_bound(const TimeStepType& t) {
+TimeStepType lower_bound(const TimeStepType &t) {
     return TimeStepType(FloatDPLowerBound(t, DoublePrecision()).raw());
 }
 
-TimeStepType lower_bound(const Real& t) {
+TimeStepType lower_bound(const Real &t) {
     return TimeStepType(FloatDPLowerBound(t, DoublePrecision()).raw());
 }
 
-Vector<FloatDP> cast_exact(const Vector<ErrorType>& v) {
+Vector<FloatDP> cast_exact(const Vector<ErrorType> &v) {
     // Vector specializations need not share a layout. Extract the exact values
     // into independent storage instead of aliasing the error vector.
     Vector<FloatDP> result(v.size(), v.zero_element().raw());
@@ -53,17 +53,17 @@ Vector<FloatDP> cast_exact(const Vector<ErrorType>& v) {
     return result;
 }
 
-std::ostream& operator<<(std::ostream& os, const ErrorConstants& n) {
+std::ostream &operator<<(std::ostream &os, const ErrorConstants &n) {
     os << "K=" << n.K << ", Kj=" << n.Kj << ", K'=" << n.pK << ", K'v=" << n.pKv << ", Kw'=" << n.pKw << ", Kj'=" << n.Kj << ", K'jv=" << n.pKjv << ", K'jw=" << n.pKjw << ", L=" << n.L << ", Lj=" << n.Lj << ", L'=" << n.pL << ", L'v=" << n.pLv << ", L'w=" << n.pLw << ", Lj'=" << n.pLj << ", Lj'v=" << n.pLjv << ", Lj'w=" << n.pLjw << ", H=" << n.H << ", Hj=" << n.Hj << ", H'=" << n.pH << ", H'v=" << n.pHv << ", H'w=" << n.pHw << ", Hj'=" << n.pHj << ", Hj'v=" << n.pHjv << ", Hj'w=" << n.pHjw << ", Lambda=" << n.Lambda << ", expLambda=" << n.expLambda << ", expL=" << n.expL;
     return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const InputApproximationInterface& a) {
+std::ostream &operator<<(std::ostream &os, const InputApproximationInterface &a) {
     a.write(os);
     return os;
 }
 
-std::ostream& operator<<(std::ostream& os, const InputsRelationKind& kind) {
+std::ostream &operator<<(std::ostream &os, const InputsRelationKind &kind) {
     switch (kind) {
         case InputsRelationKind::AFFINE:
             os << "AFFINE";
@@ -90,67 +90,67 @@ ErrorConstants::PrecisionType ErrorConstants::precision() const { return Precisi
 
 bool ZeroApproximation::is_reach_rigorous() const { return true; }
 
-Void ZeroApproximation::write(OutputStream& os) const { os << "ZERO"; }
+Void ZeroApproximation::write(OutputStream &os) const { os << "ZERO"; }
 
 Nat ZeroApproximation::index() const { return 0; }
 
-ZeroApproximation* ZeroApproximation::clone() const { return new ZeroApproximation(*this); }
+ZeroApproximation *ZeroApproximation::clone() const { return new ZeroApproximation(*this); }
 
 bool ConstantApproximation::is_reach_rigorous() const { return true; }
 
-Void ConstantApproximation::write(OutputStream& os) const { os << "CONSTANT"; }
+Void ConstantApproximation::write(OutputStream &os) const { os << "CONSTANT"; }
 
 Nat ConstantApproximation::index() const { return 1; }
 
-ConstantApproximation* ConstantApproximation::clone() const { return new ConstantApproximation(*this); }
+ConstantApproximation *ConstantApproximation::clone() const { return new ConstantApproximation(*this); }
 
 bool AffineApproximation::is_reach_rigorous() const { return false; }
 
-Void AffineApproximation::write(OutputStream& os) const { os << "AFFINE"; }
+Void AffineApproximation::write(OutputStream &os) const { os << "AFFINE"; }
 
 Nat AffineApproximation::index() const { return 2; }
 
-AffineApproximation* AffineApproximation::clone() const { return new AffineApproximation(*this); }
+AffineApproximation *AffineApproximation::clone() const { return new AffineApproximation(*this); }
 
 bool SinusoidalApproximation::is_reach_rigorous() const { return false; }
 
-Void SinusoidalApproximation::write(OutputStream& os) const { os << "SINUSOIDAL"; }
+Void SinusoidalApproximation::write(OutputStream &os) const { os << "SINUSOIDAL"; }
 
 Nat SinusoidalApproximation::index() const { return 3; }
 
-SinusoidalApproximation* SinusoidalApproximation::clone() const { return new SinusoidalApproximation(*this); }
+SinusoidalApproximation *SinusoidalApproximation::clone() const { return new SinusoidalApproximation(*this); }
 
 bool PiecewiseApproximation::is_reach_rigorous() const { return false; }
 
-Void PiecewiseApproximation::write(OutputStream& os) const { os << "PIECEWISE"; }
+Void PiecewiseApproximation::write(OutputStream &os) const { os << "PIECEWISE"; }
 
 Nat PiecewiseApproximation::index() const { return 4; }
 
-PiecewiseApproximation* PiecewiseApproximation::clone() const { return new PiecewiseApproximation(*this); }
+PiecewiseApproximation *PiecewiseApproximation::clone() const { return new PiecewiseApproximation(*this); }
 
 bool InputApproximation::is_reach_rigorous() const { return this->_ptr->is_reach_rigorous(); }
 
-InclusionIntegratorFactory::InclusionIntegratorFactory(const IntegratorInterface& integrator) : _integrator(integrator.clone()) {}
+InclusionIntegratorFactory::InclusionIntegratorFactory(const IntegratorInterface &integrator) : _integrator(integrator.clone()) {}
 
-InclusionIntegratorFactory* InclusionIntegratorFactory::clone() const { return new InclusionIntegratorFactory(*this); }
+InclusionIntegratorFactory *InclusionIntegratorFactory::clone() const { return new InclusionIntegratorFactory(*this); }
 
-std::ostream& operator<<(std::ostream& os, const InclusionIntegratorInterface& approximator) {
-        approximator.write(os);
-        return os;
-    }
+std::ostream &operator<<(std::ostream &os, const InclusionIntegratorInterface &approximator) {
+    approximator.write(os);
+    return os;
+}
 
-Bool operator==(const InclusionIntegrator& lhs, const InclusionIntegrator& rhs) {
-        return lhs._ptr->operator==(*rhs._ptr);
-    }
+Bool operator==(const InclusionIntegrator &lhs, const InclusionIntegrator &rhs) {
+    return lhs._ptr->operator==(*rhs._ptr);
+}
 
-Bool operator<(const InclusionIntegrator& lhs, const InclusionIntegrator& rhs) {
-        return lhs._ptr->operator<(*rhs._ptr);
-    }
+Bool operator<(const InclusionIntegrator &lhs, const InclusionIntegrator &rhs) {
+    return lhs._ptr->operator<(*rhs._ptr);
+}
 
-std::ostream& operator<<(std::ostream& os, const InclusionIntegrator& approximator) {
-        os << *approximator._ptr;
-        return os;
-    }
+std::ostream &operator<<(std::ostream &os, const InclusionIntegrator &approximator) {
+    os << *approximator._ptr;
+    return os;
+}
 
 bool InclusionIntegrator::is_reach_rigorous() const { return _ptr->is_reach_rigorous(); }
 
@@ -158,15 +158,13 @@ Nat InclusionIntegrator::index() const { return _ptr->index(); }
 
 Nat InclusionIntegrator::num_params_per_input() const { return _ptr->num_params_per_input(); }
 
-InclusionIntegrator::operator const InclusionIntegratorInterface&() const { return *_ptr; }
+InclusionIntegrator::operator const InclusionIntegratorInterface &() const { return *_ptr; }
 
-InclusionIntegrator* InclusionIntegrator::clone() const { return new InclusionIntegrator(*this); }
+InclusionIntegrator *InclusionIntegrator::clone() const { return new InclusionIntegrator(*this); }
 
-List<ValidatedVectorMultivariateFunctionPatch> InclusionIntegrator::reach(const BoxDomainType& D, const ValidatedVectorMultivariateFunctionPatch& evolve_function, const UpperBoxType& B, const TimeStepType& t, const StepSizeType& h) const { return _ptr->reach(D, evolve_function, B, t, h); }
+List<ValidatedVectorMultivariateFunctionPatch> InclusionIntegrator::reach(const BoxDomainType &D, const ValidatedVectorMultivariateFunctionPatch &evolve_function, const UpperBoxType &B, const TimeStepType &t, const StepSizeType &h) const { return _ptr->reach(D, evolve_function, B, t, h); }
 
-ValidatedVectorMultivariateFunctionPatch InclusionIntegrator::evolve(const ValidatedVectorMultivariateFunctionPatch& reach_function, const TimeStepType& t) const { return _ptr->evolve(reach_function, t); }
-
-
+ValidatedVectorMultivariateFunctionPatch InclusionIntegrator::evolve(const ValidatedVectorMultivariateFunctionPatch &reach_function, const TimeStepType &t) const { return _ptr->evolve(reach_function, t); }
 
 template<class I>
 decltype(auto) inline norm(const Box<I> &bx) { return norm(cast_vector(bx)); }

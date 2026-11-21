@@ -25,8 +25,8 @@ ValidatedIntegrationStep validated_integration_step(
         throw std::invalid_argument("Explicit-time flow cannot be relabelled with a different absolute start");
     }
     if (flow.argument_size() <= time_index ||
-        not (flow.domain()[time_index] ==
-             IntervalDomainType(time_domain.lower_bound(), time_domain.upper_bound()))) {
+        not(flow.domain()[time_index] ==
+            IntervalDomainType(time_domain.lower_bound(), time_domain.upper_bound()))) {
         throw std::invalid_argument("Ordinary flow patch has an incompatible time domain");
     }
     const StepSizeType duration = time_domain.upper_bound() - time_domain.lower_bound();

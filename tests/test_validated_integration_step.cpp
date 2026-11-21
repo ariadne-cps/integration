@@ -47,8 +47,12 @@ class TestValidatedIntegrationStep : public Ariadne::Testing::ContextFixture {
         // flow patch must still be available after box projection.
         EffectiveVectorMultivariateFunction f = {
             EffectiveScalarMultivariateFunction::constant(1u, 1)};
-        const ExactBoxType initial({{0.0_x, 0.125_x}});
-        const UpperBoxType bound({{-1.0_x, 1.0_x}});
+        const ExactBoxType initial({
+            {0.0_x, 0.125_x}
+        });
+        const UpperBoxType bound({
+            {-1.0_x, 1.0_x}
+        });
         const StepSizeType h(0.03125_x);
         TaylorSeriesIntegrator solver(step_maximum_error = 1e-6, order = 8);
         const auto flow = solver.flow_step(f, initial, h, bound);
@@ -57,16 +61,24 @@ class TestValidatedIntegrationStep : public Ariadne::Testing::ContextFixture {
 
         ARIADNE_TESTING_EXPECT_EQUAL(step.time_step(), h);
         ARIADNE_TESTING_PROVE(definitely(subset(
-            ExactBoxType({{0.0_x, 0.15625_x}}), cast_exact_box(step.reach()))));
+            ExactBoxType({
+                {0.0_x, 0.15625_x}
+        }),
+            cast_exact_box(step.reach()))));
         ARIADNE_TESTING_PROVE(definitely(subset(
-            ExactBoxType({{0.03125_x, 0.15625_x}}), cast_exact_box(step.evolve()))));
+            ExactBoxType({
+                {0.03125_x, 0.15625_x}
+        }),
+            cast_exact_box(step.evolve()))));
         ARIADNE_TESTING_PROVE(step.has_reach_models());
         ARIADNE_TESTING_EXPECT_EQUAL(step.reach_models().size(), 1u);
         ARIADNE_TESTING_EXPECT_EQUAL(step.reach_models()[0u].domain(), flow.domain());
         ARIADNE_TESTING_PROVE(step.has_evolve_model());
         ARIADNE_TESTING_EXPECT_EQUAL(step.evolve_model().argument_size(), initial.dimension());
         ARIADNE_TESTING_PROVE(definitely(subset(
-            ExactBoxType({{0.03125_x, 0.15625_x}}),
+            ExactBoxType({
+                {0.03125_x, 0.15625_x}
+        }),
             cast_exact_box(UpperBoxType(step.evolve_model().range())))));
         ARIADNE_TESTING_PROVE(step.has_representation());
         const auto* restored = step.representation_as<FlowStepModelType>();
@@ -79,23 +91,28 @@ class TestValidatedIntegrationStep : public Ariadne::Testing::ContextFixture {
         // An undersized reach bound cannot be advertised as the hull of a
         // certified full-time flow; likewise for the endpoint map.
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-            ValidatedIntegrationStep(
-                h, UpperBoxType({{0.0625_x, 0.15625_x}}), step.evolve(),
-                {}, step.reach_models(), step.evolve_model(), StepSizeType(0u), 1u));
+                                      ValidatedIntegrationStep(
+                                          h, UpperBoxType({
+                                                 {0.0625_x, 0.15625_x}
+        }),
+                                          step.evolve(),
+                                          {}, step.reach_models(), step.evolve_model(), StepSizeType(0u), 1u));
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-            ValidatedIntegrationStep(
-                h, step.reach(), UpperBoxType({{0.0625_x, 0.15625_x}}),
-                {}, step.reach_models(), step.evolve_model(), StepSizeType(0u), 1u));
+                                      ValidatedIntegrationStep(
+                                          h, step.reach(), UpperBoxType({
+                                                               {0.0625_x, 0.15625_x}
+        }),
+                                          {}, step.reach_models(), step.evolve_model(), StepSizeType(0u), 1u));
 
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-            validated_integration_step(
-                flow, Interval<StepSizeType>(StepSizeType(0u), StepSizeType(0.0625_x))));
+                                      validated_integration_step(
+                                          flow, Interval<StepSizeType>(StepSizeType(0u), StepSizeType(0.0625_x))));
         // The autonomous model's [0,h] time is local. Nonautonomous models
         // must not falsely reinterpret that time domain as absolute.
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-            validated_integration_step(
-                flow, Interval<StepSizeType>(StepSizeType(0u), h),
-                StepSizeType(0.5_x), std::nullopt, true));
+                                      validated_integration_step(
+                                          flow, Interval<StepSizeType>(StepSizeType(0u), h),
+                                          StepSizeType(0.5_x), std::nullopt, true));
     }
 
     Void test_piecewise_reach_sections_cover_every_time() {
@@ -104,8 +121,12 @@ class TestValidatedIntegrationStep : public Ariadne::Testing::ContextFixture {
         // order; the common contract must not depend on patch ordering.
         const EffectiveVectorMultivariateFunction field = {
             EffectiveScalarMultivariateFunction::constant(1u, 1)};
-        const ExactBoxType initial({{0.0_x, 0.125_x}});
-        const UpperBoxType bound({{-1.0_x, 1.0_x}});
+        const ExactBoxType initial({
+            {0.0_x, 0.125_x}
+        });
+        const UpperBoxType bound({
+            {-1.0_x, 1.0_x}
+        });
         const StepSizeType h(0.03125_x);
         const StepSizeType half(0.015625_x);
         TaylorSeriesIntegrator solver(step_maximum_error = 1e-6, order = 8);
@@ -115,9 +136,9 @@ class TestValidatedIntegrationStep : public Ariadne::Testing::ContextFixture {
 
         const ValidatedVectorMultivariateFunctionPatch full = flow;
         const auto first_half = restriction(full, product(
-            BoxDomainType(initial), IntervalDomainType(0.0_x, 0.015625_x)));
+                                                      BoxDomainType(initial), IntervalDomainType(0.0_x, 0.015625_x)));
         const auto last_half = restriction(full, product(
-            BoxDomainType(initial), IntervalDomainType(0.015625_x, 0.03125_x)));
+                                                     BoxDomainType(initial), IntervalDomainType(0.015625_x, 0.03125_x)));
 
         List<ValidatedVectorMultivariateFunctionPatch> pieces;
         pieces.append(last_half);
@@ -137,10 +158,14 @@ class TestValidatedIntegrationStep : public Ariadne::Testing::ContextFixture {
         ARIADNE_TESTING_EXPECT_EQUAL(left[0u].domain(), BoxDomainType(initial));
         ARIADNE_TESTING_EXPECT_EQUAL(right[0u].domain(), BoxDomainType(initial));
         ARIADNE_TESTING_PROVE(definitely(subset(
-            ExactBoxType({{0.0078125_x, 0.1328125_x}}),
+            ExactBoxType({
+                {0.0078125_x, 0.1328125_x}
+        }),
             cast_exact_box(UpperBoxType(left[0u].range())))));
         ARIADNE_TESTING_PROVE(definitely(subset(
-            ExactBoxType({{0.0234375_x, 0.1484375_x}}),
+            ExactBoxType({
+                {0.0234375_x, 0.1484375_x}
+        }),
             cast_exact_box(UpperBoxType(right[0u].range())))));
 
         // A partial tube must not pretend to provide certified time
@@ -148,16 +173,16 @@ class TestValidatedIntegrationStep : public Ariadne::Testing::ContextFixture {
         List<ValidatedVectorMultivariateFunctionPatch> incomplete;
         incomplete.append(first_half);
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-            ValidatedIntegrationStep(h, native.reach(), native.evolve(),
-                                     {}, incomplete, native.evolve_model(),
-                                     StepSizeType(0u), 1u));
+                                      ValidatedIntegrationStep(h, native.reach(), native.evolve(),
+                                                               {}, incomplete, native.evolve_model(),
+                                                               StepSizeType(0u), 1u));
 
         // The same local-time patch cannot be passed off as a reach
         // whose time coordinates are absolute around physical t=1/2.
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-            ValidatedIntegrationStep(h, native.reach(), native.evolve(),
-                                     {}, pieces, native.evolve_model(),
-                                     StepSizeType(0.5_x), 1u));
+                                      ValidatedIntegrationStep(h, native.reach(), native.evolve(),
+                                                               {}, pieces, native.evolve_model(),
+                                                               StepSizeType(0.5_x), 1u));
     }
 
     Void test_overlapping_reach_patches_keep_independent_parameter_domains() {
@@ -167,8 +192,12 @@ class TestValidatedIntegrationStep : public Ariadne::Testing::ContextFixture {
         // solely exercises preservation of heterogeneous patch domains.
         const EffectiveVectorMultivariateFunction field = {
             EffectiveScalarMultivariateFunction::constant(1u, 1)};
-        const ExactBoxType initial({{0.0_x, 0.125_x}});
-        const UpperBoxType bound({{-1.0_x, 1.0_x}});
+        const ExactBoxType initial({
+            {0.0_x, 0.125_x}
+        });
+        const UpperBoxType bound({
+            {-1.0_x, 1.0_x}
+        });
         const StepSizeType h(0.03125_x);
         const StepSizeType t0(0.5_x);
         TaylorSeriesIntegrator solver(step_maximum_error = 1e-6, order = 8);
@@ -178,11 +207,13 @@ class TestValidatedIntegrationStep : public Ariadne::Testing::ContextFixture {
         const ValidatedVectorMultivariateFunctionPatch full = flow;
 
         const auto early = restriction(full, product(
-            BoxDomainType(initial), IntervalDomainType(0.0_x, 0.0234375_x)));
-        const BoxDomainType new_parameters({{-0.125_x, 0.125_x}});
+                                                 BoxDomainType(initial), IntervalDomainType(0.0_x, 0.0234375_x)));
+        const BoxDomainType new_parameters({
+            {-0.125_x, 0.125_x}
+        });
         const auto late = embed(restriction(full, product(
-            BoxDomainType(initial), IntervalDomainType(0.0078125_x, 0.03125_x))),
-            new_parameters);
+                                                      BoxDomainType(initial), IntervalDomainType(0.0078125_x, 0.03125_x))),
+                                new_parameters);
 
         // Reversed order, different argument counts, and shared time index
         // (index 1) despite the extra parameter placed AFTER time.
@@ -209,7 +240,9 @@ class TestValidatedIntegrationStep : public Ariadne::Testing::ContextFixture {
         ARIADNE_TESTING_EXPECT_EQUAL(overlap[1u].domain(), BoxDomainType(initial));
         for (const auto& section: overlap) {
             ARIADNE_TESTING_PROVE(definitely(subset(
-                ExactBoxType({{0.015625_x, 0.140625_x}}),
+                ExactBoxType({
+                    {0.015625_x, 0.140625_x}
+            }),
                 cast_exact_box(UpperBoxType(section.range())))));
         }
 
@@ -227,11 +260,19 @@ class TestValidatedIntegrationStep : public Ariadne::Testing::ContextFixture {
         const EffectiveVectorMultivariateFunction f =
             EffectiveVectorMultivariateFormulaFunction(
                 2u, Vector<EffectiveFormula>{u});
-        const BoxDomainType states({{-1.0_x, 1.0_x}});
-        const BoxDomainType inputs({{-1.0_x, 1.0_x}});
+        const BoxDomainType states({
+            {-1.0_x, 1.0_x}
+        });
+        const BoxDomainType inputs({
+            {-1.0_x, 1.0_x}
+        });
         ValidatedInputFieldBoxAdapterDP field(f, inputs, states);
-        const ExactBoxType initial({{0.0_x, 0.125_x}});
-        const UpperBoxType bound({{-1.0_x, 1.0_x}});
+        const ExactBoxType initial({
+            {0.0_x, 0.125_x}
+        });
+        const UpperBoxType bound({
+            {-1.0_x, 1.0_x}
+        });
         const StepSizeType h(0.03125_x);
         FirstOrderMultifunctionIntegrator solver;
         const auto native = solver.flow_step(field, initial, h, bound);
@@ -239,9 +280,15 @@ class TestValidatedIntegrationStep : public Ariadne::Testing::ContextFixture {
 
         ARIADNE_TESTING_EXPECT_EQUAL(step.time_step(), h);
         ARIADNE_TESTING_PROVE(definitely(subset(
-            ExactBoxType({{-0.03125_x, 0.15625_x}}), cast_exact_box(step.reach()))));
+            ExactBoxType({
+                {-0.03125_x, 0.15625_x}
+        }),
+            cast_exact_box(step.reach()))));
         ARIADNE_TESTING_PROVE(definitely(subset(
-            ExactBoxType({{-0.03125_x, 0.15625_x}}), cast_exact_box(step.evolve()))));
+            ExactBoxType({
+                {-0.03125_x, 0.15625_x}
+        }),
+            cast_exact_box(step.evolve()))));
         ARIADNE_TESTING_PROVE(not step.has_reach_models());
         ARIADNE_TESTING_PROVE(not step.has_evolve_model());
         ARIADNE_TESTING_EXPECT_THROWS(std::logic_error, step.evolve_model());
@@ -253,11 +300,19 @@ class TestValidatedIntegrationStep : public Ariadne::Testing::ContextFixture {
         const EffectiveVectorMultivariateFunction f =
             EffectiveVectorMultivariateFormulaFunction(
                 2u, Vector<EffectiveFormula>{u});
-        const BoxDomainType states({{-1.0_x, 1.0_x}});
-        const BoxDomainType inputs({{-1.0_x, 1.0_x}});
+        const BoxDomainType states({
+            {-1.0_x, 1.0_x}
+        });
+        const BoxDomainType inputs({
+            {-1.0_x, 1.0_x}
+        });
         ValidatedInputFieldBoxAdapterDP field(f, inputs, states);
-        const ExactBoxType initial({{0.0_x, 0.125_x}});
-        const UpperBoxType bound({{-1.0_x, 1.0_x}});
+        const ExactBoxType initial({
+            {0.0_x, 0.125_x}
+        });
+        const UpperBoxType bound({
+            {-1.0_x, 1.0_x}
+        });
         const StepSizeType h(0.03125_x);
         TaylorSeriesIntegrator base(ThresholdSweeper<FloatDP>(dp, 1e-10),
                                     lipschitz_tolerance = 0.5_x, order = 8);
@@ -269,9 +324,15 @@ class TestValidatedIntegrationStep : public Ariadne::Testing::ContextFixture {
 
         ARIADNE_TESTING_EXPECT_EQUAL(step.time_step(), h);
         ARIADNE_TESTING_PROVE(definitely(subset(
-            ExactBoxType({{-0.03125_x, 0.15625_x}}), cast_exact_box(step.reach()))));
+            ExactBoxType({
+                {-0.03125_x, 0.15625_x}
+        }),
+            cast_exact_box(step.reach()))));
         ARIADNE_TESTING_PROVE(definitely(subset(
-            ExactBoxType({{-0.03125_x, 0.15625_x}}), cast_exact_box(step.evolve()))));
+            ExactBoxType({
+                {-0.03125_x, 0.15625_x}
+        }),
+            cast_exact_box(step.evolve()))));
         ARIADNE_TESTING_PROVE(step.has_reach_models());
         ARIADNE_TESTING_EXPECT_EQUAL(step.reach_models().size(), native.reach_models.size());
         ARIADNE_TESTING_PROVE(step.has_evolve_model());
@@ -293,9 +354,15 @@ class TestValidatedIntegrationStep : public Ariadne::Testing::ContextFixture {
         // whereas its endpoint has [x0,p]. Both layouts must be checked.
         const auto p0 = EffectiveScalarMultivariateFunction::coordinate(3u, 2u);
         const EffectiveVectorMultivariateFunction field = {p0};
-        const ExactBoxType initial({{0.0_x, 0.125_x}});
-        const ExactBoxType parameters({{0.125_x, 0.25_x}});
-        const UpperBoxType bound({{-1.0_x, 1.0_x}});
+        const ExactBoxType initial({
+            {0.0_x, 0.125_x}
+        });
+        const ExactBoxType parameters({
+            {0.125_x, 0.25_x}
+        });
+        const UpperBoxType bound({
+            {-1.0_x, 1.0_x}
+        });
         const StepSizeType t0(0.5_x);
         const StepSizeType h(0.03125_x);
         const Interval<StepSizeType> times(t0, t0 + h);
@@ -307,32 +374,44 @@ class TestValidatedIntegrationStep : public Ariadne::Testing::ContextFixture {
         ARIADNE_TESTING_EXPECT_EQUAL(sections.size(), 1u);
         ARIADNE_TESTING_EXPECT_EQUAL(sections[0u].domain(), product(initial, parameters));
         ARIADNE_TESTING_PROVE(definitely(subset(
-            ExactBoxType({{0.00390625_x, 0.1328125_x}}), cast_exact_box(native.evolve()))));
+            ExactBoxType({
+                {0.00390625_x, 0.1328125_x}
+        }),
+            cast_exact_box(native.evolve()))));
 
-        const ExactBoxType changed({{0.125_x, 0.5_x}});
-        const ExactBoxType missing_coordinate({{0.125_x, 0.25_x}, {0.125_x, 0.25_x}});
+        const ExactBoxType changed({
+            {0.125_x, 0.5_x}
+        });
+        const ExactBoxType missing_coordinate({
+            {0.125_x, 0.25_x},
+            {0.125_x, 0.25_x}
+        });
         for (const auto& wrong: {changed, missing_coordinate}) {
             // Isolate reach and endpoint validation so one cannot mask a
             // missing check in the other. A box-only result may retain p
             // as metadata without pretending it has correlated maps.
             ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-                ValidatedIntegrationStep(h, native.reach(), native.evolve(),
-                    {}, native.reach_models(), std::nullopt, t0, 1u, true, wrong));
+                                          ValidatedIntegrationStep(h, native.reach(), native.evolve(),
+                                                                   {}, native.reach_models(), std::nullopt, t0, 1u, true, wrong));
             ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-                ValidatedIntegrationStep(h, native.reach(), native.evolve(),
-                    {}, {}, native.evolve_model(), t0, std::nullopt, true, wrong));
+                                          ValidatedIntegrationStep(h, native.reach(), native.evolve(),
+                                                                   {}, {}, native.evolve_model(), t0, std::nullopt, true, wrong));
         }
     }
 
     Void test_reject_inconsistent_basic_result() {
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-            ValidatedIntegrationStep(
-                StepSizeType(0u), UpperBoxType({{-1.0_x, 1.0_x}}),
-                UpperBoxType({{-1.0_x, 1.0_x}})));
+                                      ValidatedIntegrationStep(
+                                          StepSizeType(0u), UpperBoxType({
+                                                                {-1.0_x, 1.0_x}
+        }),
+                                          UpperBoxType({{-1.0_x, 1.0_x}})));
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-            ValidatedIntegrationStep(
-                StepSizeType(0.03125_x), UpperBoxType({{-1.0_x, 1.0_x}}),
-                UpperBoxType({{-1.0_x, 1.0_x}, {-1.0_x, 1.0_x}})));
+                                      ValidatedIntegrationStep(
+                                          StepSizeType(0.03125_x), UpperBoxType({
+                                                                       {-1.0_x, 1.0_x}
+        }),
+                                          UpperBoxType({{-1.0_x, 1.0_x}, {-1.0_x, 1.0_x}})));
     }
 };
 

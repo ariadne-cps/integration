@@ -50,7 +50,9 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         return EffectiveVectorMultivariateFormulaFunction(2u, Vector<EffectiveFormula>{x + u});
     }
 
-    BoxDomainType inputs() { return BoxDomainType({{-0.125_x, 0.125_x}}); }
+    BoxDomainType inputs() { return BoxDomainType({
+        {-0.125_x, 0.125_x}
+ }); }
 
     Void test_valid_and_invalid_strategy_pairs() {
         TaylorSeriesIntegrator base(step_maximum_error = 1e-6, order = 8);
@@ -73,12 +75,12 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
                                          InputApproximation(SinusoidalApproximation()),
                                          InputApproximation(PiecewiseApproximation())}) {
             ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-                SelectedInclusionIntegrator(factory, f, U, invalid_reach, InputApproximation(ZeroApproximation())));
+                                          SelectedInclusionIntegrator(factory, f, U, invalid_reach, InputApproximation(ZeroApproximation())));
         }
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-            SelectedInclusionIntegrator(factory, f, BoxDomainType(0u),
-                                        InputApproximation(ZeroApproximation()),
-                                        InputApproximation(ZeroApproximation())));
+                                      SelectedInclusionIntegrator(factory, f, BoxDomainType(0u),
+                                                                  InputApproximation(ZeroApproximation()),
+                                                                  InputApproximation(ZeroApproximation())));
     }
 
     Void test_distinct_approximations_and_endpoint() {
@@ -88,8 +90,12 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         SelectedInclusionIntegrator integrator(factory, field(), inputs(),
                                                InputApproximation(ZeroApproximation()),
                                                InputApproximation(AffineApproximation()));
-        BoxDomainType domain({{0.0_x, 0.125_x}});
-        UpperBoxType bound({{-1.0_x, 1.0_x}});
+        BoxDomainType domain({
+            {0.0_x, 0.125_x}
+        });
+        UpperBoxType bound({
+            {-1.0_x, 1.0_x}
+        });
         auto initial = base.function_factory().create_identity(domain);
         StepSizeType h(0.03125_x);
         auto step = integrator.step(domain, initial, bound, TimeStepType(0u), h);
@@ -112,8 +118,12 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         TaylorSeriesIntegrator base(ThresholdSweeper<FloatDP>(dp, 1e-10),
                                     lipschitz_tolerance = 0.5_x, order = 8);
         InclusionIntegratorFactory factory(base);
-        BoxDomainType domain({{0.0_x, 0.125_x}});
-        UpperBoxType bound({{-1.0_x, 1.0_x}});
+        BoxDomainType domain({
+            {0.0_x, 0.125_x}
+        });
+        UpperBoxType bound({
+            {-1.0_x, 1.0_x}
+        });
         auto initial = base.function_factory().create_identity(domain);
         StepSizeType h(0.03125_x);
         for (const auto& approximation: {InputApproximation(ZeroApproximation()),
@@ -135,7 +145,6 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         }
     }
 
-
     Void test_every_endpoint_strategy_encloses_full_input_range() {
         // x' = u(t), u(t) in [-1,1], x(0) in [-1/8,1/8].
         // For any measurable input, the entire endpoint set at h=1/32 is
@@ -144,11 +153,19 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         const EffectiveVectorMultivariateFunction f =
             EffectiveVectorMultivariateFormulaFunction(
                 2u, Vector<EffectiveFormula>{u});
-        const BoxDomainType U({{-1.0_x, 1.0_x}});
-        const BoxDomainType initial_domain({{-0.125_x, 0.125_x}});
-        const UpperBoxType bound({{-1.0_x, 1.0_x}});
+        const BoxDomainType U({
+            {-1.0_x, 1.0_x}
+        });
+        const BoxDomainType initial_domain({
+            {-0.125_x, 0.125_x}
+        });
+        const UpperBoxType bound({
+            {-1.0_x, 1.0_x}
+        });
         const StepSizeType h(0.03125_x);
-        const ExactBoxType analytical_endpoint({{-0.15625_x, 0.15625_x}});
+        const ExactBoxType analytical_endpoint({
+            {-0.15625_x, 0.15625_x}
+        });
 
         TaylorSeriesIntegrator base(ThresholdSweeper<FloatDP>(dp, 1e-10),
                                     lipschitz_tolerance = 0.5_x, order = 8);
@@ -156,10 +173,10 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         const auto initial = base.function_factory().create_identity(initial_domain);
         const InputApproximation rigorous_reach{ZeroApproximation()};
         for (const auto& endpoint: {InputApproximation(ZeroApproximation()),
-                                   InputApproximation(ConstantApproximation()),
-                                   InputApproximation(AffineApproximation()),
-                                   InputApproximation(SinusoidalApproximation()),
-                                   InputApproximation(PiecewiseApproximation())}) {
+                                    InputApproximation(ConstantApproximation()),
+                                    InputApproximation(AffineApproximation()),
+                                    InputApproximation(SinusoidalApproximation()),
+                                    InputApproximation(PiecewiseApproximation())}) {
             SelectedInclusionIntegrator selected(
                 factory, f, U, rigorous_reach, endpoint);
             ARIADNE_TESTING_EXPECT_EQUAL(selected.reach_index(), rigorous_reach.reference().index());
@@ -184,12 +201,22 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         const EffectiveVectorMultivariateFunction f =
             EffectiveVectorMultivariateFormulaFunction(
                 2u, Vector<EffectiveFormula>{u});
-        const BoxDomainType U({{-1.0_x, 1.0_x}});
-        const BoxDomainType initial_domain({{-0.125_x, 0.125_x}});
-        const UpperBoxType bound({{-1.0_x, 1.0_x}});
+        const BoxDomainType U({
+            {-1.0_x, 1.0_x}
+        });
+        const BoxDomainType initial_domain({
+            {-0.125_x, 0.125_x}
+        });
+        const UpperBoxType bound({
+            {-1.0_x, 1.0_x}
+        });
         const StepSizeType h(0.03125_x);
-        const ExactBoxType one_step({{-0.15625_x, 0.15625_x}});
-        const ExactBoxType two_steps({{-0.1875_x, 0.1875_x}});
+        const ExactBoxType one_step({
+            {-0.15625_x, 0.15625_x}
+        });
+        const ExactBoxType two_steps({
+            {-0.1875_x, 0.1875_x}
+        });
 
         TaylorSeriesIntegrator base(ThresholdSweeper<FloatDP>(dp, 1e-10),
                                     lipschitz_tolerance = 0.5_x, order = 8);
@@ -198,10 +225,10 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         const InputApproximation reach{ZeroApproximation()};
 
         for (const auto& evolve: {InputApproximation(ZeroApproximation()),
-                                 InputApproximation(ConstantApproximation()),
-                                 InputApproximation(AffineApproximation()),
-                                 InputApproximation(SinusoidalApproximation()),
-                                 InputApproximation(PiecewiseApproximation())}) {
+                                  InputApproximation(ConstantApproximation()),
+                                  InputApproximation(AffineApproximation()),
+                                  InputApproximation(SinusoidalApproximation()),
+                                  InputApproximation(PiecewiseApproximation())}) {
             SelectedInclusionIntegrator selected(factory, f, U, reach, evolve);
             const auto first = selected.step(
                 initial_domain, identity, bound, TimeStepType(0u), h);
@@ -257,9 +284,15 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         const auto u = EffectiveFormula::coordinate(1u);
         const EffectiveVectorMultivariateFunction f =
             EffectiveVectorMultivariateFormulaFunction(2u, Vector<EffectiveFormula>{u});
-        const BoxDomainType U({{-1.0_x, 1.0_x}});
-        const BoxDomainType X({{-0.125_x, 0.125_x}});
-        const UpperBoxType B({{-1.0_x, 1.0_x}});
+        const BoxDomainType U({
+            {-1.0_x, 1.0_x}
+        });
+        const BoxDomainType X({
+            {-0.125_x, 0.125_x}
+        });
+        const UpperBoxType B({
+            {-1.0_x, 1.0_x}
+        });
         const StepSizeType h1(0.03125_x);
         const StepSizeType h2(0.015625_x);
         TaylorSeriesIntegrator base(ThresholdSweeper<FloatDP>(dp, 1e-10),
@@ -279,10 +312,14 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         ARIADNE_TESTING_EXPECT_EQUAL(first_box.time_step, h1);
         ARIADNE_TESTING_EXPECT_EQUAL(second_box.time_step, h2);
         ARIADNE_TESTING_PROVE(definitely(subset(
-            ExactBoxType({{-0.15625_x, 0.15625_x}}),
+            ExactBoxType({
+                {-0.15625_x, 0.15625_x}
+        }),
             cast_exact_box(first_box.evolve))));
         ARIADNE_TESTING_PROVE(definitely(subset(
-            ExactBoxType({{-0.171875_x, 0.171875_x}}),
+            ExactBoxType({
+                {-0.171875_x, 0.171875_x}
+        }),
             cast_exact_box(second_box.evolve))));
         ARIADNE_TESTING_EXPECT_EQUAL(
             second.evolve_model.domain()[range(0u, first.evolve_model.argument_size())],
@@ -302,9 +339,15 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         const EffectiveVectorMultivariateFunction f =
             EffectiveVectorMultivariateFormulaFunction(
                 2u, Vector<EffectiveFormula>{u});
-        const BoxDomainType U({{-1.0_x, 1.0_x}});
-        const BoxDomainType initial_domain({{-0.125_x, 0.125_x}});
-        const UpperBoxType bound({{-1.0_x, 1.0_x}});
+        const BoxDomainType U({
+            {-1.0_x, 1.0_x}
+        });
+        const BoxDomainType initial_domain({
+            {-0.125_x, 0.125_x}
+        });
+        const UpperBoxType bound({
+            {-1.0_x, 1.0_x}
+        });
         const StepSizeType h(0.03125_x);
         TaylorSeriesIntegrator base(ThresholdSweeper<FloatDP>(dp, 1e-10),
                                     lipschitz_tolerance = 0.5_x, order = 8);
@@ -314,58 +357,82 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
             InputApproximation(ConstantApproximation()));
 
         const auto incompatible_domain = base.function_factory().create_identity(
-            BoxDomainType({{-0.25_x, 0.25_x}}));
+            BoxDomainType({
+                {-0.25_x, 0.25_x}
+        }));
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-            selected.step(initial_domain, incompatible_domain, bound,
-                          TimeStepType(0u), h));
+                                      selected.step(initial_domain, incompatible_domain, bound,
+                                                    TimeStepType(0u), h));
 
         const auto incompatible_dimension = base.function_factory().create_identity(
-            BoxDomainType({{-0.125_x, 0.125_x}, {-0.125_x, 0.125_x}}));
+            BoxDomainType({
+                {-0.125_x, 0.125_x},
+                {-0.125_x, 0.125_x}
+        }));
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-            selected.step(initial_domain, incompatible_dimension, bound,
-                          TimeStepType(0u), h));
+                                      selected.step(initial_domain, incompatible_dimension, bound,
+                                                    TimeStepType(0u), h));
 
         const auto identity = base.function_factory().create_identity(initial_domain);
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-            selected.step(initial_domain, identity,
-                          UpperBoxType({{-1.0_x, 1.0_x}, {-1.0_x, 1.0_x}}),
-                          TimeStepType(0u), h));
+                                      selected.step(initial_domain, identity,
+                                                    UpperBoxType({
+                                                        {-1.0_x, 1.0_x},
+                                                        {-1.0_x, 1.0_x}
+        }),
+                                                    TimeStepType(0u), h));
         const auto valid = selected.step(
             initial_domain, identity, bound, TimeStepType(0u), h);
         ARIADNE_TESTING_PROVE(definitely(is_bounded(valid.bounding_step().evolve)));
     }
 
     Void test_parametric_box_extension_and_low_order_bridge() {
-        BoxDomainType state_domain({{-1.0_x, 1.0_x}});
+        BoxDomainType state_domain({
+            {-1.0_x, 1.0_x}
+        });
         // The owned structural representation outlives these temporaries.
         ValidatedInputFieldBoxAdapterDP field_view(field(), inputs(), state_domain);
-        UpperBoxType evaluation_box({{0.0_x, 0.125_x}});
+        UpperBoxType evaluation_box({
+            {0.0_x, 0.125_x}
+        });
         auto range = field_view.evaluate(evaluation_box);
         ARIADNE_TESTING_EXPECT_EQUAL(range.dimension(), 1u);
-        ARIADNE_TESTING_PROVE(definitely(subset(ExactBoxType({{-0.125_x, 0.25_x}}), cast_exact_box(range))));
+        ARIADNE_TESTING_PROVE(definitely(subset(ExactBoxType({
+                                                    {-0.125_x, 0.25_x}
+        }),
+                                                cast_exact_box(range))));
 
         FirstOrderMultifunctionIntegrator low_order;
         const MultifunctionIntegratorInterface& common = low_order;
-        auto box_step = common.flow_step(field_view, ExactBoxType({{0.0_x, 0.125_x}}),
+        auto box_step = common.flow_step(field_view, ExactBoxType({
+                                                         {0.0_x, 0.125_x}
+        }),
                                          StepSizeType(0.03125_x), UpperBoxType({{-1.0_x, 1.0_x}}));
         ARIADNE_TESTING_EXPECT_EQUAL(box_step.time_step, StepSizeType(0.03125_x));
-        ARIADNE_TESTING_PROVE(definitely(inside(box_step.reach, ExactBoxType({{-1.0_x, 1.0_x}}))));
+        ARIADNE_TESTING_PROVE(definitely(inside(box_step.reach, ExactBoxType({
+                                                                    {-1.0_x, 1.0_x}
+        }))));
         ARIADNE_TESTING_PROVE(definitely(is_bounded(box_step.evolve)));
 
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-            field_view.evaluate(UpperBoxType({{-2.0_x, 2.0_x}})));
+                                      field_view.evaluate(UpperBoxType({
+                                          {-2.0_x, 2.0_x}
+        })));
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-            ValidatedInputFieldBoxAdapterDP(field(), BoxDomainType(0u), state_domain));
+                                      ValidatedInputFieldBoxAdapterDP(field(), BoxDomainType(0u), state_domain));
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-            ValidatedInputFieldBoxAdapterDP(field(), inputs(), BoxDomainType({{-1.0_x, 1.0_x}, {-1.0_x, 1.0_x}})));
+                                      ValidatedInputFieldBoxAdapterDP(field(), inputs(), BoxDomainType({
+                                                                                             {-1.0_x, 1.0_x},
+                                                                                             {-1.0_x, 1.0_x}
+        })));
     }
 
     Void test_high_order_common_integrator_bridge() {
         TaylorSeriesIntegrator base(ThresholdSweeper<FloatDP>(dp, 1e-10),
                                     lipschitz_tolerance = 0.5_x, order = 8);
         SelectedParametricMultifunctionIntegrator high_order(base,
-            InputApproximation(ZeroApproximation()),
-            InputApproximation(AffineApproximation()));
+                                                             InputApproximation(ZeroApproximation()),
+                                                             InputApproximation(AffineApproximation()));
         ARIADNE_TESTING_EXPECT_EQUAL(high_order.reach_index(), ZeroApproximation().index());
         ARIADNE_TESTING_EXPECT_EQUAL(high_order.evolve_index(), AffineApproximation().index());
 
@@ -374,9 +441,15 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         const auto x = EffectiveScalarMultivariateFunction::coordinate(2u, 0u);
         const auto u = EffectiveScalarMultivariateFunction::coordinate(2u, 1u);
         const EffectiveVectorMultivariateFunction generic = {x + u};
-        ValidatedInputFieldBoxAdapterDP structural(generic, inputs(), BoxDomainType({{-1.0_x, 1.0_x}}));
-        ExactBoxType initial({{0.0_x, 0.125_x}});
-        UpperBoxType bound({{-1.0_x, 1.0_x}});
+        ValidatedInputFieldBoxAdapterDP structural(generic, inputs(), BoxDomainType({
+                                                                          {-1.0_x, 1.0_x}
+        }));
+        ExactBoxType initial({
+            {0.0_x, 0.125_x}
+        });
+        UpperBoxType bound({
+            {-1.0_x, 1.0_x}
+        });
         StepSizeType h(0.03125_x);
         const MultifunctionIntegratorInterface& common = high_order;
         const auto box_step = common.flow_step(structural, initial, h, bound);
@@ -387,25 +460,29 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         ARIADNE_TESTING_EXPECT_EQUAL(patch_step.reach_models.size(), 1u);
         ARIADNE_TESTING_EXPECT_EQUAL(patch_step.evolve_model.argument_size(), 3u);
         ARIADNE_TESTING_PROVE(same(cast_exact_box(patch_step.bounding_step().reach),
-                                  cast_exact_box(box_step.reach)));
+                                   cast_exact_box(box_step.reach)));
 
         const auto expected = FloatDPBounds(0.0625_x, dp) * exp(FloatDPBounds(h, dp));
         UpperIntervalType nominal(expected.lower(), expected.upper());
         ARIADNE_TESTING_PROVE(refines(nominal, box_step.evolve[0u]));
 
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-            high_order.structured_step(structural, initial, h, UpperBoxType({{-2.0_x, 2.0_x}})));
+                                      high_order.structured_step(structural, initial, h, UpperBoxType({
+                                                                                             {-2.0_x, 2.0_x}
+        })));
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-            SelectedParametricMultifunctionIntegrator(base,
-                InputApproximation(AffineApproximation()),
-                InputApproximation(ConstantApproximation())));
+                                      SelectedParametricMultifunctionIntegrator(base,
+                                                                                InputApproximation(AffineApproximation()),
+                                                                                InputApproximation(ConstantApproximation())));
     }
 
     Void test_high_order_interval_taylor_via_parametric_conversion() {
         TaylorSeriesIntegrator base(step_maximum_error = 1e-6, order = 8);
         SelectedParametricMultifunctionIntegrator high_order(base,
-            InputApproximation(ConstantApproximation()), InputApproximation(ConstantApproximation()));
-        BoxDomainType domain({{-1.0_x, 1.0_x}});
+                                                             InputApproximation(ConstantApproximation()), InputApproximation(ConstantApproximation()));
+        BoxDomainType domain({
+            {-1.0_x, 1.0_x}
+        });
         ThresholdSweeper<FloatDP> sweeper(dp, 1e-10);
         using Scalar = ValidatedIntervalTaylorFunctionModel<FloatDP>;
         using Model = ValidatedVectorIntervalTaylorFunctionModel<FloatDP>;
@@ -420,7 +497,9 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
 
         // The same high-order integrator now accepts the interval Taylor
         // model through the capability interface rather than concrete RTTI.
-        auto step = common.flow_step(unstructured, ExactBoxType({{0.0_x, 0.125_x}}),
+        auto step = common.flow_step(unstructured, ExactBoxType({
+                                                       {0.0_x, 0.125_x}
+        }),
                                      StepSizeType(0.03125_x), UpperBoxType({{-1.0_x, 1.0_x}}));
         ARIADNE_TESTING_PROVE(definitely(is_bounded(step.reach)));
         ARIADNE_TESTING_PROVE(definitely(is_bounded(step.evolve)));
@@ -428,7 +507,9 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
 
     Void test_interval_taylor_conversion_of_state_dependent_input() {
         // x' = x*u(t), u(t) in [-1,1] as an interval-coefficient Taylor model.
-        BoxDomainType domain({{0.5_x, 1.5_x}});
+        BoxDomainType domain({
+            {0.5_x, 1.5_x}
+        });
         ThresholdSweeper<FloatDP> sweeper(dp, 1e-10);
         using Scalar = ValidatedIntervalTaylorFunctionModel<FloatDP>;
         using Model = ValidatedVectorIntervalTaylorFunctionModel<FloatDP>;
@@ -440,7 +521,9 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         Vector<FloatDPBounds> scalar_argument({FloatDPBounds(1.0_x, dp)});
         const auto scalar_image = field(scalar_argument);
         ARIADNE_TESTING_PROVE(definitely(is_bounded(scalar_image)));
-        const UpperBoxType early_states({{0.875_x, 1.125_x}});
+        const UpperBoxType early_states({
+            {0.875_x, 1.125_x}
+        });
         const auto early_image = vector_field.evaluate(early_states);
         ARIADNE_TESTING_EXPECT_EQUAL(early_image.dimension(), 1u);
 
@@ -450,7 +533,9 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
 
         // For all x and all uncertain coefficients, the converted field
         // must contain the original interval Taylor field value.
-        const UpperBoxType states({{0.875_x, 1.125_x}});
+        const UpperBoxType states({
+            {0.875_x, 1.125_x}
+        });
         const auto interval_image = vector_field.evaluate(states);
         ARIADNE_TESTING_EXPECT_EQUAL(interval_image.dimension(), 1u);
         const Vector<FloatDPBounds> arguments(
@@ -473,14 +558,18 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         TaylorSeriesIntegrator base(ThresholdSweeper<FloatDP>(dp, 1e-10),
                                     lipschitz_tolerance = 0.5_x, order = 8);
         SelectedParametricMultifunctionIntegrator integrator(base,
-            InputApproximation(ZeroApproximation()), InputApproximation(ConstantApproximation()));
+                                                             InputApproximation(ZeroApproximation()), InputApproximation(ConstantApproximation()));
         ARIADNE_TESTING_EXPECT_EQUAL(integrator.reach_index(), ZeroApproximation().index());
-        const auto step = integrator.flow_step(vector_field, ExactBoxType({{1.0_x, 1.0_x}}),
+        const auto step = integrator.flow_step(vector_field, ExactBoxType({
+                                                                 {1.0_x, 1.0_x}
+        }),
                                                StepSizeType(0.03125_x), UpperBoxType({{0.5_x, 1.5_x}}));
         ARIADNE_TESTING_PROVE(definitely(is_bounded(step.reach)));
         ARIADNE_TESTING_PROVE(definitely(is_bounded(step.evolve)));
-        ARIADNE_TESTING_PROVE(definitely(subset(ExactBoxType({{1.0_x, 1.0_x}}),
-                                                 cast_exact_box(step.reach))));
+        ARIADNE_TESTING_PROVE(definitely(subset(ExactBoxType({
+                                                    {1.0_x, 1.0_x}
+        }),
+                                                cast_exact_box(step.reach))));
         // x(t) = exp(integral_0^t u(s) ds), |u(s)| <= 1:
         // all endpoints in [exp(-h), exp(h)] must be enclosed, not just x(0).
         const FloatDPBounds h_bounds(StepSizeType(0.03125_x), dp);
@@ -495,7 +584,10 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         // x' = u(t), y' = x with u(t) in [-1,1].
         // Switching u=+1 on [0,h/2] and u=-1 on [h/2,h]
         // reaches x(h)=0, y(h)=h*h/4. A frozen coefficient cannot do this.
-        BoxDomainType domain({{-1.0_x, 1.0_x}, {-1.0_x, 1.0_x}});
+        BoxDomainType domain({
+            {-1.0_x, 1.0_x},
+            {-1.0_x, 1.0_x}
+        });
         ThresholdSweeper<FloatDP> sweeper(dp, 1e-10);
         using Scalar = ValidatedIntervalTaylorFunctionModel<FloatDP>;
         using Model = ValidatedVectorIntervalTaylorFunctionModel<FloatDP>;
@@ -510,21 +602,28 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         TaylorSeriesIntegrator base(ThresholdSweeper<FloatDP>(dp, 1e-10),
                                     lipschitz_tolerance = 0.5_x, order = 8);
         SelectedParametricMultifunctionIntegrator integrator(base,
-            InputApproximation(ZeroApproximation()), InputApproximation(AffineApproximation()));
+                                                             InputApproximation(ZeroApproximation()), InputApproximation(AffineApproximation()));
         const StepSizeType h(0.03125_x);
         const auto step = integrator.flow_step(field,
-            ExactBoxType({{0.0_x, 0.0_x}, {0.0_x, 0.0_x}}), h,
-            UpperBoxType({{-1.0_x, 1.0_x}, {-1.0_x, 1.0_x}}));
+                                               ExactBoxType({
+                                                   {0.0_x, 0.0_x},
+                                                   {0.0_x, 0.0_x}
+        }),
+                                               h,
+                                               UpperBoxType({{-1.0_x, 1.0_x}, {-1.0_x, 1.0_x}}));
 
         const ExactBoxType positive_constant_input({
-            {0.03125_x, 0.03125_x},
-            {0.00048828125_x, 0.00048828125_x}});
+            {      0.03125_x,       0.03125_x},
+            {0.00048828125_x, 0.00048828125_x}
+        });
         const ExactBoxType negative_constant_input({
-            {-0.03125_x, -0.03125_x},
-            {-0.00048828125_x, -0.00048828125_x}});
+            {      -0.03125_x,       -0.03125_x},
+            {-0.00048828125_x, -0.00048828125_x}
+        });
         const ExactBoxType switching_input({
-            {0.0_x, 0.0_x},
-            {0.000244140625_x, 0.000244140625_x}});
+            {           0.0_x,            0.0_x},
+            {0.000244140625_x, 0.000244140625_x}
+        });
 
         ARIADNE_TESTING_PROVE(definitely(subset(positive_constant_input, cast_exact_box(step.evolve))));
         ARIADNE_TESTING_PROVE(definitely(subset(negative_constant_input, cast_exact_box(step.evolve))));
@@ -532,11 +631,13 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         ARIADNE_TESTING_PROVE(definitely(subset(switching_input, cast_exact_box(step.reach))));
     }
 
-
     Void test_multidimensional_interval_taylor_conversion() {
         // The converted parametric field must enclose the interval Taylor
         // model on boxes with both signs and mixed state dependencies.
-        BoxDomainType domain({{-1.0_x, 1.0_x}, {-1.0_x, 1.0_x}});
+        BoxDomainType domain({
+            {-1.0_x, 1.0_x},
+            {-1.0_x, 1.0_x}
+        });
         ThresholdSweeper<FloatDP> sweeper(dp, 1e-10);
         using Scalar = ValidatedIntervalTaylorFunctionModel<FloatDP>;
         using Model = ValidatedVectorIntervalTaylorFunctionModel<FloatDP>;
@@ -552,10 +653,15 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
                                      2u + form.inputs.dimension());
 
         for (const auto& states: {
-                UpperBoxType({{0.5_x, 0.75_x}, {0.25_x, 0.5_x}}),
-                UpperBoxType({{-0.75_x, -0.5_x}, {-0.5_x, -0.25_x}}),
-                UpperBoxType({{-0.5_x, 0.5_x}, {-0.5_x, 0.5_x}}),
-                UpperBoxType({{0.0_x, 0.0_x}, {0.0_x, 0.0_x}})}) {
+                 UpperBoxType({  {0.5_x, 0.75_x},   {0.25_x, 0.5_x}}
+                 ),
+                 UpperBoxType({{-0.75_x, -0.5_x}, {-0.5_x, -0.25_x}}
+                 ),
+                 UpperBoxType({  {-0.5_x, 0.5_x},   {-0.5_x, 0.5_x}}
+                 ),
+                 UpperBoxType({   {0.0_x, 0.0_x},    {0.0_x, 0.0_x}}
+                 )
+        }) {
             const auto original = field.evaluate(states);
             const Vector<FloatDPBounds> arguments(
                 2u + form.inputs.dimension(), [&](SizeType j) {
@@ -580,8 +686,13 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         // A pair of interval Taylor coefficient ranges alone cannot encode
         // this anticorrelation; conversion must conservatively keep the
         // component coefficients independent instead of inventing a link.
-        const BoxDomainType domain({{-1.0_x, 1.0_x}, {-1.0_x, 1.0_x}});
-        const BoxDomainType input_domain({{-1.0_x, 1.0_x}});
+        const BoxDomainType domain({
+            {-1.0_x, 1.0_x},
+            {-1.0_x, 1.0_x}
+        });
+        const BoxDomainType input_domain({
+            {-1.0_x, 1.0_x}
+        });
         const auto u = EffectiveFormula::coordinate(2u);
         const EffectiveVectorMultivariateFunction correlated =
             EffectiveVectorMultivariateFormulaFunction(
@@ -589,16 +700,18 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         ValidatedInputFieldBoxAdapterDP structured(correlated, input_domain, domain);
         const auto shared = structured.inclusion_integrator_field();
         ARIADNE_TESTING_EXPECT_EQUAL(shared.inputs.dimension(), 1u);
-        const Vector<FloatDPBounds> same_input({
-            FloatDPBounds(0.0_x, dp),
-            FloatDPBounds(0.0_x, dp),
-            FloatDPBounds(1.0_x, dp)});
+        const Vector<FloatDPBounds> same_input({FloatDPBounds(0.0_x, dp),
+                                                FloatDPBounds(0.0_x, dp),
+                                                FloatDPBounds(1.0_x, dp)});
         const Vector<FloatDPBounds> correlated_values = shared.field(same_input);
         const UpperBoxType correlated_image(correlated_values.size(), [&](SizeType j) {
             return UpperIntervalType(correlated_values[j].lower(), correlated_values[j].upper());
         });
         ARIADNE_TESTING_PROVE(definitely(subset(
-            ExactBoxType({{1.0_x, 1.0_x}, {-1.0_x, -1.0_x}}),
+            ExactBoxType({
+                { 1.0_x,  1.0_x},
+                {-1.0_x, -1.0_x}
+        }),
             cast_exact_box(correlated_image))));
 
         ThresholdSweeper<FloatDP> sweeper(dp, 1e-10);
@@ -612,7 +725,10 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         ARIADNE_TESTING_PROVE(independent.inputs.dimension() >= 2u);
         ARIADNE_TESTING_EXPECT_EQUAL(independent.field.argument_size(),
                                      2u + independent.inputs.dimension());
-        const UpperBoxType state({{0.0_x, 0.0_x}, {0.0_x, 0.0_x}});
+        const UpperBoxType state({
+            {0.0_x, 0.0_x},
+            {0.0_x, 0.0_x}
+        });
         const auto original = uncorrelated.evaluate(state);
         const Vector<FloatDPBounds> arguments(
             2u + independent.inputs.dimension(), [&](SizeType j) {
@@ -630,7 +746,11 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         // (1,1) is allowed by the independent interval-coefficient box,
         // whereas the shared-input representation (u,-u) forbids it.
         ARIADNE_TESTING_PROVE(definitely(subset(
-            ExactBoxType({{1.0_x, 1.0_x}, {1.0_x, 1.0_x}}), cast_exact_box(expanded))));
+            ExactBoxType({
+                {1.0_x, 1.0_x},
+                {1.0_x, 1.0_x}
+        }),
+            cast_exact_box(expanded))));
     }
 
     Void test_box_only_capability_does_not_select_solver() {
@@ -639,6 +759,7 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         // guess a model or silently dispatch to a different algorithm.
         class BoxOnlyAdapter : public ValidatedBoxMultifunctionInterface {
             ValidatedInputFieldBoxAdapterDP _wrapped;
+
           public:
             BoxOnlyAdapter(const EffectiveVectorMultivariateFunction& f,
                            const BoxDomainType& U, const BoxDomainType& domain)
@@ -651,11 +772,17 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
             }
         };
 
-        BoxOnlyAdapter field_view(field(), inputs(), BoxDomainType({{-1.0_x, 1.0_x}}));
+        BoxOnlyAdapter field_view(field(), inputs(), BoxDomainType({
+                                                         {-1.0_x, 1.0_x}
+        }));
         ARIADNE_TESTING_PROVE(
             dynamic_cast<const InclusionIntegratorFieldProvider*>(&field_view) == nullptr);
-        const ExactBoxType initial({{0.0_x, 0.125_x}});
-        const UpperBoxType bound({{-1.0_x, 1.0_x}});
+        const ExactBoxType initial({
+            {0.0_x, 0.125_x}
+        });
+        const UpperBoxType bound({
+            {-1.0_x, 1.0_x}
+        });
         const StepSizeType h(0.03125_x);
         FirstOrderMultifunctionIntegrator first_order;
         const MultifunctionIntegratorInterface& low = first_order;
@@ -670,7 +797,7 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
             InputApproximation(ConstantApproximation()));
         const MultifunctionIntegratorInterface& high = high_order;
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-            high.flow_step(field_view, initial, h, bound));
+                                      high.flow_step(field_view, initial, h, bound));
     }
 
     Void test_invalid_time_step() {
@@ -679,11 +806,15 @@ class TestSelectedInclusionIntegrator : public Ariadne::Testing::ContextFixture 
         SelectedInclusionIntegrator selected(factory, field(), inputs(),
                                              InputApproximation(ZeroApproximation()),
                                              InputApproximation(ConstantApproximation()));
-        BoxDomainType domain({{0.0_x, 0.125_x}});
+        BoxDomainType domain({
+            {0.0_x, 0.125_x}
+        });
         auto initial = base.function_factory().create_identity(domain);
-        UpperBoxType bound({{-1.0_x, 1.0_x}});
+        UpperBoxType bound({
+            {-1.0_x, 1.0_x}
+        });
         ARIADNE_TESTING_EXPECT_THROWS(std::invalid_argument,
-            selected.step(domain, initial, bound, TimeStepType(0u), StepSizeType(0u)));
+                                      selected.step(domain, initial, bound, TimeStepType(0u), StepSizeType(0u)));
     }
 };
 

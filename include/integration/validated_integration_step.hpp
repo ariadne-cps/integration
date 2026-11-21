@@ -79,7 +79,6 @@ class ValidatedIntegrationStep {
                              ExactBoxType constant_parameter_domain = ExactBoxType(0u),
                              const StepSizeType& reach_time_offset = StepSizeType(0u));
 
-
     const StepSizeType& time_step() const;
     const StepSizeType& initial_time() const;
     StepSizeType final_time() const;
@@ -123,7 +122,7 @@ class ValidatedIntegrationStep {
      *  downcast is performed. An empty reach structure is not fabricated.
      */
     List<ValidatedVectorMultivariateFunctionPatch>
-    reach_sections(const StepSizeType& absolute_time) const;
+        reach_sections(const StepSizeType& absolute_time) const;
 
     /** @brief Endpoint mapping suitable for structured continuation.
      *  An integrator computing only box enclosures does not fabricate a map.

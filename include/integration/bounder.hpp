@@ -179,16 +179,16 @@ class BounderHandle {
     BounderHandle* clone() const;
 
     /** @brief Compute the requested flow, enclosure, or integration step. */
-Pair<StepSizeType, UpperBoxType> compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const Suggestion<StepSizeType>& hsug) const;
+    Pair<StepSizeType, UpperBoxType> compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const Suggestion<StepSizeType>& hsug) const;
 
     /** @brief Compute the requested flow, enclosure, or integration step. */
-Pair<StepSizeType, UpperBoxType> compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const BoxDomainType& A, const Suggestion<StepSizeType>& hsug) const;
+    Pair<StepSizeType, UpperBoxType> compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const BoxDomainType& A, const Suggestion<StepSizeType>& hsug) const;
 
     /** @brief Compute the requested flow, enclosure, or integration step. */
-Pair<StepSizeType, UpperBoxType> compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const StepSizeType& t, const Suggestion<StepSizeType>& hsug) const;
+    Pair<StepSizeType, UpperBoxType> compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const StepSizeType& t, const Suggestion<StepSizeType>& hsug) const;
 
     /** @brief Compute the requested flow, enclosure, or integration step. */
-Pair<StepSizeType, UpperBoxType> compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const StepSizeType& t, const BoxDomainType& A, const Suggestion<StepSizeType>& hsug) const;
+    Pair<StepSizeType, UpperBoxType> compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const StepSizeType& t, const BoxDomainType& A, const Suggestion<StepSizeType>& hsug) const;
 };
 
 } // namespace Ariadne

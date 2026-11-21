@@ -48,7 +48,6 @@ ValidatedIntegrationStep validated_integration_step(
     bool has_explicit_time = false,
     const ExactBoxType& constant_parameter_domain = ExactBoxType(0u));
 
-
 /** @brief Preserve the full structured inclusion result, including all
  *  reach patches and the parametrized endpoint map.
  */
@@ -59,14 +58,12 @@ ValidatedIntegrationStep validated_integration_step(
     const ExactBoxType& constant_parameter_domain = ExactBoxType(0u),
     std::optional<SizeType> time_coordinate = std::nullopt);
 
-
 /** @brief Box-only algorithms still satisfy the common result contract. */
 ValidatedIntegrationStep validated_integration_step(
     const ValidatedMultiflowStep& step,
     const StepSizeType& initial_time = StepSizeType(0u),
     bool has_explicit_time = false,
     const ExactBoxType& constant_parameter_domain = ExactBoxType(0u));
-
 
 } // namespace Ariadne
 

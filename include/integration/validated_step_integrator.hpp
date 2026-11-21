@@ -71,40 +71,36 @@ class ValidatedIntegrationRequest {
     ExactBoxType _constant_parameter_domain = ExactBoxType(0u);
 
   public:
-ValidatedIntegrationRequest(const ValidatedVectorMultivariateFunction& field,
+    ValidatedIntegrationRequest(const ValidatedVectorMultivariateFunction& field,
                                 const ExactBoxType& initial,
                                 const StepSizeType& time_step,
                                 const UpperBoxType& bounding_box);
 
-
-ValidatedIntegrationRequest(std::reference_wrapper<const ValidatedBoxMultifunctionInterface> field,
+    ValidatedIntegrationRequest(std::reference_wrapper<const ValidatedBoxMultifunctionInterface> field,
                                 const ExactBoxType& initial,
                                 const StepSizeType& time_step,
                                 const UpperBoxType& bounding_box);
-
 
     /** @brief Fresh nonautonomous equation step with fixed parameters.
      *  The field arguments are [state, absolute time, constant parameters].
      *  A zero-dimensional parameter domain is permitted.
      */
-ValidatedIntegrationRequest(const ValidatedVectorMultivariateFunction& field,
+    ValidatedIntegrationRequest(const ValidatedVectorMultivariateFunction& field,
                                 const ExactBoxType& initial,
                                 const StepSizeType& initial_time,
                                 const StepSizeType& time_step,
                                 const ExactBoxType& constant_parameters,
                                 const UpperBoxType& bounding_box);
-
 
     /** @brief Fresh timed inclusion step with fixed parameter coordinates.
      *  Input uncertainty is represented by the numerical field itself.
      */
-ValidatedIntegrationRequest(std::reference_wrapper<const ValidatedTimedBoxMultifunctionInterface> field,
+    ValidatedIntegrationRequest(std::reference_wrapper<const ValidatedTimedBoxMultifunctionInterface> field,
                                 const ExactBoxType& initial,
                                 const StepSizeType& initial_time,
                                 const StepSizeType& time_step,
                                 const ExactBoxType& constant_parameters,
                                 const UpperBoxType& bounding_box);
-
 
     /** @brief Derive the original state coordinates from a structured result,
      *  or conservatively restart with the full previous endpoint box.
@@ -116,27 +112,24 @@ ValidatedIntegrationRequest(std::reference_wrapper<const ValidatedTimedBoxMultif
      *  When previous has an endpoint map, retain it and its original domain.
      *  For a box-only result, the exact hull of the certified endpoint is used.
      */
-ValidatedIntegrationRequest(const ValidatedVectorMultivariateFunction& field,
+    ValidatedIntegrationRequest(const ValidatedVectorMultivariateFunction& field,
                                 const ValidatedIntegrationStep& previous,
                                 const StepSizeType& time_step,
                                 const UpperBoxType& bounding_box);
 
-
-ValidatedIntegrationRequest(std::reference_wrapper<const ValidatedBoxMultifunctionInterface> field,
+    ValidatedIntegrationRequest(std::reference_wrapper<const ValidatedBoxMultifunctionInterface> field,
                                 const ValidatedIntegrationStep& previous,
                                 const StepSizeType& time_step,
                                 const UpperBoxType& bounding_box);
-
 
     /** @brief Continue a timed inclusion from the previous common result.
      *  Its parameter domain is retained, not independently reselected.
      *  A box-only algorithm still cannot accept a structured endpoint map.
      */
-ValidatedIntegrationRequest(std::reference_wrapper<const ValidatedTimedBoxMultifunctionInterface> field,
+    ValidatedIntegrationRequest(std::reference_wrapper<const ValidatedTimedBoxMultifunctionInterface> field,
                                 const ValidatedIntegrationStep& previous,
                                 const StepSizeType& time_step,
                                 const UpperBoxType& bounding_box);
-
 
     const Field& field() const;
     const ExactBoxType& initial() const;
@@ -182,7 +175,6 @@ class FlowStepIntegratorAdapter : public ValidatedStepIntegratorInterface {
   public:
     explicit FlowStepIntegratorAdapter(const IntegratorInterface& integrator);
 
-
     /** @brief The borrowed solver must outlive this adapter; temporaries are rejected. */
     FlowStepIntegratorAdapter(const IntegratorInterface&&) = delete;
 
@@ -195,7 +187,6 @@ class MultiflowStepIntegratorAdapter : public ValidatedStepIntegratorInterface {
 
   public:
     explicit MultiflowStepIntegratorAdapter(const MultifunctionIntegratorInterface& integrator);
-
 
     /** @brief The borrowed solver must outlive this adapter; temporaries are rejected. */
     MultiflowStepIntegratorAdapter(const MultifunctionIntegratorInterface&&) = delete;
@@ -210,7 +201,6 @@ class StructuredInclusionStepIntegratorAdapter : public ValidatedStepIntegratorI
   public:
     explicit StructuredInclusionStepIntegratorAdapter(
         const SelectedParametricMultifunctionIntegrator& integrator);
-
 
     /** @brief The borrowed solver must outlive this adapter; temporaries are rejected. */
     StructuredInclusionStepIntegratorAdapter(const SelectedParametricMultifunctionIntegrator&&) = delete;

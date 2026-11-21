@@ -76,41 +76,41 @@ typedef SharedPointer<const BounderInterface> BounderPointer;
 
 /** @brief Type representing step maximum error in integration algorithms. */
 struct StepMaximumError : Attribute<ApproximateDouble> {
-StepMaximumError(ApproximateDouble x);
-StepMaximumError(double x);
+    StepMaximumError(ApproximateDouble x);
+    StepMaximumError(double x);
 };
 
 /** @brief Type representing step sweep threshold in integration algorithms. */
 struct StepSweepThreshold : Attribute<ApproximateDouble> {
-explicit StepSweepThreshold(const ApproximateDouble& value);
+    explicit StepSweepThreshold(const ApproximateDouble& value);
 };
 /** @brief Type representing order in integration algorithms. */
 struct Order : Attribute<DegreeType> {
-Order(DegreeType v);
+    Order(DegreeType v);
 };
 /** @brief Type representing spacial order in integration algorithms. */
 struct SpacialOrder : Attribute<DegreeType> {
-SpacialOrder(DegreeType v);
+    SpacialOrder(DegreeType v);
 };
 /** @brief Type representing temporal order in integration algorithms. */
 struct TemporalOrder : Attribute<DegreeType> {
-TemporalOrder(DegreeType v);
+    TemporalOrder(DegreeType v);
 };
 /** @brief Type representing minimum spacial order in integration algorithms. */
 struct MinimumSpacialOrder : Attribute<DegreeType> {
-MinimumSpacialOrder(DegreeType v);
+    MinimumSpacialOrder(DegreeType v);
 };
 /** @brief Type representing minimum temporal order in integration algorithms. */
 struct MinimumTemporalOrder : Attribute<DegreeType> {
-MinimumTemporalOrder(DegreeType v);
+    MinimumTemporalOrder(DegreeType v);
 };
 /** @brief Type representing maximum spacial order in integration algorithms. */
 struct MaximumSpacialOrder : Attribute<DegreeType> {
-MaximumSpacialOrder(DegreeType v);
+    MaximumSpacialOrder(DegreeType v);
 };
 /** @brief Type representing maximum temporal order in integration algorithms. */
 struct MaximumTemporalOrder : Attribute<DegreeType> {
-MaximumTemporalOrder(DegreeType v);
+    MaximumTemporalOrder(DegreeType v);
 };
 
 extern const Generator<StepMaximumError> step_maximum_error;
@@ -127,7 +127,7 @@ extern const Generator<MaximumTemporalOrder> maximum_temporal_order;
 class FlowStepModelType : public ValidatedVectorMultivariateFunctionPatch {
   public:
     using ValidatedVectorMultivariateFunctionPatch::ValidatedVectorMultivariateFunctionPatch;
-FlowStepModelType(const ValidatedVectorMultivariateFunctionPatch& fsmt);
+    FlowStepModelType(const ValidatedVectorMultivariateFunctionPatch& fsmt);
     /** @brief Apply the corresponding integration operator. */
     friend OutputStream& operator<<(OutputStream& os, const FlowStepModelType& flwstpm);
 };
@@ -511,13 +511,13 @@ class PreconditionedTaylorSeriesState {
     std::shared_ptr<const ValidatedVectorMultivariateFunctionPatch> _physical_mapping;
 
   public:
-PreconditionedTaylorSeriesState(
+    PreconditionedTaylorSeriesState(
         Vector<FloatDP> centre,
         Matrix<FloatDP> linear_map,
         ExactBoxType local_domain,
         ValidatedVectorMultivariateFunctionPatch normalised_mapping);
 
-PreconditionedTaylorSeriesState(
+    PreconditionedTaylorSeriesState(
         Vector<FloatDP> centre,
         Matrix<FloatDP> linear_map,
         ExactBoxType local_domain,
@@ -542,7 +542,7 @@ class PreconditionedTaylorSeriesStep {
     PreconditionedTaylorSeriesState _final_state;
 
   public:
-PreconditionedTaylorSeriesStep(
+    PreconditionedTaylorSeriesStep(
         StepSizeType time_step,
         ValidatedVectorMultivariateFunctionPatch flowpipe_mapping,
         ValidatedVectorMultivariateFunctionPatch evolved_mapping,

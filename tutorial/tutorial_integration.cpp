@@ -60,9 +60,7 @@ int main() {
     show("step maximum error", integrator.step_maximum_error());
 
     auto state = EffectiveScalarMultivariateFunction::coordinate(1, 0);
-    EffectiveVectorMultivariateFunction logistic({
-        state * (1 - state)
-    });
+    EffectiveVectorMultivariateFunction logistic({state * (1 - state)});
     ExactBoxType initial_states({
         {0.25_x, 0.5_x}
     });
@@ -79,8 +77,12 @@ int main() {
     show("flow range", flow.range());
 
     section("Common validated step interface and continuation");
-    const ExactBoxType initial({{0.0_x, 0.125_x}});
-    const UpperBoxType bound({{-1.0_x, 1.0_x}});
+    const ExactBoxType initial({
+        {0.0_x, 0.125_x}
+    });
+    const UpperBoxType bound({
+        {-1.0_x, 1.0_x}
+    });
     const StepSizeType h1(0.03125_x), h2(0.015625_x);
     const FlowStepIntegratorAdapter flow_adapter(integrator);
     const ValidatedStepIntegratorInterface& equation_solver = flow_adapter;
@@ -100,9 +102,12 @@ int main() {
     // The numerical field and solver are named objects. Requests borrow the
     // former and the adapter borrows the latter; both must remain alive.
     ValidatedInputFieldBoxAdapterDP inclusion(input_field,
-        BoxDomainType({{-1.0_x, 1.0_x}}), BoxDomainType({{-1.0_x, 1.0_x}}));
+                                              BoxDomainType({
+                                                  {-1.0_x, 1.0_x}
+    }),
+                                              BoxDomainType({{-1.0_x, 1.0_x}}));
     SelectedParametricMultifunctionIntegrator selected(integrator,
-        InputApproximation(ZeroApproximation()), InputApproximation(ConstantApproximation()));
+                                                       InputApproximation(ZeroApproximation()), InputApproximation(ConstantApproximation()));
     const StructuredInclusionStepIntegratorAdapter inclusion_adapter(selected);
     const ValidatedStepIntegratorInterface& inclusion_solver = inclusion_adapter;
     const auto inclusion_first = inclusion_solver.step(ValidatedIntegrationRequest(inclusion, initial, h1, bound));

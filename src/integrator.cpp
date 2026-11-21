@@ -931,7 +931,7 @@ Void graded_flow_iterate_affine_procedure(
     }
 }
 
- } // namespace
+} // namespace
 
 namespace {
 

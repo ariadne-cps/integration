@@ -37,24 +37,24 @@ const Generator<MinimumStepSize> minimum_step_size = Generator<MinimumStepSize>(
 const LipschitzTolerance DEFAULT_LIPSCHITZ_TOLERANCE = LipschitzTolerance(0.5_x);
 const Generator<LipschitzTolerance> lipschitz_tolerance = Generator<LipschitzTolerance>();
 Pair<StepSizeType, UpperBoxType> BounderHandle::compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const Suggestion<StepSizeType>& hsug) const {
-        return _impl->compute(f, D, hsug);
-    }
+    return _impl->compute(f, D, hsug);
+}
 Pair<StepSizeType, UpperBoxType> BounderHandle::compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const BoxDomainType& A, const Suggestion<StepSizeType>& hsug) const {
-        return _impl->compute(f, D, A, hsug);
-    }
+    return _impl->compute(f, D, A, hsug);
+}
 Pair<StepSizeType, UpperBoxType> BounderHandle::compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const StepSizeType& t, const Suggestion<StepSizeType>& hsug) const {
-        return _impl->compute(f, D, t, hsug);
-    }
+    return _impl->compute(f, D, t, hsug);
+}
 Pair<StepSizeType, UpperBoxType> BounderHandle::compute(const ValidatedVectorMultivariateFunction& f, const BoxDomainType& D, const StepSizeType& t, const BoxDomainType& A, const Suggestion<StepSizeType>& hsug) const {
-        return _impl->compute(f, D, t, A, hsug);
-    }
+    return _impl->compute(f, D, t, A, hsug);
+}
 BounderHandle* BounderHandle::clone() const { return new BounderHandle(*this); }
 Void BounderHandle::_write(OutputStream& os) const { _impl->_write(os); }
 BounderHandle::operator const BounderInterface&() const { return *_impl; }
 BounderHandle& BounderHandle::operator=(const BounderHandle& other) {
-        _impl = other._impl;
-        return *this;
-    }
+    _impl = other._impl;
+    return *this;
+}
 BounderHandle::BounderHandle(const BounderHandle& other) : _impl(other._impl) {}
 BounderHandle::BounderHandle(const BounderInterface& bounder) : _impl(bounder.clone()) {}
 EulerBounder* EulerBounder::clone() const { return new EulerBounder(*this); }
@@ -67,7 +67,6 @@ OutputStream& operator<<(OutputStream& os, const BounderInterface& bounder) {
     bounder._write(os);
     return os;
 }
-
 
 BounderBase::BounderBase(LipschitzTolerance lipschitz, MinimumStepSize minimum_step)
     : _lipschitz_tolerance(lipschitz), _minimum_step_size(minimum_step) {}

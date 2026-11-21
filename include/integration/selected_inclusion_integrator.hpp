@@ -76,12 +76,11 @@ class SelectedInclusionIntegrator {
     InputApproximation _evolve_approximation;
 
   public:
-SelectedInclusionIntegrator(const InclusionIntegratorFactory& factory,
+    SelectedInclusionIntegrator(const InclusionIntegratorFactory& factory,
                                 const EffectiveVectorMultivariateFunction& field,
                                 const BoxDomainType& inputs,
                                 const InputApproximation& reach_approximation,
                                 const InputApproximation& evolve_approximation);
-
 
     /** @brief Index of the one selected reach method. */
     Nat reach_index() const;
@@ -103,7 +102,6 @@ SelectedInclusionIntegrator(const InclusionIntegratorFactory& factory,
                                const StepSizeType& time_step) const;
 };
 
-
 /** @brief Numerical box-evaluation adapter for f(x,u), with input box U.
  *
  *  The structured function and U are retained by value. The interval
@@ -118,10 +116,9 @@ class ValidatedInputFieldBoxAdapterDP : public ValidatedBoxMultifunctionInterfac
     BoxDomainType _state_domain;
 
   public:
-ValidatedInputFieldBoxAdapterDP(const EffectiveVectorMultivariateFunction& field,
-                                         const BoxDomainType& inputs,
-                                         const BoxDomainType& state_domain);
-
+    ValidatedInputFieldBoxAdapterDP(const EffectiveVectorMultivariateFunction& field,
+                                    const BoxDomainType& inputs,
+                                    const BoxDomainType& state_domain);
 
     SizeType argument_size() const override;
     SizeType result_size() const override;
@@ -155,10 +152,9 @@ class SelectedParametricMultifunctionIntegrator : public MultifunctionIntegrator
     InputApproximation _evolve_approximation;
 
   public:
-SelectedParametricMultifunctionIntegrator(const IntegratorBase& integrator,
-                                             const InputApproximation& reach_approximation,
-                                             const InputApproximation& evolve_approximation);
-
+    SelectedParametricMultifunctionIntegrator(const IntegratorBase& integrator,
+                                              const InputApproximation& reach_approximation,
+                                              const InputApproximation& evolve_approximation);
 
     Nat reach_index() const;
     Nat evolve_index() const;
@@ -186,7 +182,6 @@ SelectedParametricMultifunctionIntegrator(const IntegratorBase& integrator,
                                           const StepSizeType& time_step,
                                           const UpperBoxType& state_bound) const;
 
-
     /** @brief Rigorous structured integration of x' in F(x,t,p,u(t)).
      *
      *  A numerical autonomous lifting defines (x,clock,p)'=(f(x,clock,p,u),1,0).
@@ -206,9 +201,9 @@ SelectedParametricMultifunctionIntegrator(const IntegratorBase& integrator,
 
     /** @brief Compute certified boxes through the common integrator contract. */
     ValidatedMultiflowStep flow_step(const ValidatedBoxMultifunctionInterface& field,
-                                    const ExactBoxType& initial,
-                                    const StepSizeType& time_step,
-                                    const UpperBoxType& state_bound) const override;
+                                     const ExactBoxType& initial,
+                                     const StepSizeType& time_step,
+                                     const UpperBoxType& state_bound) const override;
 };
 
 } // namespace Ariadne

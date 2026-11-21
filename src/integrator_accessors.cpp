@@ -22,7 +22,6 @@ const Generator<MinimumSpacialOrder> minimum_spacial_order{};
 const Generator<MaximumSpacialOrder> maximum_spacial_order{};
 const Generator<MaximumTemporalOrder> maximum_temporal_order{};
 
-
 StepMaximumError::StepMaximumError(ApproximateDouble x) : Attribute<ApproximateDouble>(x) {}
 
 StepMaximumError::StepMaximumError(double x) : Attribute<ApproximateDouble>(x) {}
@@ -48,16 +47,16 @@ FlowStepModelType::FlowStepModelType(const ValidatedVectorMultivariateFunctionPa
 DegreeType TaylorPicardIntegrator::minimum_temporal_order() const { return this->_minimum_temporal_order; }
 
 Void TaylorPicardIntegrator::set_minimum_temporal_order(Nat m) {
-        ARIADNE_PRECONDITION(m <= std::numeric_limits<DegreeType>::max());
-        this->_minimum_temporal_order = static_cast<DegreeType>(m);
-    }
+    ARIADNE_PRECONDITION(m <= std::numeric_limits<DegreeType>::max());
+    this->_minimum_temporal_order = static_cast<DegreeType>(m);
+}
 
 DegreeType TaylorPicardIntegrator::maximum_temporal_order() const { return this->_maximum_temporal_order; }
 
 Void TaylorPicardIntegrator::set_maximum_temporal_order(Nat m) {
-        ARIADNE_PRECONDITION(m <= std::numeric_limits<DegreeType>::max());
-        this->_maximum_temporal_order = static_cast<DegreeType>(m);
-    }
+    ARIADNE_PRECONDITION(m <= std::numeric_limits<DegreeType>::max());
+    this->_maximum_temporal_order = static_cast<DegreeType>(m);
+}
 
 const Sweeper<FloatDP>& TaylorPicardIntegrator::sweeper() const { return this->_sweeper; }
 
@@ -70,13 +69,13 @@ TaylorPicardIntegrator* TaylorPicardIntegrator::clone() const { return new Taylo
 DegreeType GradedTaylorPicardIntegrator::order() const { return this->_order; }
 
 Void GradedTaylorPicardIntegrator::set_order(Nat m) {
-        /** @brief Construct the integration object. */
-        ARIADNE_PRECONDITION(m <= std::numeric_limits<DegreeType>::max());
-        const DegreeType order = static_cast<DegreeType>(m);
-        this->_order = order;
-        this->_sweeper = GradedThresholdSweeper<FloatDP>(DoublePrecision(), order, FloatDP(cast_exact(this->_sweep_threshold), DoublePrecision()));
-        this->set_function_factory(ValidatedFunctionPatchFactory(make_taylor_function_patch_factory(this->_sweeper)));
-    }
+    /** @brief Construct the integration object. */
+    ARIADNE_PRECONDITION(m <= std::numeric_limits<DegreeType>::max());
+    const DegreeType order = static_cast<DegreeType>(m);
+    this->_order = order;
+    this->_sweeper = GradedThresholdSweeper<FloatDP>(DoublePrecision(), order, FloatDP(cast_exact(this->_sweep_threshold), DoublePrecision()));
+    this->set_function_factory(ValidatedFunctionPatchFactory(make_taylor_function_patch_factory(this->_sweeper)));
+}
 
 ExactDouble GradedTaylorPicardIntegrator::step_maximum_error() const { return this->_step_maximum_error; }
 
@@ -101,22 +100,22 @@ Void TaylorSeriesIntegrator::set_order(DegreeType n) { this->_order = n; }
 Bool TaylorSeriesIntegrator::has_step_maximum_error() const { return this->_has_step_maximum_error; }
 
 ExactDouble TaylorSeriesIntegrator::step_maximum_error() const {
-        /** @brief Construct the integration object. */
-        ARIADNE_PRECONDITION(this->has_step_maximum_error());
-        return this->_step_maximum_error;
-    }
+    /** @brief Construct the integration object. */
+    ARIADNE_PRECONDITION(this->has_step_maximum_error());
+    return this->_step_maximum_error;
+}
 
 Void TaylorSeriesIntegrator::set_step_maximum_error(ApproximateDouble e) {
-        this->_step_maximum_error = cast_exact(e);
-        this->_has_step_maximum_error = true;
-    }
+    this->_step_maximum_error = cast_exact(e);
+    this->_has_step_maximum_error = true;
+}
 
 const Sweeper<FloatDP>& TaylorSeriesIntegrator::sweeper() const { return this->_sweeper; }
 
 Void TaylorSeriesIntegrator::set_sweeper(const Sweeper<FloatDP>& sweeper) {
-        _sweeper = sweeper;
-        this->set_function_factory(ValidatedFunctionPatchFactory(make_taylor_function_patch_factory(_sweeper)));
-    }
+    _sweeper = sweeper;
+    this->set_function_factory(ValidatedFunctionPatchFactory(make_taylor_function_patch_factory(_sweeper)));
+}
 
 TaylorSeriesIntegrator* TaylorSeriesIntegrator::clone() const { return new TaylorSeriesIntegrator(*this); }
 
@@ -141,9 +140,9 @@ Void GradedTaylorSeriesIntegrator::set_maximum_temporal_order(DegreeType m) { th
 const Sweeper<FloatDP>& GradedTaylorSeriesIntegrator::sweeper() const { return this->_sweeper; }
 
 Void GradedTaylorSeriesIntegrator::set_sweeper(const Sweeper<FloatDP>& sweeper) {
-        _sweeper = sweeper;
-        this->set_function_factory(ValidatedFunctionPatchFactory(make_taylor_function_patch_factory(_sweeper)));
-    }
+    _sweeper = sweeper;
+    this->set_function_factory(ValidatedFunctionPatchFactory(make_taylor_function_patch_factory(_sweeper)));
+}
 
 ExactDouble GradedTaylorSeriesIntegrator::step_maximum_error() const { return this->_step_maximum_error; }
 
@@ -186,8 +185,8 @@ Bool PreconditionedGradedTaylorSeriesIntegrator::carried_expansion_diagnostics()
 Void PreconditionedGradedTaylorSeriesIntegrator::set_carried_expansion_diagnostics(Bool value) { _carried_expansion_diagnostics = value; }
 
 PreconditionedGradedTaylorSeriesIntegrator* PreconditionedGradedTaylorSeriesIntegrator::clone() const {
-        return new PreconditionedGradedTaylorSeriesIntegrator(*this);
-    }
+    return new PreconditionedGradedTaylorSeriesIntegrator(*this);
+}
 
 DegreeType AffineIntegrator::spacial_order() const { return this->_spacial_order; }
 
@@ -196,33 +195,33 @@ DegreeType AffineIntegrator::temporal_order() const { return this->_temporal_ord
 AffineIntegrator* AffineIntegrator::clone() const { return new AffineIntegrator(*this); }
 
 PreconditionedTaylorSeriesState::PreconditionedTaylorSeriesState(
-        Vector<FloatDP> centre,
-        Matrix<FloatDP> linear_map,
-        ExactBoxType local_domain,
-        ValidatedVectorMultivariateFunctionPatch normalised_mapping) : _centre(std::move(centre)),
-          _linear_map(std::move(linear_map)),
-          _local_domain(std::move(local_domain)),
-          _normalised_mapping(std::move(normalised_mapping)) {}
+    Vector<FloatDP> centre,
+    Matrix<FloatDP> linear_map,
+    ExactBoxType local_domain,
+    ValidatedVectorMultivariateFunctionPatch normalised_mapping) : _centre(std::move(centre)),
+                                                                   _linear_map(std::move(linear_map)),
+                                                                   _local_domain(std::move(local_domain)),
+                                                                   _normalised_mapping(std::move(normalised_mapping)) {}
 
 PreconditionedTaylorSeriesState::PreconditionedTaylorSeriesState(
-        Vector<FloatDP> centre,
-        Matrix<FloatDP> linear_map,
-        ExactBoxType local_domain,
-        ValidatedVectorMultivariateFunctionPatch normalised_mapping,
-        ValidatedVectorMultivariateFunctionPatch physical_mapping) : _centre(std::move(centre)),
-          _linear_map(std::move(linear_map)),
-          _local_domain(std::move(local_domain)),
-          _normalised_mapping(std::move(normalised_mapping)),
-          _physical_mapping(std::make_shared<const ValidatedVectorMultivariateFunctionPatch>(
-              std::move(physical_mapping))) {}
+    Vector<FloatDP> centre,
+    Matrix<FloatDP> linear_map,
+    ExactBoxType local_domain,
+    ValidatedVectorMultivariateFunctionPatch normalised_mapping,
+    ValidatedVectorMultivariateFunctionPatch physical_mapping) : _centre(std::move(centre)),
+                                                                 _linear_map(std::move(linear_map)),
+                                                                 _local_domain(std::move(local_domain)),
+                                                                 _normalised_mapping(std::move(normalised_mapping)),
+                                                                 _physical_mapping(std::make_shared<const ValidatedVectorMultivariateFunctionPatch>(
+                                                                     std::move(physical_mapping))) {}
 
 PreconditionedTaylorSeriesStep::PreconditionedTaylorSeriesStep(
-        StepSizeType time_step,
-        ValidatedVectorMultivariateFunctionPatch flowpipe_mapping,
-        ValidatedVectorMultivariateFunctionPatch evolved_mapping,
-        PreconditionedTaylorSeriesState final_state) : _time_step(time_step),
-          _flowpipe_mapping(std::move(flowpipe_mapping)),
-          _evolved_mapping(std::move(evolved_mapping)),
-          _final_state(std::move(final_state)) {}
+    StepSizeType time_step,
+    ValidatedVectorMultivariateFunctionPatch flowpipe_mapping,
+    ValidatedVectorMultivariateFunctionPatch evolved_mapping,
+    PreconditionedTaylorSeriesState final_state) : _time_step(time_step),
+                                                   _flowpipe_mapping(std::move(flowpipe_mapping)),
+                                                   _evolved_mapping(std::move(evolved_mapping)),
+                                                   _final_state(std::move(final_state)) {}
 
 } // namespace Ariadne

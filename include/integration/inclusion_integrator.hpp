@@ -62,10 +62,8 @@ TimeStepType lower_bound(const TimeStepType& t);
 /** @brief Perform the integration operation. */
 TimeStepType lower_bound(const Real& t);
 
-
 /** @brief Perform the integration operation. */
 Vector<FloatDP> cast_exact(const Vector<ErrorType>& v);
-
 
 /** @brief Perform the integration operation. */
 Void add_errors(ValidatedVectorMultivariateFunctionPatch& phi, const Vector<ErrorType>& e);
@@ -195,15 +193,14 @@ struct ErrorConstants {
           FloatDPUpperBound, ErrorType, ErrorType>
         values() const;
 
-SizeType dimension() const;
-PrecisionType precision() const;
+    SizeType dimension() const;
+    PrecisionType precision() const;
 
   private:
     SizeType _dimension;
 };
 
 std::ostream& operator<<(std::ostream& os, const ErrorConstants& n);
-
 
 /** @brief Compute the requested flow, enclosure, or integration step. */
 ErrorConstants compute_constants(const EffectiveVectorMultivariateFunction&, const Vector<EffectiveVectorMultivariateFunction>&, const BoxDomainType&, const PositiveFloatDP&, const UpperBoxType&);
@@ -223,48 +220,47 @@ struct InputApproximationInterface {
 
 std::ostream& operator<<(std::ostream& os, const InputApproximationInterface& a);
 
-
 /** @brief Input approximation identically equal to zero. */
 struct ZeroApproximation : public InputApproximationInterface {
-virtual bool is_reach_rigorous() const override;
-virtual Void write(OutputStream& os) const override;
-virtual Nat index() const override;
-virtual ZeroApproximation* clone() const override;
+    virtual bool is_reach_rigorous() const override;
+    virtual Void write(OutputStream& os) const override;
+    virtual Nat index() const override;
+    virtual ZeroApproximation* clone() const override;
 };
 /** @brief Constant-valued input approximation. */
 struct ConstantApproximation : public InputApproximationInterface {
-virtual bool is_reach_rigorous() const override;
-virtual Void write(OutputStream& os) const override;
-virtual Nat index() const override;
-virtual ConstantApproximation* clone() const override;
+    virtual bool is_reach_rigorous() const override;
+    virtual Void write(OutputStream& os) const override;
+    virtual Nat index() const override;
+    virtual ConstantApproximation* clone() const override;
 };
 /** @brief Affine-in-time input approximation. */
 struct AffineApproximation : public InputApproximationInterface {
-virtual bool is_reach_rigorous() const override;
-virtual Void write(OutputStream& os) const override;
-virtual Nat index() const override;
-virtual AffineApproximation* clone() const override;
+    virtual bool is_reach_rigorous() const override;
+    virtual Void write(OutputStream& os) const override;
+    virtual Nat index() const override;
+    virtual AffineApproximation* clone() const override;
 };
 /** @brief Sinusoidal input approximation. */
 struct SinusoidalApproximation : public InputApproximationInterface {
-virtual bool is_reach_rigorous() const override;
-virtual Void write(OutputStream& os) const override;
-virtual Nat index() const override;
-virtual SinusoidalApproximation* clone() const override;
+    virtual bool is_reach_rigorous() const override;
+    virtual Void write(OutputStream& os) const override;
+    virtual Nat index() const override;
+    virtual SinusoidalApproximation* clone() const override;
 };
 /** @brief Piecewise-defined input approximation. */
 struct PiecewiseApproximation : public InputApproximationInterface {
-virtual bool is_reach_rigorous() const override;
-virtual Void write(OutputStream& os) const override;
-virtual Nat index() const override;
-virtual PiecewiseApproximation* clone() const override;
+    virtual bool is_reach_rigorous() const override;
+    virtual Void write(OutputStream& os) const override;
+    virtual Nat index() const override;
+    virtual PiecewiseApproximation* clone() const override;
 };
 
 /** @brief Value-like handle for a chosen input approximation. */
 class InputApproximation : public Handle<const InputApproximationInterface> {
   public:
     using Handle<const InputApproximationInterface>::Handle;
-bool is_reach_rigorous() const;
+    bool is_reach_rigorous() const;
     template<class A>
     Bool handles(const A&) const { return instance_of<A>(&*this->_ptr); }
 };
@@ -324,7 +320,6 @@ class AdditiveInputs : public InputsRelationKindTrait<InputsRelationKind::ADDITI
 /** @brief Apply the corresponding integration operator. */
 std::ostream& operator<<(std::ostream& os, const InputsRelationKind& kind);
 
-
 /** @brief Perform the integration operation. */
 template<class A>
 Vector<EffectiveScalarMultivariateFunction> build_w_functions(const Interval<TimeStepType>& domt, const BoxDomainType& doma, SizeType n, SizeType m);
@@ -339,10 +334,10 @@ class InclusionIntegratorFactory {
     SharedPointer<IntegratorInterface> _integrator;
 
   public:
-InclusionIntegratorFactory(const IntegratorInterface& integrator);
+    InclusionIntegratorFactory(const IntegratorInterface& integrator);
     /** @brief Perform the integration operation. */
     InclusionIntegrator create(const EffectiveVectorMultivariateFunction& f, const BoxDomainType& inputs, const InputApproximation& approximation) const;
-InclusionIntegratorFactory* clone() const;
+    InclusionIntegratorFactory* clone() const;
 };
 
 template<class A>
@@ -440,7 +435,7 @@ class InclusionIntegratorInterface {
     virtual List<ValidatedVectorMultivariateFunctionPatch> reach(const BoxDomainType& D, const ValidatedVectorMultivariateFunctionPatch& evolve_function, const UpperBoxType& B, const TimeStepType& t, const StepSizeType& h) const = 0;
     /** @brief Perform the integration operation. */
     virtual ValidatedVectorMultivariateFunctionPatch evolve(const ValidatedVectorMultivariateFunctionPatch& reach_function, const TimeStepType& t) const = 0;
-friend std::ostream& operator<<(std::ostream& os, const InclusionIntegratorInterface& approximator);
+    friend std::ostream& operator<<(std::ostream& os, const InclusionIntegratorInterface& approximator);
     virtual ~InclusionIntegratorInterface() = default;
 };
 
@@ -500,21 +495,21 @@ class InclusionIntegrator : public Handle<const InclusionIntegratorInterface> {
     template<class A>
     Bool handles(const A&) const { return instance_of<A>(&*this->_ptr); }
 
-friend Bool operator==(const InclusionIntegrator& lhs, const InclusionIntegrator& rhs);
+    friend Bool operator==(const InclusionIntegrator& lhs, const InclusionIntegrator& rhs);
     /** @brief Apply the corresponding integration operator. */
-friend Bool operator<(const InclusionIntegrator& lhs, const InclusionIntegrator& rhs);
+    friend Bool operator<(const InclusionIntegrator& lhs, const InclusionIntegrator& rhs);
 
-bool is_reach_rigorous() const;
-Nat index() const;
-Nat num_params_per_input() const;
+    bool is_reach_rigorous() const;
+    Nat index() const;
+    Nat num_params_per_input() const;
 
-friend std::ostream& operator<<(std::ostream& os, const InclusionIntegrator& approximator);
+    friend std::ostream& operator<<(std::ostream& os, const InclusionIntegrator& approximator);
 
-operator const InclusionIntegratorInterface&() const;
-InclusionIntegrator* clone() const;
+    operator const InclusionIntegratorInterface&() const;
+    InclusionIntegrator* clone() const;
 
-List<ValidatedVectorMultivariateFunctionPatch> reach(const BoxDomainType& D, const ValidatedVectorMultivariateFunctionPatch& evolve_function, const UpperBoxType& B, const TimeStepType& t, const StepSizeType& h) const;
-ValidatedVectorMultivariateFunctionPatch evolve(const ValidatedVectorMultivariateFunctionPatch& reach_function, const TimeStepType& t) const;
+    List<ValidatedVectorMultivariateFunctionPatch> reach(const BoxDomainType& D, const ValidatedVectorMultivariateFunctionPatch& evolve_function, const UpperBoxType& B, const TimeStepType& t, const StepSizeType& h) const;
+    ValidatedVectorMultivariateFunctionPatch evolve(const ValidatedVectorMultivariateFunctionPatch& reach_function, const TimeStepType& t) const;
 };
 
 } // namespace Ariadne
